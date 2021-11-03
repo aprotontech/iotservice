@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HttpDnsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +18,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
+Route::get('/version', function (Request $request) {
+    return json_encode([
+        "version" => env('APP_VERSION', '1.0')
+    ]);
+});
+
+Route::resource('/dns', 'HttpDnsController');
