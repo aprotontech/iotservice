@@ -2,10 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+
 class DeviceController extends Controller
 {
-    public function show()
+    public function create(Request $request)
     {
-        return 'show';
+        $input = new ApiRequest($request, [
+            'appId' => 'is_string',
+            'deviceId' => 'is_string',
+            'deviceSecret' => 'is_string',
+        ]);
+
+        
+        
     }
 }
