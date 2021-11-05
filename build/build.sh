@@ -25,6 +25,7 @@ mv iotservice/build .
 cp build/production.env $TMP/iotservice/.env
 
 cd $TMP/iotservice
+rm -rf .git* .env.example 
 
 docker build -f ../build/Dockerfile -t registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG .
 docker push registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
