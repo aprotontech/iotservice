@@ -25,8 +25,8 @@ mv iotservice/build .
 
 cd $TMP/iotservice
 
-echo docker build -f ../build/Dockerfile -t registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG .
-echo docker push registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
-echo docker image registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
+docker build -f ../build/Dockerfile -t registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG .
+docker push registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
+docker image registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
 
 rm -rf $TMP
