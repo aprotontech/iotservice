@@ -1,6 +1,12 @@
 
 # 运行
 
+## 编译镜像
+```bash
+
+
+
+```
 
 ```
 docker rm -f iotservice

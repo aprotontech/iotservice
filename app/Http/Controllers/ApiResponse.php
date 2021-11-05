@@ -6,7 +6,7 @@ class ApiResponse implements \JsonSerializable
 {
     private $data;
 
-    public function __construct($code = 200, $msg = '')
+    public function __construct($code = EC_SUCCESS, $msg = '')
     {
         $this->data = [
             'rc' => $code,
@@ -14,7 +14,7 @@ class ApiResponse implements \JsonSerializable
         if (!$msg) {
             switch ($code)
             {
-            case 404: $msg = 'Not Found'; break;
+            case ErrorCode::EC_NOT_FOUND: $msg = 'Not Found'; break;
 
             }
         }

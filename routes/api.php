@@ -27,3 +27,4 @@ Route::get('/version', function (Request $request) {
 });
 
 Route::resource('/dns', 'HttpDnsController');
+Route::resource('/devices', 'DeviceController');

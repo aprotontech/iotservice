@@ -17,9 +17,9 @@ class HttpDnsController extends Controller
     {
         $ipList = $this->dnsConfig->query('', '', [$svr]);
         if (!$ipList) {
-            return $this->apiResponse(404);
+            return $this->apiResponse(ErrorCode::EC_NOT_FOUND);
         }
-        return $this->apiResponse(200)
+        return $this->apiResponse(ErrorCode::EC_SUCCESS)
                 ->set('service', $ipList[$svr]);
     }
 }
