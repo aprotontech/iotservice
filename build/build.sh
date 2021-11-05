@@ -22,6 +22,7 @@ fi
 
 cd $TMP
 mv iotservice/build .
+cp build/production.env $TMP/iotservice/.env
 
 cd $TMP/iotservice
 
