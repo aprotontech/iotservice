@@ -22,10 +22,10 @@ jobs:
 
       - name: Build & push Docker image
         uses: mr-smithers-excellent/docker-build-push@v5
-          with:
-            image: aproton/iotservice
-            tags: $GITHUB_ENV, latest
-            registry: registry.cn-beijing.aliyuncs.com
-            dockerfile: build/Dockerfile
-            username: ${{ secrets.ALIYUN_DOCKER_USER_NAME }}
-            password: ${{ secrets.ALIYUN_DOCKER_PASSWORD }}
+        with:
+          image: aproton/iotservice
+          tags: $GITHUB_ENV, latest
+          registry: registry.cn-beijing.aliyuncs.com
+          dockerfile: build/Dockerfile
+          username: ${{ secrets.ALIYUN_DOCKER_USER_NAME }}
+          password: ${{ secrets.ALIYUN_DOCKER_PASSWORD }}
