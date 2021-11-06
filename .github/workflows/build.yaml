@@ -2,6 +2,8 @@ name: BUILD-DOCKER
 on:
   pull_request:
     branches: [ dev/v*, init ]
+  push:
+    branches: [ init ]
 
 jobs:
   hello:
