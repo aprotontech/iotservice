@@ -14,7 +14,7 @@ class DeviceController extends Controller
         $input = new ApiRequest($request, [
             'appId' => 'is_string',
             'deviceId' => 'is_string',
-            'deviceSecret' => 'is_string',
+            'signature' => 'is_string',
         ]);
 
         $device = Device::where('app_id', $input->appId)
@@ -45,6 +45,6 @@ class DeviceController extends Controller
 
     private function _newSessionId($input)
     {
-        return md5(md5(microtime(true).$input->deviceId.$input->deviceSecret.rand(0, 10000)).$input->appId);
+        return md5(md5(microtime(true).$input->deviceId.$input->signature.rand(0, 10000)).$input->appId);
     }
 }

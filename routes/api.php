@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HttpDnsController;
+use App\Http\Controllers\DebugerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,3 +29,7 @@ Route::get('/version', function (Request $request) {
 
 Route::resource('/dns', 'HttpDnsController');
 Route::resource('/devices', 'DeviceController');
+Route::resource('/device/attrs', 'DeviceAttributeController');
+
+Route::get('/debug/session', [DebugerController::class, 'getSession']);
+Route::get('/debug/device', [DebugerController::class, 'getDevice']);

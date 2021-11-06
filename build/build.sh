@@ -29,6 +29,6 @@ rm -rf .git* .env.example
 
 docker build -f ../build/Dockerfile -t registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG .
 docker push registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
-docker image registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
+docker image rm registry.cn-beijing.aliyuncs.com/aproton/iotservice:$DOCKER_TAG
 
 rm -rf $TMP
