@@ -29,7 +29,7 @@ class DeviceController extends Controller
             $device = new Device();
             $device->app_id = $input->appId;
             $device->device_id = $input->deviceId;
-            $device->client_id = md5($input->appId.$input->deviceId.microtime(true));
+            $device->client_id = strtoupper(substr(md5($input->appId.$input->deviceId.microtime(true)), 8, 16));
             $device->session_id = $this->_newSessionId($input);
             $device->session_timeout = strftime("%Y-%m-%d %T", time() + DeviceController::DEVICE_SESSION_TIMEOUT);
             $device->save();
