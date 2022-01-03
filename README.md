@@ -1,5 +1,5 @@
 
-# 运行
+# 编译
 
 ## 编译镜像
 ```bash
@@ -15,3 +15,19 @@ docker run --name=iotservice -v $PWD:/home/admin/iotservice -w /home/admin/iotse
 ```
 
 
+## 前端页面
+### 编译
+```
+rm -rf dist
+
+npm install
+npm run build
+
+```
+
+
+# 运行
+## 运行服务
+```
+php artisan serve --host=0.0.0.0 --port=8080
+```
