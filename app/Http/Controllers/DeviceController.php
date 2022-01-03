@@ -14,7 +14,7 @@ class DeviceController extends Controller
         $input = new ApiRequest($request, [
             'appId' => 'is_string',
             'deviceId' => 'is_string',
-            'deviceSecret' => 'is_string',
+            'signature' => 'is_string',
         ]);
 
         $device = Device::where('app_id', $input->appId)
@@ -29,7 +29,7 @@ class DeviceController extends Controller
             $device = new Device();
             $device->app_id = $input->appId;
             $device->device_id = $input->deviceId;
-            $device->client_id = md5($input->appId.$input->deviceId.microtime(true));
+            $device->client_id = strtoupper(substr(md5($input->appId.$input->deviceId.microtime(true)), 8, 16));
             $device->session_id = $this->_newSessionId($input);
             $device->session_timeout = strftime("%Y-%m-%d %T", time() + DeviceController::DEVICE_SESSION_TIMEOUT);
             $device->save();
@@ -45,6 +45,6 @@ class DeviceController extends Controller
 
     private function _newSessionId($input)
     {
-        return md5(md5(microtime(true).$input->deviceId.$input->deviceSecret.rand(0, 10000)).$input->appId);
+        return md5(md5(microtime(true).$input->deviceId.$input->signature.rand(0, 10000)).$input->appId);
     }
 }
