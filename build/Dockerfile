@@ -1,6 +1,6 @@
 FROM registry.cn-beijing.aliyuncs.com/aproton/laravel:v1.0
 
-COPY . /home/admin/laravel
+COPY backend /home/admin/laravel
 
 RUN mkdir -p /home/admin/databases && cd /home/admin/databases && sqlite3 aproton.sqlite -interactive ".open aproton.sqlite"; \
     cd /home/admin/laravel ; composer update -vvv; \
