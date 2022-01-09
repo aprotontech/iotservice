@@ -2,16 +2,14 @@
     <div class="layout">
         <Layout>
         
-            <Content :style="{padding: '0 50px'}">
-                <Breadcrumb :style="{margin: '20px 0'}">
+            <Content>
+                <Breadcrumb :style="{margin: '100px 0'}">
                  
                 </Breadcrumb>
                 <Row type="flex" justify="center" class="code-row-bg">
-                <Col span="6">
+                <Col span="8">
                 <Card>
                     <p slot="title">管理后台登陆</p>
-
-                        
                         <Form ref="formCustom" :model="formCustom" :rules="ruleCustom" :label-width="80">
                         <FormItem label="账号" prop="account">
                             <Input type="text" v-model="formCustom.account"></Input>
@@ -21,7 +19,6 @@
                         </FormItem>
                         <FormItem>
                             <Button type="primary" @click="handleSubmit('formCustom')">登陆</Button>
-                            
                         </FormItem>
                     </Form>
 
@@ -42,7 +39,7 @@ export default {
   data () {
         const validateAccount = (rule, value, callback) => {
             if (value === '') {
-                callback(new Error('Please enter your account'));
+                callback(new Error('Please enter your account(name or email)'));
             } else {
                 callback();
             }
@@ -89,7 +86,6 @@ export default {
                         });
 
                     } else {
-                        // alert('no');
                         //this.$Message.error('Fail!');
                     }
                 })
