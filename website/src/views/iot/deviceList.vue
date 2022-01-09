@@ -360,10 +360,10 @@ export default {
                 this.$http.post(this.$API.DEVICE_ENABLE, paramsData)
                     .then((response) => {
                         console.log(response);
-                        if (response.data.result === 0) {
+                        if (response.data.rc === 0) {
                             ApiMessage(this, '启用成功！', 'success');
                             this.fetchQueryData();
-                        } else if (response.data.result == -5015) {
+                        } else if (response.data.rc == 10000) {
                             alert('启用失败，设备数量已超过设定的最大数量！');
                         } else {
                             ApiMessage(this, '启用失败！', 'error');

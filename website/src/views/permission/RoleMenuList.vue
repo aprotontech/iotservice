@@ -65,10 +65,8 @@ export default {
                             this.$nextTick(function() {
                                 this.selectData = this.$refs.tree.getCheckedAndIndeterminateNodes();
                             })
-                        } else if (response.data.rc == '-3003') {
-                            this.$router.push('/login');
-                        } else if (response.data.rc == '403') {
-                            this.$router.push('/unauthorized');
+                        } else {
+                            this.$Message.error('错误!');
                         }
                         this.loading = false;
                         this.subDisable = false;
@@ -94,10 +92,8 @@ export default {
                      .then(response => {
                         if(response.data && response.data.rc == '0') {
                             this.$Message.success('成功!');
-                        } else if (response.data.rc == '-3003') {
-                            this.$router.push('/login');
-                        } else if (response.data.rc == '-4001') {
-                            this.$router.push('/unauthorized');
+                        } else {
+                            this.$Message.error('错误!');
                         }
                         this.subDisable = false;
                     });

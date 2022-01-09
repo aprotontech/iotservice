@@ -107,10 +107,6 @@ export default {
 
                             this.getAllPermissions(this.roleSystem);
 
-                        } else if (response.data.rc == '-3003') {
-                            this.$Message.error('未登陆!');
-                        } else if (response.data.rc == '-4001') {
-                            this.$Message.error('无权访问!');
                         } else {
                             this.$Message.error('错误!');
                         }

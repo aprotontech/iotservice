@@ -94,12 +94,6 @@ export default {
                                     console.log(response);
                                     if(response.data && response.data.rc == '0') {
                                         this.$Message.success('成功!');
-                                    } else if (response.data.rc == '-3003') {
-                                        this.$Message.error('未登陆!');
-                                    } else if (response.data.rc == '-4001') {
-                                        this.$Message.error('无权访问!');
-                                     } else if (response.data.rc == '-5004') {
-                                        this.$Message.error('权限标示已存在!');
                                     } else {
                                         this.$Message.error('失败!');
                                     }
@@ -118,10 +112,6 @@ export default {
                                     console.log(response);
                                     if(response.data && response.data.rc == '0') {
                                         this.$Message.success('成功!');
-                                    } else if (response.data.rc == '-3003') {
-                                        this.$Message.error('未登陆!');
-                                    } else if (response.data.rc == '-4001') {
-                                        this.$Message.error('无权访问!');
                                     } else {
                                         this.$Message.error('失败!');
                                     }
@@ -160,10 +150,6 @@ export default {
                             this.formData.system = response.data.system;
                             this.formData.desc = response.data.description;
 
-                        } else if (response.data.rc == '-3003') {
-                            this.$Message.error('未登陆!');
-                        } else if (response.data.rc == '-4001') {
-                            this.$Message.error('无权访问!');
                         } else {
                             this.$Message.error('错误!');
                         }

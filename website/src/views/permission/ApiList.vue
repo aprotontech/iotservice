@@ -173,10 +173,8 @@ export default {
                         if(response.data && response.data.rc == '0') {
                             this.total = response.data.total;
                             this.tableData1 = response.data.list;
-                        } else if (response.data.rc == '-3003') {
-                            this.$router.push('/login');
-                        } else if (response.data.rc == '-4001') {
-                            this.$router.push('/unauthorized');
+                        } else {
+                            this.$Message.error('错误!');
                         }
                         this.loading = false;
                         this.searchDisable = false;

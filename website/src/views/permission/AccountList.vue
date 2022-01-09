@@ -145,10 +145,8 @@ export default {
                             if(m.rc == '0') {
                                 this.total = m.total;
                                 this.tableData1 = m.list;
-                            } else if (m.rc == '-3003') {
-                                this.$router.push('/login');
-                            } else if (m.rc == '-4001') {
-                                this.$router.push('/unauthorized');
+                            } else {
+                                ApiMessage(this, "get account list failed", 'error')
                             }
                             this.loading = false;
                             this.searchDisable = false;
