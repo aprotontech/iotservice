@@ -165,6 +165,7 @@ return [
         /*
          * Package Service Providers...
          */
+        Proton\Framework\ProtonServiceProvider::class,
 
         /*
          * Application Service Providers...

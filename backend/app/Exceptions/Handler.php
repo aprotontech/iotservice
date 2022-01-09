@@ -7,7 +7,7 @@ use Throwable;
 
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-use App\Http\Controllers\ApiException;
+use Proton\Framework\Exception\ApiException;
 
 class Handler extends ExceptionHandler
 {
@@ -53,7 +53,7 @@ class Handler extends ExceptionHandler
         });
 
         $this->renderable(function (ApiException $e, $request) {
-            return response("$e", 200);
+            return response($e->getApiError(), 200);
         });
     }
 }
