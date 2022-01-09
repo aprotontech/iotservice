@@ -1,0 +1,37 @@
+
+@mixin font-dpr($font-size){
+    font-size: $font-size;
+
+    [data-dpr="2"] & {
+        font-size: $font-size * 2;
+    }
+
+    [data-dpr="3"] & {
+        font-size: $font-size * 3;
+    }
+}
+
+
+//pxtorem
+@function px2rem($px){
+    @return $px/75 * 1rem;
+}
+@function v2($v){
+    @return $v/2;
+}
+
+@mixin bgz($value){
+    -webkit-background-size: $value;
+    background-size: $value;
+}
+
+@mixin fadeOut($op,$x,$y,$z) {
+    opacity: $op;
+    -webkit-transform: translate3d($x,$y,$z);
+    transform: translate3d($x,$y,$z);
+}
+
+@mixin delayTime($t){
+    -webkit-transition: -webkit-transform 1s $t,opacity 1s $t;
+    transition: transform 1s $t,opacity 1s $t;
+}
