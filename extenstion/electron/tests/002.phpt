@@ -1,10 +1,14 @@
 --TEST--
-test1() Basic test
---EXTENSIONS--
-electron
+electron_test1() Basic test
+--SKIPIF--
+<?php
+if (!extension_loaded('electron')) {
+	echo 'skip';
+}
+?>
 --FILE--
 <?php
-$ret = test1();
+$ret = electron_test1();
 
 var_dump($ret);
 ?>

@@ -12,4 +12,6 @@ extern zend_module_entry electron_module_entry;
 ZEND_TSRMLS_CACHE_EXTERN()
 # endif
 
+#define PHP_COROUTINE_RESOURCE_NAME "proton_coroutine"
+
 #endif	/* PHP_ELECTRON_H */

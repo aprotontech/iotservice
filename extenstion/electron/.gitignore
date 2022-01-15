@@ -7,7 +7,7 @@ autom4te.cache
 build
 config.guess
 config.h
-config.h.in
+config.h.in*
 config.log
 config.nice
 config.status
@@ -15,7 +15,7 @@ config.sub
 configure
 configure.ac
 configure.in*
-include
+./include
 install-sh
 libtool
 ltmain.sh
@@ -39,3 +39,4 @@ tests/**/*.sh
 tests/**/*.db
 tests/**/*.mem
 tmp-php.ini
+core*
