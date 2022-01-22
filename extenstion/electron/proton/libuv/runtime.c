@@ -27,6 +27,7 @@ quark_coroutine_runtime *quark_get_runtime() {
     __runtime->cmap = hashmap_new();
 
     __runtime->loop = uv_default_loop();
+    __runtime->loop->data = __runtime;
 
     uv_idle_init(__runtime->loop, &__runtime->idle);
     __runtime->idle.data = __runtime;
@@ -70,6 +71,8 @@ int quark_coroutine_yield(quark_coroutine_runtime *runtime) {
   LL_insert(&task->link, runtime->runables.prev);
   return quark_coroutine_swap_out(task, QC_STATUS_RUNABLE);
 }
+
+int quark_coroutine_ready(quark_coroutine_runtime *runtime) { return 0; }
 
 void coroutine_schedule(uv_idle_t *handle) {
   quark_coroutine_runtime *runtime = handle->data;

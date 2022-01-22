@@ -11,4 +11,4 @@
  *
  */
 
-int __quark_logger = 1;
+int __quark_logger = 0;

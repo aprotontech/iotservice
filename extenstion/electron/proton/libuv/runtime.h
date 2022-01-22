@@ -38,7 +38,7 @@ quark_coroutine_runtime *quark_get_runtime();
 
 int quark_runtime_loop(quark_coroutine_runtime *runtime);
 int quark_runtime_stop(quark_coroutine_runtime *runtime);
-quark_coroutine_task* quark_runtime_main(quark_coroutine_runtime *runtime);
+quark_coroutine_task *quark_runtime_main(quark_coroutine_runtime *runtime);
 
 int quark_coroutine_sleep(quark_coroutine_runtime *runtime, long time_ms);
 int quark_coroutine_yield(quark_coroutine_runtime *runtime);

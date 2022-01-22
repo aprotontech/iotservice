@@ -1,0 +1,52 @@
+/*
+ * **************************************************************************
+ *
+ *  Copyright (c) 2022 aproton.tech, Inc. All Rights Reserved
+ *
+ * **************************************************************************
+ *
+ *  @file     electron.h
+ *  @author   kuper - <kuper@aproton.tech>
+ *  @data     2022-01-18 11:43:43
+ *
+ */
+
+#ifndef _QUARK_ELECTRON_H_
+#define _QUARK_ELECTRON_H_
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "php.h"
+#include "php_electron.h"
+#include "ext/standard/info.h"
+
+#include "proton/include/electron.h"
+#include "proton/libuv/uvobject.h"
+#include "proton/libuv/runtime.h"
+#include "proton/http/http.h"
+
+#define PROTON_NAMESPACE "proton"
+
+#define PHP_COROUTINE_RESOURCE_NAME "proton_coroutine"
+
+#define PHP_PRIVATE_VALUE_RESOURCE_NAME "proton_private_value"
+
+#define PROTON_OBJECT_PRIVATE_VALUE "_proton_private"
+#define PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE "_default_router"
+
+extern int pc_private_resource_handle;
+
+extern proton_private_value_t *proton_object_get(zval *self);
+extern int proton_object_construct(zval *self, proton_private_value_t *val);
+extern void destruct_proton_private_value(zend_resource *rsrc);
+
+extern zend_class_entry *_tcpclient_ce;
+extern zend_class_entry *_tcpserver_ce;
+extern zend_class_entry *_runtime_ce;
+extern zend_class_entry *_coroutine_ce;
+extern zend_class_entry *_httpserver_ce;
+extern zend_class_entry *_httpclient_ce;
+
+#endif
