@@ -32,7 +32,7 @@ run-test-info.php
 run-tests.php
 tests/**/*.diff
 tests/**/*.out
-tests/**/*.php
+#tests/**/*.php
 tests/**/*.exp
 tests/**/*.log
 tests/**/*.sh
