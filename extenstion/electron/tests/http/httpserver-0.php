@@ -13,6 +13,7 @@ quark_enable_logger(1);
 function handler($server, $request)
 {
     println("$server-$request");
+    $request->end(200, "OK");
 }
 
 proton\go(function () {

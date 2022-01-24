@@ -55,8 +55,10 @@ char *proton_link_buffer_alloc(proton_link_buffer_t *lbf, size_t len,
     } else {
       ptr = pbt->buff.base;
       pbt->used = len;
+      lbf->total_used_size += len;
     }
   } else {
+    lbf->total_used_size += (used - pbt->used) + len;
     ptr = pbt->buff.base + used;
     pbt->used = used + len;
   }
@@ -83,5 +85,26 @@ char *proton_link_buffer_copy_string(proton_link_buffer_t *lbf, const char *ptr,
 
 char *proton_link_buffer_append_string(proton_link_buffer_t *lbf,
                                        const char *ptr, size_t len) {
-  return NULL;
+  char *dest = proton_link_buffer_alloc(lbf, len, 1);
+  if (dest != NULL) {
+    memcpy(dest, ptr, len);
+  }
+  return dest;
 }
+
+char *proton_link_buffer_get_ptr(proton_link_buffer_t *lbf, size_t offset) {
+  list_link_t *p = lbf->link.next;
+  while (p != &lbf->link) {
+    proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
+    if (offset < pbt->used) {
+      return pbt->buff.base + offset;
+    }
+
+    offset -= pbt->used;
+    p = p->next;
+  }
+
+  return 0;
+}
+
+int proton_link_buffer_uninit(proton_link_buffer_t *lbf) { return 0; }

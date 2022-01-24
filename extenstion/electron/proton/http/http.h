@@ -25,6 +25,13 @@
 typedef void (*on_new_http_client)(proton_private_value_t *server,
                                    proton_private_value_t *client);
 
+typedef enum _proton_http_request_status {
+  PROTON_HRC_NEW = 1,
+  PROTON_HRC_SEND_HEADER = 2,
+  PROTON_HRC_SEND_BODY = 3,
+  PROTON_HRC_FINISH = 4,
+} proton_http_request_status;
+
 typedef struct _proton_http_server_config_t {
   char *host;
   int port;
@@ -42,6 +49,10 @@ typedef struct _proton_http_server_t {
 typedef struct _proton_http_client_context_t {
 
 } proton_http_client_context_t;
+
+typedef struct _proton_http_request_t {
+
+} proton_http_request_t;
 
 typedef struct _proton_sc_context_t {
   proton_http_client_context_t context;
@@ -74,6 +85,9 @@ typedef struct _proton_http_client_t {
   proton_link_buffer_t rbody;    // response body
   char *last_header_key;
 
+  char keepalive;
+  char rstatus;
+
   proton_buffer_t *read_buffer;
 
   proton_http_client_context_t *context;
@@ -89,8 +103,13 @@ int proton_httpserver_stop(proton_private_value_t *server);
 
 int proton_httpserver_free(proton_private_value_t *server);
 
-int proton_httpclient_body_write(proton_private_value_t *server,
+int proton_httpclient_body_write(proton_private_value_t *client,
                                  const char *body, int len);
+
+int proton_httpclient_write_response(proton_private_value_t *value,
+                                     int status_code, const char *headers[],
+                                     int header_count, const char *body,
+                                     int body_len);
 
 proton_private_value_t *
 proton_httpclient_create(quark_coroutine_runtime *runtime);

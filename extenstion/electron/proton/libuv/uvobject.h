@@ -107,4 +107,8 @@ char *proton_link_buffer_append_string(proton_link_buffer_t *lbf,
 proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
                                               size_t length);
 
+char *proton_link_buffer_get_ptr(proton_link_buffer_t *lbf, size_t offset);
+
+int proton_link_buffer_uninit(proton_link_buffer_t *lbf);
+
 #endif

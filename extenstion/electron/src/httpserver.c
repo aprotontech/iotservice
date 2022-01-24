@@ -29,21 +29,41 @@ void php_new_httpserver_client(proton_private_value_t *server,
       0 TSRMLS_CC, &rv);
 
   if (callback != NULL) {
-    zval retval;
-    zval params[2];
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    char *is_callable_error = NULL;
+    if (zend_fcall_info_init(callback, 0, &fci, &fcc, NULL,
+                             &is_callable_error) == SUCCESS) {
+      zval params[2];
 
-    ZVAL_NULL(&retval);
-    ZVAL_COPY(&params[1], self);
-    ZVAL_COPY(&params[1], &httpclient);
+      ZVAL_COPY(&params[0], self);
+      ZVAL_COPY(&params[1], &httpclient);
 
-    if (call_user_function_ex(EG(function_table), NULL, callback, &retval, 2,
-                              params, 0, NULL TSRMLS_CC) != SUCCESS) {
-      QUARK_LOGGER("callback new httpclient failed");
+      quark_coroutine_entry entry = {
+          .fci_cache = &fcc,
+          .argc = 2,
+          .argv = params,
+      };
+
+      quark_coroutine_runtime *runtime = quark_get_runtime();
+
+      quark_coroutine_task *task =
+          quark_coroutine_create(quark_runtime_main(runtime), &entry, 0, 0);
+
+      zval coroutine;
+      object_init_ex(&coroutine, _coroutine_ce);
+
+      proton_object_construct(&coroutine, &task->value);
+
+      ZVAL_COPY(&task->myself, &coroutine);
+
+      Z_TRY_DELREF(params[0]);
+      Z_TRY_DELREF(params[1]);
+
+      quark_coroutine_swap_in(task);
+    } else {
+      QUARK_LOGGER("get new httpclient callback function failed");
     }
-
-    Z_TRY_DELREF(params[0]);
-    Z_TRY_DELREF(params[1]);
-    zval_ptr_dtor(&retval);
   }
 }
 

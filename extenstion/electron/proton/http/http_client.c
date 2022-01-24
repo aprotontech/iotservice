@@ -14,6 +14,7 @@
 
 #define HTTPCLIENT_DEFAULT_ALLOC_SIZE 4096
 #define HTTPCLIENT_MAX_BUFFER_SIZE (2 * 1024 * 1024)
+#define STRING_ARRAY_PARAM(s) s, sizeof(s) - 1
 
 proton_private_value_t *
 proton_httpclient_create(quark_coroutine_runtime *runtime) {
@@ -62,6 +63,7 @@ int httpclient_on_message_begin(http_parser *p) { return 0; }
 
 int httpclient_on_message_complete(http_parser *p) {
   proton_http_client_t *client = (proton_http_client_t *)p->data;
+  client->keepalive = http_should_keep_alive(&client->parser);
   if (p->type == HTTP_REQUEST) { // server request
     proton_sc_context_t *context = (proton_sc_context_t *)client->context;
     context->server->config.handler(&context->server->value, &client->value);
@@ -124,6 +126,7 @@ int proton_http_client_init(proton_http_client_t *client,
       &client->rbuffers,
       HTTPCLIENT_DEFAULT_ALLOC_SIZE); // alloc first buffer to recv data
 
+  client->rstatus = 0;
   client->read_buffer->used =
       client->read_buffer->buff.len; // mark all buffer had used
   client->last_header_key = NULL;
@@ -146,8 +149,83 @@ int proton_http_client_init(proton_http_client_t *client,
                        httpclient_on_read);
 }
 
-int proton_httpclient_body_write(proton_private_value_t *server,
+int proton_httpclient_body_write(proton_private_value_t *value,
                                  const char *body, int len) {
   MAKE_SURE_ON_COROTINUE("write");
+  proton_http_client_t *client = (proton_http_client_t *)value;
+  switch (client->rstatus) {
+  case PROTON_HRC_NEW:
+    break;
+  case PROTON_HRC_SEND_BODY:
+    // send header first
+    break;
+  }
   return 0;
+}
+
+void httpclient_on_write(uv_write_t *req, int status) {
+  quark_coroutine_swap_in((quark_coroutine_task *)req->data);
+}
+
+int proton_httpclient_write_response(proton_private_value_t *value,
+                                     int status_code, const char *headers[],
+                                     int header_count, const char *body,
+                                     int body_len) {
+  MAKE_SURE_ON_COROTINUE("response");
+  proton_http_client_t *client = (proton_http_client_t *)value;
+  char buff[60];
+
+  proton_link_buffer_t lbf;
+  proton_link_buffer_init(&lbf, HTTPCLIENT_DEFAULT_ALLOC_SIZE,
+                          HTTPCLIENT_MAX_BUFFER_SIZE);
+
+  if (client->keepalive) { // http/1.1
+    proton_link_buffer_append_string(&lbf, STRING_ARRAY_PARAM("HTTP/1.1 "));
+  } else {
+    proton_link_buffer_append_string(&lbf, STRING_ARRAY_PARAM("HTTP/1.0 "));
+  }
+
+  proton_link_buffer_append_string(
+      &lbf, buff,
+      snprintf(buff, sizeof(buff), "%03d %s\r\n", status_code,
+               http_status_str((enum http_status)status_code)));
+
+  proton_link_buffer_append_string(
+      &lbf, STRING_ARRAY_PARAM("Server: proton/1.0\r\n"));
+  proton_link_buffer_append_string(
+      &lbf, STRING_ARRAY_PARAM("Content-Type: text/html\r\n"));
+  if (client->keepalive) {
+    proton_link_buffer_append_string(
+        &lbf, STRING_ARRAY_PARAM("Connection: keep-alive\r\n"));
+  } else {
+    proton_link_buffer_append_string(
+        &lbf, STRING_ARRAY_PARAM("Connection: Close\r\n"));
+  }
+  proton_link_buffer_append_string(
+      &lbf, buff,
+      snprintf(buff, sizeof(buff), "Content-Length: %d\r\n", body_len));
+  proton_link_buffer_append_string(&lbf, STRING_ARRAY_PARAM("\r\n"));
+
+  // QUARK_LOGGER("length=%d content=\n%s", (int)lbf.total_used_size,
+  //            proton_link_buffer_get_ptr(&lbf, 0));
+
+  uv_buf_t rbufs[2] = {
+      {.base = proton_link_buffer_get_ptr(&lbf, 0), .len = lbf.total_used_size},
+      {.base = (char *)body, .len = body_len}};
+
+  uv_write_t write;
+  write.data = quark_coroutine_current();
+  int rc = uv_write(&write, (uv_stream_t *)&client->tcp, rbufs, 2,
+                    httpclient_on_write);
+
+  if (rc == 0) {
+    quark_coroutine_swap_out(quark_coroutine_current(), QC_STATUS_SUSPEND);
+
+    if (write.error != 0) {
+      rc = write.error;
+    }
+  }
+
+  proton_link_buffer_uninit(&lbf);
+  return rc;
 }
