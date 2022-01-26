@@ -21,9 +21,10 @@ void php_new_httpserver_client(proton_private_value_t *server,
   object_init_ex(&httpclient, _httpclient_ce);
 
   proton_object_construct(&httpclient, client);
+  ZVAL_COPY(&(((proton_http_client_t *)client)->value.myself), &httpclient);
 
   zval rv;
-  zval *self = &((proton_http_server_t *)server)->myself;
+  zval *self = &((proton_http_server_t *)server)->value.myself;
   zval *callback = zend_read_property(
       Z_OBJCE_P(self), self, ZEND_STRL(PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE),
       0 TSRMLS_CC, &rv);
@@ -55,12 +56,16 @@ void php_new_httpserver_client(proton_private_value_t *server,
 
       proton_object_construct(&coroutine, &task->value);
 
-      ZVAL_COPY(&task->myself, &coroutine);
+      ZVAL_COPY(&task->value.myself, &coroutine);
 
       Z_TRY_DELREF(params[0]);
       Z_TRY_DELREF(params[1]);
 
       quark_coroutine_swap_in(task);
+
+      QUARK_LOGGER("switch to callback done try dtor coroutine(%lu)",
+                   task->cid);
+      ZVAL_PTR_DTOR(&coroutine); // release it
     } else {
       QUARK_LOGGER("get new httpclient callback function failed");
     }
@@ -98,7 +103,7 @@ PHP_METHOD(httpserver, __construct) {
                        ZEND_STRL(PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE),
                        handler TSRMLS_CC);
 
-  ZVAL_COPY(&((proton_http_server_t *)s)->myself, getThis());
+  ZVAL_COPY(&((proton_http_server_t *)s)->value.myself, getThis());
 }
 /* }}} */
 

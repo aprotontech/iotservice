@@ -15,7 +15,7 @@
 #define _PROTON_UVOBJECT_H_
 
 #include "runtime.h"
-#include "proton/include/electron.h"
+#include "proton/common/electron.h"
 #include <uv.h>
 
 #define MAKE_SURE_ON_COROTINUE(func)                                           \

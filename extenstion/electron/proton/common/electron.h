@@ -14,11 +14,20 @@
 #ifndef __QUARK_ELECTRON_H__
 #define __QUARK_ELECTRON_H__
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "clist.h"
 #include "hashmap.h"
+#include "http_parser.h"
+
+#include "php.h"
+#include "ext/standard/info.h"
 
 typedef struct _proton_private_value_t {
   int type;
+  zval myself;
 } proton_private_value_t;
 
 #define QUARK_LOGGER(args...)                                                  \

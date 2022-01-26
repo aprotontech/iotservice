@@ -15,6 +15,7 @@
 #include "proton/coroutine/task.h"
 
 void on_coroutine_sleep_done(uv_timer_t *timer) {
+  QUARK_LOGGER("timer sleep done");
   quark_coroutine_task *task = (quark_coroutine_task *)timer->data;
 
   quark_coroutine_swap_in(task);

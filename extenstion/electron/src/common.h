@@ -14,22 +14,14 @@
 #ifndef _QUARK_ELECTRON_H_
 #define _QUARK_ELECTRON_H_
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
+#include "proton/common/electron.h"
 #include "php_electron.h"
-#include "ext/standard/info.h"
 
-#include "proton/include/electron.h"
 #include "proton/libuv/uvobject.h"
 #include "proton/libuv/runtime.h"
 #include "proton/http/http.h"
 
 #define PROTON_NAMESPACE "proton"
-
-#define PHP_COROUTINE_RESOURCE_NAME "proton_coroutine"
 
 #define PHP_PRIVATE_VALUE_RESOURCE_NAME "proton_private_value"
 

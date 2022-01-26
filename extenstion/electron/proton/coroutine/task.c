@@ -13,8 +13,8 @@
 
 #include "task.h"
 
-#include "ext/standard/info.h"
 #include "php.h"
+#include "ext/standard/info.h"
 
 typedef struct _task_context_wrap_t {
   quark_coroutine_task task;
@@ -93,9 +93,9 @@ quark_coroutine_task *quark_coroutine_create(quark_coroutine_task *current,
   LL_init(&task->waiting);
   task->ref_count = 0;
   task->vars = NULL;
-  ZVAL_UNDEF(&task->myself);
+  ZVAL_UNDEF(&task->value.myself);
   if (_is_real_coroutine(task->parent)) {
-    // Z_TRY_ADDREF(task->parent->myself);
+    Z_TRY_ADDREF(task->parent->value.myself);
   }
 
   ((task_context_wrap_t *)ptr)->entry = *entry;
@@ -110,7 +110,7 @@ quark_coroutine_task *quark_coroutine_create(quark_coroutine_task *current,
 
 int _free_var_item(any_t item, const char *key, any_t data) {
   quark_coroutine_var_t *var = (quark_coroutine_var_t *)item;
-  RELEASE_ZVAL(var->val);
+  RELEASE_MYSELF(var->val);
   qfree(var);
   return MAP_OK;
 }
@@ -180,6 +180,7 @@ zend_execute_data *init_coroutinue_php_stack(quark_coroutine_task *task,
     zval *arg = &entry->argv[i];
     param = ZEND_CALL_ARG(call, i + 1);
     ZVAL_COPY(param, arg);
+    ZVAL_PTR_DTOR(arg); // release argv, no need now
   }
 
   call->symbol_table = NULL;
@@ -211,9 +212,18 @@ void run_quark_coroutine_task(quark_coroutine_task *task,
   _current_coroutine = quark_coroutine_get_main();
 
   if (_is_real_coroutine(task->parent)) {
-    // RELEASE_ZVAL(task->parent->myself);
+    RELEASE_MYSELF(task->parent->value.myself);
     task->parent = NULL;
   }
 
-  // RELEASE_ZVAL(task->myself);
+  if (_is_real_coroutine(task->origin)) {
+    // [task] no need [origin] now, so un-ref it
+    RELEASE_MYSELF(task->origin->value.myself);
+    task->origin = NULL;
+  }
+
+  QUARK_LOGGER("[COROUTINE] id=%lu, myself refcount=%d", task->cid,
+               Z_REFCOUNT(task->value.myself));
+  RELEASE_MYSELF(task->value.myself);
+  ZVAL_UNDEF(&task->value.myself);
 }

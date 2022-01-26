@@ -19,7 +19,8 @@ void destruct_proton_private_value(zend_resource *rsrc) {
 }
 
 int proton_object_construct(zval *self, proton_private_value_t *val) {
-  QUARK_LOGGER("proton_object_construct");
+  QUARK_LOGGER("proton_object_construct(%s), ptr(%p)",
+               ZSTR_VAL(Z_OBJCE_P(self)->name), val);
   zend_resource *r = zend_register_resource(val, pc_private_resource_handle);
 
   zval value;

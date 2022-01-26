@@ -2,15 +2,7 @@
 
 #include "src/common.h"
 
-static int pc_resource_handle;
 int pc_private_resource_handle;
-
-static void destruct_proton_coroutine(zend_resource *rsrc) {
-  QUARK_LOGGER("[ELECTRON] coroutinue destruct");
-  quark_coroutine_task *task = (quark_coroutine_task *)rsrc->ptr;
-
-  quark_coroutine_destory(task);
-}
 
 /* {{{ void quark_coroutine_yield(resource $qc)
  */
@@ -34,12 +26,6 @@ extern zend_class_entry *regist_coroutine_class();
 extern zend_class_entry *regist_httpserver_class();
 extern zend_class_entry *regist_httpclient_class();
 PHP_MINIT_FUNCTION(electron) {
-  pc_resource_handle = zend_register_list_destructors_ex(
-      destruct_proton_coroutine, NULL, PHP_COROUTINE_RESOURCE_NAME,
-      module_number);
-  if (pc_resource_handle == FAILURE) {
-    QUARK_LOGGER("regist resource %s failed\n", PHP_COROUTINE_RESOURCE_NAME);
-  }
 
   pc_private_resource_handle = zend_register_list_destructors_ex(
       destruct_proton_private_value, NULL, PHP_PRIVATE_VALUE_RESOURCE_NAME,

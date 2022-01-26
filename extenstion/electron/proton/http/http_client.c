@@ -21,7 +21,13 @@ proton_httpclient_create(quark_coroutine_runtime *runtime) {
   return NULL;
 }
 
-int proton_httpclient_free(proton_private_value_t *value) { return 0; }
+int proton_httpclient_free(proton_private_value_t *value) {
+  QUARK_DEBUG_PRINT("free");
+  // proton_http_client_t *client = (proton_http_client_t *)value;
+  // LL_remove(&((proton_sc_context_t *)client->context)->link);
+  // RELEASE_MYSELF(client->myself);
+  return 0;
+}
 
 void httpclient_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
                              uv_buf_t *buf) {
@@ -30,7 +36,12 @@ void httpclient_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
   *buf = client->read_buffer->buff;
 }
 
-void httpclient_on_closed(uv_handle_t *handle) { QUARK_DEBUG_PRINT("closed"); }
+void httpclient_on_closed(uv_handle_t *handle) {
+  QUARK_DEBUG_PRINT("onclosed");
+  proton_http_client_t *client = (proton_http_client_t *)handle->data;
+  LL_remove(&((proton_sc_context_t *)client->context)->link);
+  RELEASE_MYSELF(client->value.myself);
+}
 
 void httpclient_on_read(uv_stream_t *handle, ssize_t nread,
                         const uv_buf_t *buf) {
@@ -189,11 +200,13 @@ int proton_httpclient_write_response(proton_private_value_t *value,
       &lbf, buff,
       snprintf(buff, sizeof(buff), "%03d %s\r\n", status_code,
                http_status_str((enum http_status)status_code)));
-
   proton_link_buffer_append_string(
       &lbf, STRING_ARRAY_PARAM("Server: proton/1.0\r\n"));
+
   proton_link_buffer_append_string(
-      &lbf, STRING_ARRAY_PARAM("Content-Type: text/html\r\n"));
+      &lbf, buff,
+      snprintf(buff, sizeof(buff), "Content-Length: %d\r\n", body_len));
+
   if (client->keepalive) {
     proton_link_buffer_append_string(
         &lbf, STRING_ARRAY_PARAM("Connection: keep-alive\r\n"));
@@ -201,9 +214,13 @@ int proton_httpclient_write_response(proton_private_value_t *value,
     proton_link_buffer_append_string(
         &lbf, STRING_ARRAY_PARAM("Connection: Close\r\n"));
   }
+
+  for (int i = 0; i < header_count; ++i) {
+    proton_link_buffer_append_string(&lbf, headers[i], strlen(headers[i]));
+    proton_link_buffer_append_string(&lbf, STRING_ARRAY_PARAM("\r\n"));
+  }
   proton_link_buffer_append_string(
-      &lbf, buff,
-      snprintf(buff, sizeof(buff), "Content-Length: %d\r\n", body_len));
+      &lbf, STRING_ARRAY_PARAM("Content-Type: text/html\r\n"));
   proton_link_buffer_append_string(&lbf, STRING_ARRAY_PARAM("\r\n"));
 
   // QUARK_LOGGER("length=%d content=\n%s", (int)lbf.total_used_size,

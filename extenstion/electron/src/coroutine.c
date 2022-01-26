@@ -33,11 +33,12 @@ PHP_FUNCTION(proton_go) {
 
   proton_object_construct(&coroutine, &task->value);
 
-  ZVAL_COPY(&task->myself, &coroutine);
+  ZVAL_COPY(&task->value.myself, &coroutine);
 
   quark_coroutine_swap_in(task);
 
-  RETURN_ZVAL(&coroutine, 1, 0);
+  // [coroutine] is holding refcount, so don't add new ref
+  RETURN_ZVAL(&coroutine, 0, 0);
 }
 /* }}}*/
 
@@ -54,7 +55,7 @@ PHP_FUNCTION(proton_context) {
     RETURN_NULL();
   }
 
-  RETURN_ZVAL(&current->myself, 1, 0);
+  RETURN_ZVAL(&current->value.myself, 1, 0);
 }
 /* }}}*/
 
@@ -100,14 +101,15 @@ PHP_METHOD(coroutine, __construct) {
 
   proton_object_construct(getThis(), &task->value);
 
-  ZVAL_COPY(&task->myself, getThis());
+  ZVAL_COPY(&task->value.myself, getThis());
 }
 /* }}} */
 
 /** {{{
  */
 PHP_METHOD(coroutine, __destruct) {
-  // proton_tcpserver_free(proton_object_get(getThis()));
+  QUARK_DEBUG_PRINT("__destruct");
+  quark_coroutine_destory((quark_coroutine_task *)proton_object_get(getThis()));
 }
 /* }}} */
 

@@ -32,16 +32,16 @@ int quark_coroutine_swap_in(quark_coroutine_task *dest) {
     return -1;
   }
 
-  if (dest->origin != _current_coroutine) {
-    if (_is_real_coroutine(dest->origin)) {
-      // RELEASE_ZVAL(dest->origin->myself);
-    }
-  }
-
   ucontext_t *org_context = _get_current_ucontext();
 
   dest->status = QC_STATUS_RUNNING;
   dest->origin = _current_coroutine;
+
+  if (_is_real_coroutine(_current_coroutine)) {
+    // add ref to running coroutine(save to [origin]), when [dest] swap out,
+    // will swap to [origin]
+    Z_TRY_ADDREF(_current_coroutine->value.myself);
+  }
 
   QUARK_LOGGER("[COROUTINE] [resume] switch(%lu->%lu)", _current_coroutine->cid,
                dest->cid);
@@ -84,13 +84,14 @@ int quark_coroutine_swap_out(quark_coroutine_task *current,
   QUARK_LOGGER("[COROUTINE] [yield] switch(%lu->%lu)", current->cid,
                current->origin->cid);
 
-  if (_is_real_coroutine(current->origin)) {
-    // Z_TRY_ADDREF(current->origin->myself);
-  }
-
   current->origin->status = QC_STATUS_RUNNING;
   _current_coroutine = current->origin; // switch to origin coroutine
   current->origin = quark_coroutine_get_main();
+
+  if (_is_real_coroutine(_current_coroutine)) {
+    // [current] no need [origin] now, so un-ref it
+    RELEASE_MYSELF(_current_coroutine->value.myself);
+  }
 
   // jump to [_get_current_ucontext()], save to [current->context]
   swapcontext(&(current->context), _get_current_ucontext());

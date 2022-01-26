@@ -19,12 +19,15 @@ PHP_METHOD(httpclient, __construct) {
   quark_coroutine_runtime *runtime = quark_get_runtime();
 
   proton_object_construct(getThis(), proton_httpclient_create(runtime));
+
+  // ZVAL_COPY(&((proton_http_client_t *)s)->myself, getThis());
 }
 /* }}} */
 
 /** {{{
  */
 PHP_METHOD(httpclient, __destruct) {
+  QUARK_DEBUG_PRINT("__destruct");
   proton_httpclient_free(proton_object_get(getThis()));
 }
 /* }}} */

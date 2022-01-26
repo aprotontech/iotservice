@@ -14,9 +14,7 @@
 #ifndef __QUARK_LIBUV_RUNTIME_H__
 #define __QUARK_LIBUV_RUNTIME_H__
 
-#include "proton/include/hashmap.h"
-#include "proton/include/clist.h"
-#include "proton/include/electron.h"
+#include "proton/common/electron.h"
 #include "proton/coroutine/task.h"
 
 #include <uv.h>

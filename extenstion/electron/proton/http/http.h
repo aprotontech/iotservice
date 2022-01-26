@@ -15,12 +15,9 @@
 #define _PROTON_HTTP_H_
 
 #include "proton/libuv/runtime.h"
-#include "proton/include/electron.h"
-#include "proton/common/http_parser.h"
+#include "proton/common/electron.h"
 #include "proton/libuv/uvobject.h"
 #include <uv.h>
-#include "php.h"
-#include "proton/include/electron.h"
 
 typedef void (*on_new_http_client)(proton_private_value_t *server,
                                    proton_private_value_t *client);
@@ -42,7 +39,6 @@ typedef struct _proton_http_server_t {
   proton_private_value_t value;
   uv_tcp_t tcp;
   list_link_t clients;
-  zval myself;
   proton_http_server_config_t config;
 } proton_http_server_t;
 
@@ -77,6 +73,7 @@ typedef struct _proton_header_t {
 typedef struct _proton_http_client_t {
   proton_private_value_t value;
   uv_tcp_t tcp;
+
   http_parser parser;
   http_parser_settings settings;
 

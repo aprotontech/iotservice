@@ -19,14 +19,14 @@
 #include <unistd.h>
 
 #include "php.h"
-#include "proton/include/electron.h"
+#include "proton/common/electron.h"
 
 #define DEFAULT_C_STACK_SIZE (1024 * 1024)
 #define DEFAULT_PHP_STACK_PAGE_SIZE 8192
 
-//#define RELEASE_ZVAL(p) zval_dtor(&(p))
+#define RELEASE_MYSELF(p) ZVAL_PTR_DTOR((&p))
 
-#define RELEASE_ZVAL(p)
+//#define RELEASE_MYSELF(p)
 
 typedef enum _quark_coroutine_status {
   QC_STATUS_FREE = 0,
@@ -66,8 +66,6 @@ typedef struct _quark_coroutine_task {
   uint64_t cid;
 
   int ref_count; // no use now
-
-  zval myself;
 
   ucontext_t context;
 
