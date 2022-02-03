@@ -16,9 +16,10 @@
 
 #include "proton/common/electron.h"
 #include "php_electron.h"
+#include "zend_exceptions.h"
 
 #include "proton/libuv/uvobject.h"
-#include "proton/libuv/runtime.h"
+#include "proton/coroutine/runtime.h"
 #include "proton/http/http.h"
 
 #define PROTON_NAMESPACE "proton"
@@ -29,10 +30,13 @@
 #define PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE "_default_router"
 
 extern int pc_private_resource_handle;
+extern proton_uv_scheduler *__uv_scheduler;
 
 extern proton_private_value_t *proton_object_get(zval *self);
 extern int proton_object_construct(zval *self, proton_private_value_t *val);
+extern int proton_object_destruct(zval *self);
 extern void destruct_proton_private_value(zend_resource *rsrc);
+extern proton_coroutine_runtime *proton_get_runtime();
 
 extern zend_class_entry *_tcpclient_ce;
 extern zend_class_entry *_tcpserver_ce;

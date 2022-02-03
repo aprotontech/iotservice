@@ -3,20 +3,26 @@
 #include "src/common.h"
 
 int pc_private_resource_handle;
+proton_uv_scheduler *__uv_scheduler;
 
-/* {{{ void quark_coroutine_yield(resource $qc)
+/* {{{ int proton_set_logger_level(int $level)
  */
-PHP_FUNCTION(quark_enable_logger) {
+PHP_FUNCTION(proton_set_logger_level) {
   long enable, tmp;
 
   ZEND_PARSE_PARAMETERS_START(1, 1)
     Z_PARAM_LONG(enable)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  tmp = __quark_logger;
-  __quark_logger = enable;
+  tmp = __proton_logger_level;
+  __proton_logger_level = enable;
   RETURN_LONG(tmp);
 }
+/* }}} */
+
+/* {{{ void proton_printf(...$args)
+ */
+PHP_FUNCTION(proton_printf) { RETURN_TRUE; }
 /* }}} */
 
 extern zend_class_entry *regist_runtime_class();
@@ -31,8 +37,12 @@ PHP_MINIT_FUNCTION(electron) {
       destruct_proton_private_value, NULL, PHP_PRIVATE_VALUE_RESOURCE_NAME,
       module_number);
   if (pc_private_resource_handle == FAILURE) {
-    QUARK_LOGGER("regist resource %s failed\n",
-                 PHP_PRIVATE_VALUE_RESOURCE_NAME);
+    PLOG_ERROR("regist resource %s failed\n", PHP_PRIVATE_VALUE_RESOURCE_NAME);
+  }
+
+  __uv_scheduler = proton_scheduler_create();
+  if (__uv_scheduler == NULL) {
+    PLOG_ERROR("create proton uv-scheduler failed");
   }
 
   regist_runtime_class();
@@ -65,18 +75,22 @@ PHP_MINFO_FUNCTION(electron) {
 
 /* {{{ arginfo
  */
-ZEND_BEGIN_ARG_INFO(arginfo_quark_enable_logger, 1)
+ZEND_BEGIN_ARG_INFO(arginfo_proton_set_logger_level, 1)
   ZEND_ARG_INFO(0, enable)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_quark_coroutine_yield, 0)
+ZEND_BEGIN_ARG_INFO(arginfo_proton_printf, 1)
+  ZEND_ARG_INFO(0, fmt)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_quark_coroutine_sleep, 1)
+ZEND_BEGIN_ARG_INFO(arginfo_proton_coroutine_yield, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_proton_coroutine_sleep, 1)
   ZEND_ARG_INFO(0, time_ms)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_quark_coroutine_create, 1)
+ZEND_BEGIN_ARG_INFO(arginfo_proton_coroutine_create, 1)
   ZEND_ARG_CALLABLE_INFO(0, func, 0)
 ZEND_END_ARG_INFO()
 
@@ -94,14 +108,15 @@ extern PHP_FUNCTION(proton_runtime_stop);
 /* {{{ electron_functions[]
  */
 static const zend_function_entry electron_functions[] = {
-    PHP_FE(quark_enable_logger, arginfo_quark_enable_logger) // logger
+    PHP_FE(proton_set_logger_level, arginfo_proton_set_logger_level) // logger
+    PHP_FE(proton_printf, arginfo_proton_printf) // proton_printf
 
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, sleep, ZEND_FN(proton_sleep),
-                     arginfo_quark_coroutine_sleep) // proton::sleep
+                     arginfo_proton_coroutine_sleep) // proton::sleep
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, pause, ZEND_FN(proton_yield),
-                     arginfo_quark_coroutine_yield) // proton::yield
+                     arginfo_proton_coroutine_yield) // proton::yield
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, go, ZEND_FN(proton_go),
-                     arginfo_quark_coroutine_create) // proton::go
+                     arginfo_proton_coroutine_create) // proton::go
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, context, ZEND_FN(proton_context),
                      arginfo_proton_context) // proton::go
     PHP_FE_END                               // eof

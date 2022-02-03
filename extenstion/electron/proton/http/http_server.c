@@ -18,7 +18,7 @@ typedef struct _proton_http_server_client_wrap_t {
 } proton_http_server_client_wrap_t;
 
 proton_private_value_t *
-proton_httpserver_create(quark_coroutine_runtime *runtime,
+proton_httpserver_create(proton_coroutine_runtime *runtime,
                          proton_http_server_config_t *config) {
   assert(config != NULL);
   assert(config->handler != NULL);
@@ -34,12 +34,14 @@ proton_httpserver_create(quark_coroutine_runtime *runtime,
   server->config.host = (char *)&server[1];
   strcpy(server->config.host, config->host);
 
-  uv_tcp_init(runtime->loop, &server->tcp);
+  uv_tcp_init((uv_loop_t *)runtime->data, &server->tcp);
   server->tcp.data = server;
 
   struct sockaddr_in addr;
   uv_ip4_addr(server->config.host, server->config.port, &addr);
   uv_tcp_bind(&server->tcp, (struct sockaddr *)&addr, 0);
+
+  server->runtime = runtime;
 
   return &server->value;
 }
@@ -56,7 +58,7 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
   uv_tcp_init(server->tcp.loop, &client->tcp);
   int rc = uv_accept((uv_stream_t *)&server->tcp, (uv_stream_t *)&client->tcp);
   if (rc != 0) { // acception new client failed
-    QUARK_LOGGER("[HTTPSERVER] accept new client failed! err=%d", rc);
+    PLOG_WARN("[HTTPSERVER] accept new client failed! err=%d", rc);
     qfree(client);
     return;
   }
@@ -70,14 +72,17 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
 }
 
 int proton_httpserver_start(proton_private_value_t *value) {
-  MAKE_SURE_ON_COROTINUE("start");
+  MAKESURE_PTR_NOT_NULL(value);
   proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  MAKESURE_ON_COROTINUE(server->runtime);
   return uv_listen((uv_stream_t *)&server->tcp, 128,
                    httpserver_on_new_connection);
 }
 
-int proton_httpserver_stop(proton_private_value_t *server) {
-  MAKE_SURE_ON_COROTINUE("stop");
+int proton_httpserver_stop(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+  proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  MAKESURE_ON_COROTINUE(server->runtime);
   return 0;
 }
 

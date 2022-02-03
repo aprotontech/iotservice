@@ -3,12 +3,12 @@
 
 function println($s)
 {
-    echo $s . "\n";
+    echo "[PHP] " . $s . "\n";
 }
 
 println(extension_loaded("electron"));
 
-quark_enable_logger(1);
+proton_set_logger_level(0);
 
 function handler($server, $request)
 {

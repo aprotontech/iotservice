@@ -11,24 +11,22 @@
  *
  */
 
+#include "variable.h"
 #include "task.h"
 
-#include "ext/standard/info.h"
-#include "php.h"
-
-quark_coroutine_var_t *search_var(quark_coroutine_task *current,
-                                  const char *key,
-                                  quark_coroutine_task **ptask) {
+proton_coroutine_var_t *search_var(proton_coroutine_task *current,
+                                   const char *key,
+                                   proton_coroutine_task **ptask) {
   any_t val = NULL;
-  quark_coroutine_var_t *var = NULL;
+  proton_coroutine_var_t *var = NULL;
 
-  quark_coroutine_task *task = current;
+  proton_coroutine_task *task = current;
 
   while (task != NULL) {
     if (task->vars != NULL &&
         hashmap_get(task->vars, (char *)key, &val) == MAP_OK) {
       assert(val != NULL);
-      var = (quark_coroutine_var_t *)val;
+      var = (proton_coroutine_var_t *)val;
       *ptask = task;
       break;
     }
@@ -39,11 +37,11 @@ quark_coroutine_var_t *search_var(quark_coroutine_task *current,
   return var;
 }
 
-quark_coroutine_var_t *copy_var_to_current(quark_coroutine_task *current,
-                                           quark_coroutine_var_t *var) {
+proton_coroutine_var_t *copy_var_to_current(proton_coroutine_task *current,
+                                            proton_coroutine_var_t *var) {
   int len = strlen(var->key);
-  quark_coroutine_var_t *tmp =
-      (quark_coroutine_var_t *)qmalloc(sizeof(quark_coroutine_var_t) + len);
+  proton_coroutine_var_t *tmp =
+      (proton_coroutine_var_t *)qmalloc(sizeof(proton_coroutine_var_t) + len);
   strcpy(tmp->key, var->key);
   ZVAL_COPY(&tmp->val, &var->val);
   tmp->mode = var->mode;
@@ -56,13 +54,13 @@ quark_coroutine_var_t *copy_var_to_current(quark_coroutine_task *current,
   return tmp;
 }
 
-int quark_coroutine_get_var(quark_coroutine_task *current, const char *key,
-                            zval *result) {
-  quark_coroutine_task *task = NULL;
-  quark_coroutine_var_t *var = search_var(current, key, &task);
+int proton_coroutine_get_var(proton_coroutine_task *current, const char *key,
+                             zval *result) {
+  proton_coroutine_task *task = NULL;
+  proton_coroutine_var_t *var = search_var(current, key, &task);
 
   if (var == NULL) {
-    QUARK_LOGGER("[COROUTINE] [VAR] not found var(%s)", key);
+    PLOG_WARN("[COROUTINE] [VAR] not found var(%s)", key);
     return -1;
   }
 
@@ -77,15 +75,15 @@ int quark_coroutine_get_var(quark_coroutine_task *current, const char *key,
   return 0;
 }
 
-int quark_coroutine_set_var(quark_coroutine_task *current, const char *key,
-                            zval *val, quark_coroutine_var_mode mode) {
-  quark_coroutine_task *task = NULL;
-  quark_coroutine_var_t *var = search_var(current, key, &task);
+int proton_coroutine_set_var(proton_coroutine_task *current, const char *key,
+                             zval *val, proton_coroutine_var_mode mode) {
+  proton_coroutine_task *task = NULL;
+  proton_coroutine_var_t *var = search_var(current, key, &task);
 
   if (var != NULL) {
     if (task != current &&
         (var->mode == QC_VAR_READONLY || var->mode == QC_VAR_INHERIT)) {
-      QUARK_LOGGER("[COROUTINE] [VAR] can't set var(%s)", key);
+      PLOG_WARN("[COROUTINE] [VAR] can't set var(%s)", key);
       return -1;
     }
 
@@ -95,7 +93,7 @@ int quark_coroutine_set_var(quark_coroutine_task *current, const char *key,
 
     ZVAL_COPY(&var->val, val);
   } else { // not found var, so create a new one
-    quark_coroutine_var_t tmp = {
+    proton_coroutine_var_t tmp = {
         .mode = mode,
         .set_by_me = 1,
         .val = *val,
@@ -104,4 +102,11 @@ int quark_coroutine_set_var(quark_coroutine_task *current, const char *key,
   }
 
   return 0;
+}
+
+int _free_var_item(any_t item, const char *key, any_t data) {
+  proton_coroutine_var_t *var = (proton_coroutine_var_t *)item;
+  ZVAL_PTR_DTOR(&var->val);
+  qfree(var);
+  return MAP_OK;
 }

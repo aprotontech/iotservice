@@ -25,19 +25,33 @@
 #include "php.h"
 #include "ext/standard/info.h"
 
-typedef struct _proton_private_value_t {
-  int type;
-  zval myself;
-} proton_private_value_t;
-
-#define QUARK_LOGGER(args...)                                                  \
-  if (__quark_logger) {                                                        \
-    php_printf(args);                                                          \
-    php_printf("\n");                                                          \
-  }
-
 #define qmalloc emalloc
 #define qfree efree
+
+#define PROTON_LOG_DEBUG_LEVEL 0
+#define PROTON_LOG_INFO_LEVEL 1
+#define PROTON_LOG_WARN_LEVEL 2
+#define PROTON_LOG_ERROR_LEVEL 3
+#define PROTON_LOG_NOTICE_LEVEL 4
+#define PROTON_LOG_FAULT_LEVEL 5
+
+#define PLOG_DEBUG(args...) PROTON_LOGGER(PROTON_LOG_DEBUG_LEVEL, args)
+#define PLOG_INFO(args...) PROTON_LOGGER(PROTON_LOG_INFO_LEVEL, args)
+#define PLOG_WARN(args...) PROTON_LOGGER(PROTON_LOG_WARN_LEVEL, args)
+#define PLOG_ERROR(args...) PROTON_LOGGER(PROTON_LOG_ERROR_LEVEL, args)
+#define PLOG_NOTICE(args...) PROTON_LOGGER(PROTON_LOG_NOTICE_LEVEL, args)
+#define PLOG_FAULT(args...) PROTON_LOGGER(PROTON_LOG_FAULT_LEVEL, args)
+
+#define PROTON_LOGGER(level, args...)                                          \
+  if (level >= __proton_logger_level) {                                        \
+    printf("[C] [%s] [%s:%d] ", __proton_logger_level_string(level),           \
+           __FUNCTION__, __LINE__);                                            \
+    printf(args);                                                              \
+    printf("\n");                                                              \
+  }
+
+extern int __proton_logger_level;
+extern const char *__proton_logger_level_string(int level);
 
 #ifndef container_of
 #define container_of(ptr, type, member)                                        \
@@ -47,10 +61,21 @@ typedef struct _proton_private_value_t {
   })
 #endif
 
-#define QUARK_DEBUG_PRINT(ss)                                                  \
-  QUARK_LOGGER("[DEBUG-PRINT] [%s:%d] [%s] (%s)", __FILE__, __LINE__,          \
-               __FUNCTION__, ss)
+#define MAKESURE_PTR_NOT_NULL(ptr)                                             \
+  if ((ptr) == NULL) {                                                         \
+    PLOG_WARN("(%s) must not be null", #ptr);                                  \
+    return 100;                                                                \
+  }
 
-extern int __quark_logger;
+#define RELEASE_VALUE_MYSELF(value) ZVAL_PTR_DTOR((&value.myself))
+
+typedef struct _proton_private_value_t proton_private_value_t;
+typedef void (*proton_value_new)(proton_private_value_t *value);
+typedef void (*proton_value_del)(proton_private_value_t *value);
+
+typedef struct _proton_private_value_t {
+  int type;
+  zval myself;
+} proton_private_value_t;
 
 #endif

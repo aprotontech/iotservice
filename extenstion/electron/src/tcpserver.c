@@ -16,7 +16,7 @@
 /** {{{
  */
 PHP_METHOD(tcpserver, __construct) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
   proton_object_construct(getThis(), proton_tcpserver_create(runtime));
 }
@@ -25,7 +25,12 @@ PHP_METHOD(tcpserver, __construct) {
 /** {{{
  */
 PHP_METHOD(tcpserver, __destruct) {
-  proton_tcpserver_free(proton_object_get(getThis()));
+  PLOG_DEBUG("tcpserver::__destruct");
+  proton_private_value_t *value = proton_object_get(getThis());
+
+  proton_object_destruct(getThis());
+
+  proton_tcpserver_free(value);
 }
 /* }}} */
 
@@ -57,7 +62,7 @@ PHP_METHOD(tcpserver, accept) {
   proton_private_value_t *client = NULL;
   int rc = proton_tcpserver_accept(proton_object_get(getThis()), &client);
   if (rc != 0) {
-    QUARK_LOGGER("tcpserver::accept failed with(%d)", rc);
+    PLOG_WARN("tcpserver::accept failed with(%d)", rc);
     RETURN_LONG(rc);
   }
 
@@ -74,7 +79,7 @@ PHP_METHOD(tcpserver, accept) {
  */
 PHP_METHOD(tcpserver, close) {
   ZEND_PARSE_PARAMETERS_NONE();
-  RETURN_LONG(proton_tcpclient_close(proton_object_get(getThis())));
+  RETURN_LONG(proton_tcpserver_close(proton_object_get(getThis())));
 }
 /* }}} */
 

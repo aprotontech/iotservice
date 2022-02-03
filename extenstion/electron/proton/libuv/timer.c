@@ -11,29 +11,30 @@
  *
  */
 
-#include "runtime.h"
+#include "uvobject.h"
 #include "proton/coroutine/task.h"
 
 void on_coroutine_sleep_done(uv_timer_t *timer) {
-  QUARK_LOGGER("timer sleep done");
-  quark_coroutine_task *task = (quark_coroutine_task *)timer->data;
-
-  quark_coroutine_swap_in(task);
+  PLOG_INFO("timer sleep done");
+  proton_coroutine_task *task = (proton_coroutine_task *)timer->data;
 
   uv_timer_stop(timer);
+  task->status = QC_STATUS_RUNABLE;
+  proton_coroutine_resume(NULL, task);
 
   qfree(timer);
 }
 
-int quark_coroutine_sleep(quark_coroutine_runtime *runtime, long time_ms) {
-  quark_coroutine_task *task = quark_coroutine_current();
+int proton_coroutine_sleep(proton_coroutine_runtime *runtime, long time_ms) {
+  MAKESURE_ON_COROTINUE(runtime);
+  proton_coroutine_task *task = RUNTIME_CURRENT_COROUTINE(runtime);
   uv_timer_t *timer = (uv_timer_t *)qmalloc(sizeof(uv_timer_t));
-  uv_timer_init(runtime->loop, timer);
+  uv_timer_init(RUNTIME_UV_LOOP(runtime), timer);
   timer->data = task;
 
   uv_timer_start(timer, on_coroutine_sleep_done, time_ms, 0);
 
-  quark_coroutine_swap_out(task, QC_STATUS_SUSPEND);
+  proton_coroutine_waitfor(runtime, NULL);
 
   return 0;
 }

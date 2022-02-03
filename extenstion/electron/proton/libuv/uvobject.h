@@ -14,56 +14,64 @@
 #ifndef _PROTON_UVOBJECT_H_
 #define _PROTON_UVOBJECT_H_
 
-#include "runtime.h"
 #include "proton/common/electron.h"
+#include "proton/coroutine/runtime.h"
+
 #include <uv.h>
 
-#define MAKE_SURE_ON_COROTINUE(func)                                           \
-  if (quark_coroutine_current() == quark_coroutine_get_main()) {               \
-    QUARK_LOGGER("%s only can run on coroutine", func);                        \
+#define UV_HANDLE_RUNTIME(uvhandle)                                            \
+  ((proton_coroutine_runtime *)(uvhandle->loop->data))
+
+#define UV_CURRENT_COROUTINUE(uvhandle) (UV_HANDLE_RUNTIME(uvhandle)->current)
+
+#define MAKESURE_ON_COROTINUE(runtime)                                         \
+  if (RUNTIME_CURRENT_COROUTINE(runtime) == RUNTIME_MAIN_COROUTINE(runtime)) { \
+    PLOG_WARN("%s only can run on coroutine", __FUNCTION__);                   \
     return -1;                                                                 \
   }
 
-typedef struct _proton_buffer_t {
-  list_link_t link;
-  uv_buf_t buff;
-  int used;
-} proton_buffer_t;
+#define RUNTIME_UV_LOOP(runtime) ((uv_loop_t *)runtime->data)
 
-typedef struct _proton_link_buffer_t {
-  list_link_t link;
-  size_t slice_size;
-  size_t total_alloc_size;
-  size_t total_used_size;
-  size_t max_alloc_size;
-  size_t max_used_size;
-} proton_link_buffer_t;
+typedef struct _proton_uv_scheduler_t {
+  proton_coroutine_runtime runtime;
+
+  uv_loop_t *loop;
+
+  uv_idle_t idle;
+
+} proton_uv_scheduler;
 
 typedef struct _proton_tcpserver_t {
   proton_private_value_t value;
+  proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
   int new_connection_count;
   list_link_t waiting_coroutines;
-  quark_coroutine_task *close_task;
+  proton_coroutine_task *close_task;
 } proton_tcpserver_t;
 
 typedef struct _proton_read_context_t {
   uv_buf_t buffer;
   ssize_t filled;
 
-  quark_coroutine_task *coroutine;
+  proton_coroutine_task *coroutine;
 } proton_read_context_t;
 
 typedef struct _proton_tcpclient_t {
   proton_private_value_t value;
+  proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
   proton_read_context_t *reading;
-  quark_coroutine_task *close_task;
+  proton_coroutine_task *close_task;
 } proton_tcpclient_t;
+
+//////////// SCHEDULE
+proton_uv_scheduler *proton_scheduler_create();
+int proton_scheduler_free(proton_uv_scheduler *scheduler);
 
 //////////// TCP-SERVER
 proton_private_value_t *
-proton_tcpserver_create(quark_coroutine_runtime *runtime);
+proton_tcpserver_create(proton_coroutine_runtime *runtime);
 
 int proton_tcpserver_listen(proton_private_value_t *value, const char *host,
                             int port);
@@ -76,7 +84,7 @@ int proton_tcpserver_free(proton_private_value_t *value);
 
 //////////// TCP-CLIENT
 proton_private_value_t *
-proton_tcpclient_create(quark_coroutine_runtime *runtime);
+proton_tcpclient_create(proton_coroutine_runtime *runtime);
 
 int proton_tcpclient_connect(proton_private_value_t *value, const char *host,
                              int port);
@@ -89,26 +97,5 @@ int proton_tcpclient_read(proton_private_value_t *value, char *data, int len);
 int proton_tcpclient_close(proton_private_value_t *value);
 
 int proton_tcpclient_free(proton_private_value_t *value);
-
-///// proton buffer link
-proton_link_buffer_t *proton_link_buffer_init(proton_link_buffer_t *lbf,
-                                              size_t slice_size,
-                                              size_t max_size);
-
-char *proton_link_buffer_alloc(proton_link_buffer_t *lbf, size_t len,
-                               size_t align_size);
-
-char *proton_link_buffer_copy_string(proton_link_buffer_t *lbf, const char *ptr,
-                                     size_t len);
-
-char *proton_link_buffer_append_string(proton_link_buffer_t *lbf,
-                                       const char *ptr, size_t len);
-
-proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
-                                              size_t length);
-
-char *proton_link_buffer_get_ptr(proton_link_buffer_t *lbf, size_t offset);
-
-int proton_link_buffer_uninit(proton_link_buffer_t *lbf);
 
 #endif

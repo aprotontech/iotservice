@@ -12,59 +12,51 @@
  */
 
 #include "task.h"
+#include "runtime.h"
 
-#include "ext/standard/info.h"
-#include "php.h"
-
-quark_coroutine_task *_current_coroutine = NULL;
-
-extern int _is_real_coroutine(quark_coroutine_task *task);
-
-ucontext_t *_get_current_ucontext() {
-  assert(_current_coroutine != NULL);
-
-  return &_current_coroutine->context;
-}
-
-int quark_coroutine_swap_in(quark_coroutine_task *dest) {
-  if (dest == NULL || dest == _current_coroutine) {
-    QUARK_LOGGER("[COROUTINE] swap failed. input coroutinue can't swap in");
+// swap to coroutine[dest]
+int proton_coroutine_swap_in(proton_coroutine_task *dest) {
+  if (dest == NULL || dest == RUNTIME_CURRENT_COROUTINE(dest->runtime)) {
+    PLOG_INFO("[COROUTINE] swap failed. input coroutinue can't swap in");
     return -1;
   }
 
-  ucontext_t *org_context = _get_current_ucontext();
+  ucontext_t *org_context =
+      &(RUNTIME_CURRENT_COROUTINE(dest->runtime)->context);
 
   dest->status = QC_STATUS_RUNNING;
-  dest->origin = _current_coroutine;
+  dest->origin = RUNTIME_CURRENT_COROUTINE(dest->runtime);
 
-  if (_is_real_coroutine(_current_coroutine)) {
+  if (IS_REAL_COROUTINE(dest->origin)) {
     // add ref to running coroutine(save to [origin]), when [dest] swap out,
     // will swap to [origin]
-    Z_TRY_ADDREF(_current_coroutine->value.myself);
+    Z_TRY_ADDREF(dest->origin->value.myself);
   }
 
-  QUARK_LOGGER("[COROUTINE] [resume] switch(%lu->%lu)", _current_coroutine->cid,
-               dest->cid);
+  PLOG_INFO("[COROUTINE] [resume] switch(%lu->%lu)", dest->origin->cid,
+            dest->cid);
 
-  _current_coroutine = dest;
+  RUNTIME_CURRENT_COROUTINE(dest->runtime) = dest;
 
   // jump to [dest->context], save to [org_context]
   swapcontext(org_context, &(dest->context));
   return 0;
 }
 
-int quark_coroutine_swap_out(quark_coroutine_task *current,
-                             quark_coroutine_status new_status) {
-  if (current == NULL || current != _current_coroutine) {
-    QUARK_LOGGER("[COROUTINE] swap failed. input coroutinue can't swap out");
+// from coroutine[current] swap out
+int proton_coroutine_swap_out(proton_coroutine_task *current,
+                              proton_coroutine_status new_status) {
+  if (current == NULL ||
+      current != RUNTIME_CURRENT_COROUTINE(current->runtime)) {
+    PLOG_WARN("[COROUTINE] swap failed. input coroutinue can't swap out");
     return -1;
-  } else if (current == quark_coroutine_get_main()) {
-    QUARK_LOGGER("[COROUTINE] swap failed. main coroutinue can't swap out");
+  } else if (current == RUNTIME_MAIN_COROUTINE(current->runtime)) {
+    PLOG_WARN("[COROUTINE] swap failed. main coroutinue can't swap out");
     return -1;
   }
   if (new_status != QC_STATUS_RUNABLE && new_status != QC_STATUS_SUSPEND) {
-    QUARK_LOGGER("[COROUTINE] swap failed. input status must be "
-                 "QC_STATUS_RUNABLE or QC_STATUS_SUSPEND.");
+    PLOG_ERROR("[COROUTINE] swap failed. input status must be "
+               "QC_STATUS_RUNABLE or QC_STATUS_SUSPEND.");
     return -1;
   }
 
@@ -74,26 +66,28 @@ int quark_coroutine_swap_out(quark_coroutine_task *current,
 
   // origin coroutinue is waiting for some object or signal
   // so swap to main coroutine(schedule to a runable coroutinue)
-  quark_coroutine_status org_status = current->origin->status;
+  proton_coroutine_status org_status = current->origin->status;
   if (org_status == QC_STATUS_SUSPEND || org_status == QC_STATUS_STOPED) {
-    QUARK_LOGGER(
+    PLOG_INFO(
         "[COROUTINE] origin coroutine is suspend or stoped, so switch to main");
-    current->origin = quark_coroutine_get_main();
+    current->origin = RUNTIME_MAIN_COROUTINE(current->runtime);
   }
 
-  QUARK_LOGGER("[COROUTINE] [yield] switch(%lu->%lu)", current->cid,
-               current->origin->cid);
+  proton_coroutine_task *origin = current->origin;
 
-  current->origin->status = QC_STATUS_RUNNING;
-  _current_coroutine = current->origin; // switch to origin coroutine
-  current->origin = quark_coroutine_get_main();
+  PLOG_INFO("[COROUTINE] [yield] switch(%lu->%lu)", current->cid, origin->cid);
 
-  if (_is_real_coroutine(_current_coroutine)) {
+  // switch to origin coroutine
+  origin->status = QC_STATUS_RUNNING;
+  RUNTIME_CURRENT_COROUTINE(current->runtime) = origin;
+  current->origin = RUNTIME_MAIN_COROUTINE(current->runtime);
+
+  if (IS_REAL_COROUTINE(origin)) {
     // [current] no need [origin] now, so un-ref it
-    RELEASE_MYSELF(_current_coroutine->value.myself);
+    RELEASE_VALUE_MYSELF(origin->value);
   }
 
-  // jump to [_get_current_ucontext()], save to [current->context]
-  swapcontext(&(current->context), _get_current_ucontext());
+  // jump to [origin->context], save to [current->context]
+  swapcontext(&(current->context), &(origin->context));
   return 0;
 }

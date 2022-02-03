@@ -12,6 +12,7 @@
  */
 
 #include "uvobject.h"
+#include "link_buff.h"
 
 proton_link_buffer_t *proton_link_buffer_init(proton_link_buffer_t *lbf,
                                               size_t slice_size,
@@ -29,7 +30,7 @@ proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
                                               size_t length) {
   length = ((length + lbf->slice_size - 1) / lbf->slice_size) * lbf->slice_size;
   if (lbf->total_alloc_size + length >= lbf->max_alloc_size) {
-    QUARK_LOGGER("total alloc size max than %d", (int)lbf->max_alloc_size);
+    PLOG_INFO("total alloc size max than %d", (int)lbf->max_alloc_size);
     return NULL;
   }
 

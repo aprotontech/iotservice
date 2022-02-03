@@ -16,8 +16,8 @@
 /** {{{
  */
 PHP_METHOD(tcpclient, __construct) {
-  QUARK_DEBUG_PRINT("");
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  PLOG_DEBUG("construct");
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
   proton_object_construct(getThis(), proton_tcpclient_create(runtime));
 }
@@ -26,7 +26,11 @@ PHP_METHOD(tcpclient, __construct) {
 /** {{{
  */
 PHP_METHOD(tcpclient, __destruct) {
-  proton_tcpclient_free(proton_object_get(getThis()));
+  proton_private_value_t *value = proton_object_get(getThis());
+
+  proton_object_destruct(getThis());
+
+  proton_tcpclient_free(value);
 }
 /* }}} */
 

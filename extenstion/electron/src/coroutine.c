@@ -7,35 +7,43 @@ zend_class_entry *_coroutine_ce;
 /* {{{ coroutine proton::go( function $callback )
  */
 PHP_FUNCTION(proton_go) {
-  zend_fcall_info fci = empty_fcall_info;
-  zend_fcall_info_cache fcc = empty_fcall_info_cache;
+  zval *func;
   zend_resource *r = NULL;
-  quark_coroutine_task *task = NULL;
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_task *task = NULL;
+  proton_coroutine_runtime *runtime = proton_get_runtime();
   int argc = ZEND_NUM_ARGS() - 1;
   zval *args = NULL;
 
   ZEND_PARSE_PARAMETERS_START(1, -1)
-    Z_PARAM_FUNC(fci, fcc)
+    Z_PARAM_ZVAL(func)
     Z_PARAM_VARIADIC('*', args, argc)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  quark_coroutine_entry entry = {
-      .fci_cache = &fcc,
+  if (!zend_is_callable(func, IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                     "input function must be callable");
+    return;
+  }
+
+  proton_coroutine_entry entry = {
       .argc = argc,
       .argv = args,
   };
 
-  task = quark_coroutine_create(quark_runtime_main(runtime), &entry, 0, 0);
+  ZVAL_COPY(&entry.func, func);
+
+  task = proton_coroutine_create(runtime, &entry, 0, 0);
+
+  if (task == NULL) {
+    RETURN_NULL();
+  }
 
   zval coroutine;
   object_init_ex(&coroutine, _coroutine_ce);
 
   proton_object_construct(&coroutine, &task->value);
 
-  ZVAL_COPY(&task->value.myself, &coroutine);
-
-  quark_coroutine_swap_in(task);
+  proton_coroutine_resume(runtime, task);
 
   // [coroutine] is holding refcount, so don't add new ref
   RETURN_ZVAL(&coroutine, 0, 0);
@@ -45,13 +53,15 @@ PHP_FUNCTION(proton_go) {
 /* {{{ coroutine proton::context( )
  */
 PHP_FUNCTION(proton_context) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
-  quark_coroutine_task *current = quark_coroutine_current();
+  proton_coroutine_task *current = RUNTIME_CURRENT_COROUTINE(runtime);
 
   ZEND_PARSE_PARAMETERS_NONE();
 
-  if (current == quark_coroutine_get_main()) {
+  PLOG_DEBUG("get context(%p)", current);
+  if (!IS_REAL_COROUTINE(current)) {
+    PLOG_WARN("current task is main coroutine");
     RETURN_NULL();
   }
 
@@ -62,9 +72,9 @@ PHP_FUNCTION(proton_context) {
 /* {{{ bool proton_yield()
  */
 PHP_FUNCTION(proton_yield) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
-  if (quark_coroutine_yield(runtime) != 0) {
+  if (proton_coroutine_yield(runtime) != 0) {
     RETURN_FALSE;
   }
 
@@ -75,41 +85,49 @@ PHP_FUNCTION(proton_yield) {
 /** {{{
  */
 PHP_METHOD(coroutine, __construct) {
-  zend_fcall_info fci = empty_fcall_info;
-  zend_fcall_info_cache fcc = empty_fcall_info_cache;
+  zval *func;
   zend_resource *r = NULL;
-  quark_coroutine_task *task = NULL;
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_task *task = NULL;
+  proton_coroutine_runtime *runtime = proton_get_runtime();
   int argc = ZEND_NUM_ARGS() - 1;
   zval *args = NULL;
 
+  PLOG_DEBUG("__construct");
+
   ZEND_PARSE_PARAMETERS_START(1, -1)
-    Z_PARAM_FUNC(fci, fcc)
+    Z_PARAM_ZVAL(func)
     Z_PARAM_VARIADIC('*', args, argc)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  quark_coroutine_entry entry = {
-      .fci_cache = &fcc,
+  if (!zend_is_callable(func, IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "input function must callable");
+    return;
+  }
+
+  proton_coroutine_entry entry = {
       .argc = argc,
       .argv = args,
   };
 
-  task = quark_coroutine_create(quark_runtime_main(runtime), &entry, 0, 0);
+  ZVAL_COPY(&entry.func, func);
 
-  // insert to wait queue
-  // quark_coroutine_ready(runtime, task);
+  task = proton_coroutine_create(runtime, &entry, 0, 0);
+  if (task == NULL) {
+    zend_throw_exception(NULL, "create coroutine task failed", 0);
+    return;
+  }
 
   proton_object_construct(getThis(), &task->value);
-
-  ZVAL_COPY(&task->value.myself, getThis());
 }
 /* }}} */
 
 /** {{{
  */
 PHP_METHOD(coroutine, __destruct) {
-  QUARK_DEBUG_PRINT("__destruct");
-  quark_coroutine_destory((quark_coroutine_task *)proton_object_get(getThis()));
+  PLOG_DEBUG("coroutine::__destruct");
+  proton_coroutine_destory(
+      (proton_coroutine_task *)proton_object_get(getThis()));
+  proton_object_destruct(getThis());
 }
 /* }}} */
 
@@ -121,18 +139,18 @@ PHP_METHOD(coroutine, __toString) { RETURN_STRING("{coroutine}"); }
 /** {{{
  */
 PHP_METHOD(coroutine, status) {
-  quark_coroutine_task *task =
-      (quark_coroutine_task *)proton_object_get(getThis());
+  proton_coroutine_task *task =
+      (proton_coroutine_task *)proton_object_get(getThis());
   RETURN_LONG(task->status);
 }
 /* }}} */
 
 /** {{{
  */
-PHP_METHOD(coroutine, yield) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+PHP_METHOD(coroutine, pause) {
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
-  if (quark_coroutine_yield(runtime) != 0) {
+  if (proton_coroutine_yield(runtime) != 0) {
     RETURN_FALSE;
   }
 
@@ -143,15 +161,14 @@ PHP_METHOD(coroutine, yield) {
 /** {{{
  */
 PHP_METHOD(coroutine, resume) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
   ZEND_PARSE_PARAMETERS_NONE();
 
-  quark_coroutine_task *task =
-      (quark_coroutine_task *)proton_object_get(getThis());
+  proton_coroutine_task *task =
+      (proton_coroutine_task *)proton_object_get(getThis());
 
-  if (task != quark_coroutine_get_main() &&
-      quark_coroutine_swap_in(task) == 0) {
+  if (proton_coroutine_resume(runtime, task) == 0) {
     RETURN_TRUE;
   }
 
@@ -182,7 +199,7 @@ const zend_function_entry coroutine_functions[] = {
            ZEND_ACC_PUBLIC)                          // coroutine::__toString
     PHP_ME(coroutine, get, NULL, ZEND_ACC_PUBLIC)    // coroutine::get
     PHP_ME(coroutine, set, NULL, ZEND_ACC_PUBLIC)    // coroutine::set
-    PHP_ME(coroutine, yield, NULL, ZEND_ACC_PUBLIC)  // coroutine::yield
+    PHP_ME(coroutine, pause, NULL, ZEND_ACC_PUBLIC)  // coroutine::pause
     PHP_ME(coroutine, resume, NULL, ZEND_ACC_PUBLIC) // coroutine::resume
     PHP_ME(coroutine, status, NULL, ZEND_ACC_PUBLIC) // coroutine::status
     {NULL, NULL, NULL} /* Must be the last line in coroutine_functions[] */

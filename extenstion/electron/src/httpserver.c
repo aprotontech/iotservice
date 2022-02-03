@@ -15,13 +15,12 @@
 
 void php_new_httpserver_client(proton_private_value_t *server,
                                proton_private_value_t *client) {
-  QUARK_DEBUG_PRINT("new client");
+  PLOG_DEBUG("new client");
 
   zval httpclient;
   object_init_ex(&httpclient, _httpclient_ce);
 
   proton_object_construct(&httpclient, client);
-  ZVAL_COPY(&(((proton_http_client_t *)client)->value.myself), &httpclient);
 
   zval rv;
   zval *self = &((proton_http_server_t *)server)->value.myself;
@@ -30,45 +29,37 @@ void php_new_httpserver_client(proton_private_value_t *server,
       0 TSRMLS_CC, &rv);
 
   if (callback != NULL) {
-    zend_fcall_info fci = empty_fcall_info;
-    zend_fcall_info_cache fcc = empty_fcall_info_cache;
-    char *is_callable_error = NULL;
-    if (zend_fcall_info_init(callback, 0, &fci, &fcc, NULL,
-                             &is_callable_error) == SUCCESS) {
-      zval params[2];
 
-      ZVAL_COPY(&params[0], self);
-      ZVAL_COPY(&params[1], &httpclient);
+    zval params[2];
 
-      quark_coroutine_entry entry = {
-          .fci_cache = &fcc,
-          .argc = 2,
-          .argv = params,
-      };
+    ZVAL_COPY(&params[0], self);
+    ZVAL_COPY(&params[1], &httpclient);
 
-      quark_coroutine_runtime *runtime = quark_get_runtime();
+    proton_coroutine_entry entry = {
+        .argc = 2,
+        .argv = params,
+    };
+    ZVAL_COPY(&entry.func, callback);
 
-      quark_coroutine_task *task =
-          quark_coroutine_create(quark_runtime_main(runtime), &entry, 0, 0);
+    proton_coroutine_runtime *runtime = proton_get_runtime();
 
-      zval coroutine;
-      object_init_ex(&coroutine, _coroutine_ce);
+    proton_coroutine_task *task =
+        proton_coroutine_create(runtime, &entry, 0, 0);
 
-      proton_object_construct(&coroutine, &task->value);
+    zval coroutine;
+    object_init_ex(&coroutine, _coroutine_ce);
 
-      ZVAL_COPY(&task->value.myself, &coroutine);
+    proton_object_construct(&coroutine, &task->value);
 
-      Z_TRY_DELREF(params[0]);
-      Z_TRY_DELREF(params[1]);
+    ZVAL_COPY(&task->value.myself, &coroutine);
 
-      quark_coroutine_swap_in(task);
+    Z_TRY_DELREF(params[0]);
+    Z_TRY_DELREF(params[1]);
 
-      QUARK_LOGGER("switch to callback done try dtor coroutine(%lu)",
-                   task->cid);
-      ZVAL_PTR_DTOR(&coroutine); // release it
-    } else {
-      QUARK_LOGGER("get new httpclient callback function failed");
-    }
+    proton_coroutine_resume(NULL, task);
+
+    PLOG_INFO("switch to callback done try dtor coroutine(%lu)", task->cid);
+    ZVAL_PTR_DTOR(&coroutine); // release it
   }
 }
 
@@ -91,7 +82,7 @@ PHP_METHOD(httpserver, __construct) {
     return;
   }
 
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
 
   proton_http_server_config_t config = {
       .handler = php_new_httpserver_client, .host = host, .port = port};
@@ -102,8 +93,6 @@ PHP_METHOD(httpserver, __construct) {
   zend_update_property(Z_OBJCE_P(getThis()), getThis(),
                        ZEND_STRL(PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE),
                        handler TSRMLS_CC);
-
-  ZVAL_COPY(&((proton_http_server_t *)s)->value.myself, getThis());
 }
 /* }}} */
 
@@ -116,7 +105,17 @@ PHP_METHOD(httpserver, __destruct) {
 
 /** {{{
  */
-PHP_METHOD(httpserver, __toString) { RETURN_STRING("{httpserver}"); }
+PHP_METHOD(httpserver, __toString) {
+  proton_http_server_t *client =
+      (proton_http_server_t *)proton_object_get(getThis());
+  char host[40] = {0};
+  struct sockaddr_in addr;
+  int len = sizeof(addr);
+  uv_tcp_getsockname(&client->tcp, (struct sockaddr *)&addr, &len);
+  snprintf(host, sizeof(host), "{httpserver(%s:%d)}", inet_ntoa(addr.sin_addr),
+           ntohs(addr.sin_port));
+  RETURN_STRING(host);
+}
 /* }}} */
 
 /** {{{

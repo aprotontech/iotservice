@@ -16,7 +16,7 @@
 /* {{{ void quark_runtime_loop()
  */
 PHP_METHOD(runtime, start) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
   RETURN_LONG(quark_runtime_loop(runtime));
 }
 /* }}} */
@@ -24,7 +24,7 @@ PHP_METHOD(runtime, start) {
 /* {{{ void quark_runtime_stop()
  */
 PHP_METHOD(runtime, stop) {
-  quark_coroutine_runtime *runtime = quark_get_runtime();
+  proton_coroutine_runtime *runtime = proton_get_runtime();
   RETURN_LONG(quark_runtime_stop(runtime));
 }
 /* }}} */

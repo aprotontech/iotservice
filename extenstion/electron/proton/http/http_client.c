@@ -17,12 +17,12 @@
 #define STRING_ARRAY_PARAM(s) s, sizeof(s) - 1
 
 proton_private_value_t *
-proton_httpclient_create(quark_coroutine_runtime *runtime) {
+proton_httpclient_create(proton_coroutine_runtime *runtime) {
   return NULL;
 }
 
 int proton_httpclient_free(proton_private_value_t *value) {
-  QUARK_DEBUG_PRINT("free");
+  PLOG_DEBUG("free");
   // proton_http_client_t *client = (proton_http_client_t *)value;
   // LL_remove(&((proton_sc_context_t *)client->context)->link);
   // RELEASE_MYSELF(client->myself);
@@ -37,17 +37,17 @@ void httpclient_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
 }
 
 void httpclient_on_closed(uv_handle_t *handle) {
-  QUARK_DEBUG_PRINT("onclosed");
+  PLOG_DEBUG("onclosed");
   proton_http_client_t *client = (proton_http_client_t *)handle->data;
   LL_remove(&((proton_sc_context_t *)client->context)->link);
-  RELEASE_MYSELF(client->value.myself);
+  RELEASE_VALUE_MYSELF(client->value);
 }
 
 void httpclient_on_read(uv_stream_t *handle, ssize_t nread,
                         const uv_buf_t *buf) {
   proton_http_client_t *client = (proton_http_client_t *)handle->data;
   if (nread < 0) { // error
-    QUARK_LOGGER("[HTTPCLIENT] read failed with %d", (int)nread);
+    PLOG_WARN("[HTTPCLIENT] read failed with %d", (int)nread);
     uv_close((uv_handle_t *)handle, httpclient_on_closed);
     return;
   }
@@ -56,9 +56,9 @@ void httpclient_on_read(uv_stream_t *handle, ssize_t nread,
       http_parser_execute(&client->parser, &client->settings, buf->base, nread);
 
   if (client->parser.http_errno) {
-    QUARK_LOGGER("[HTTPSERVER] http_parser_execute failed with(%s:%s)",
-                 http_errno_name(client->parser.http_errno),
-                 http_errno_description(client->parser.http_errno));
+    PLOG_WARN("[HTTPSERVER] http_parser_execute failed with(%s:%s)",
+              http_errno_name(client->parser.http_errno),
+              http_errno_description(client->parser.http_errno));
     uv_close((uv_handle_t *)handle, httpclient_on_closed);
     return;
   }
@@ -162,8 +162,11 @@ int proton_http_client_init(proton_http_client_t *client,
 
 int proton_httpclient_body_write(proton_private_value_t *value,
                                  const char *body, int len) {
-  MAKE_SURE_ON_COROTINUE("write");
+
+  MAKESURE_PTR_NOT_NULL(value);
   proton_http_client_t *client = (proton_http_client_t *)value;
+  MAKESURE_ON_COROTINUE(client->runtime);
+
   switch (client->rstatus) {
   case PROTON_HRC_NEW:
     break;
@@ -175,15 +178,16 @@ int proton_httpclient_body_write(proton_private_value_t *value,
 }
 
 void httpclient_on_write(uv_write_t *req, int status) {
-  quark_coroutine_swap_in((quark_coroutine_task *)req->data);
+  proton_coroutine_resume(NULL, (proton_coroutine_task *)req->data);
 }
 
 int proton_httpclient_write_response(proton_private_value_t *value,
                                      int status_code, const char *headers[],
                                      int header_count, const char *body,
                                      int body_len) {
-  MAKE_SURE_ON_COROTINUE("response");
+  MAKESURE_PTR_NOT_NULL(value);
   proton_http_client_t *client = (proton_http_client_t *)value;
+  MAKESURE_ON_COROTINUE(client->runtime);
   char buff[60];
 
   proton_link_buffer_t lbf;
@@ -223,20 +227,17 @@ int proton_httpclient_write_response(proton_private_value_t *value,
       &lbf, STRING_ARRAY_PARAM("Content-Type: text/html\r\n"));
   proton_link_buffer_append_string(&lbf, STRING_ARRAY_PARAM("\r\n"));
 
-  // QUARK_LOGGER("length=%d content=\n%s", (int)lbf.total_used_size,
-  //            proton_link_buffer_get_ptr(&lbf, 0));
-
   uv_buf_t rbufs[2] = {
       {.base = proton_link_buffer_get_ptr(&lbf, 0), .len = lbf.total_used_size},
       {.base = (char *)body, .len = body_len}};
 
   uv_write_t write;
-  write.data = quark_coroutine_current();
+  write.data = RUNTIME_CURRENT_COROUTINE(client->runtime);
   int rc = uv_write(&write, (uv_stream_t *)&client->tcp, rbufs, 2,
                     httpclient_on_write);
 
   if (rc == 0) {
-    quark_coroutine_swap_out(quark_coroutine_current(), QC_STATUS_SUSPEND);
+    proton_coroutine_waitfor(client->runtime, &client->value);
 
     if (write.error != 0) {
       rc = write.error;

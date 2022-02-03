@@ -14,9 +14,10 @@
 #ifndef _PROTON_HTTP_H_
 #define _PROTON_HTTP_H_
 
-#include "proton/libuv/runtime.h"
+#include "proton/coroutine/runtime.h"
 #include "proton/common/electron.h"
 #include "proton/libuv/uvobject.h"
+#include "proton/libuv/link_buff.h"
 #include <uv.h>
 
 typedef void (*on_new_http_client)(proton_private_value_t *server,
@@ -37,6 +38,7 @@ typedef struct _proton_http_server_config_t {
 
 typedef struct _proton_http_server_t {
   proton_private_value_t value;
+  proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
   list_link_t clients;
   proton_http_server_config_t config;
@@ -72,6 +74,7 @@ typedef struct _proton_header_t {
 
 typedef struct _proton_http_client_t {
   proton_private_value_t value;
+  proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
 
   http_parser parser;
@@ -91,7 +94,7 @@ typedef struct _proton_http_client_t {
 } proton_http_client_t;
 
 proton_private_value_t *
-proton_httpserver_create(quark_coroutine_runtime *runtime,
+proton_httpserver_create(proton_coroutine_runtime *runtime,
                          proton_http_server_config_t *config);
 
 int proton_httpserver_start(proton_private_value_t *server);
@@ -109,7 +112,7 @@ int proton_httpclient_write_response(proton_private_value_t *value,
                                      int body_len);
 
 proton_private_value_t *
-proton_httpclient_create(quark_coroutine_runtime *runtime);
+proton_httpclient_create(proton_coroutine_runtime *runtime);
 
 int proton_httpclient_free(proton_private_value_t *value);
 
