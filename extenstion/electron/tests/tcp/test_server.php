@@ -65,5 +65,35 @@ class ProtonTcpServerTest extends ProtonTestCase
 
     public function testServerClient()
     {
+        proton\go(function ($test) {
+            $test->log()->info("startup");
+            $server = new proton\tcpserver();
+            $test->assertEquals(0, $server->listen("127.0.0.1", 18180));
+            $c = $server->accept();
+            $test->assertNotNull($c);
+            $s = $c->read(1024);
+            $test->assertEquals("client", $s);
+            $r = $c->write("hello $s");
+            $test->assertEquals(0, $r);
+
+            $test->assertEquals(0, $c->close());
+            $test->assertEquals(0, $server->close());
+        }, $this);
+
+        proton\go(function ($test) {
+            proton\sleep(100);
+            $c = new proton\tcpclient();
+            $test->assertEquals(0, $c->connect("127.0.0.1", 18180));
+            $test->assertEquals(0, $c->write("client"));
+            $test->assertEquals("hello client", $c->read(1024));
+            $test->assertEquals(0, $c->close());
+        }, $this);
+
+        proton\go(function () {
+            proton\sleep(1000);
+            proton\runtime::stop();
+        });
+
+        proton\runtime::start();
     }
 }

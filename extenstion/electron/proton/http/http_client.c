@@ -73,6 +73,7 @@ int httpclient_on_headers_complete(http_parser *p) { return 0; }
 int httpclient_on_message_begin(http_parser *p) { return 0; }
 
 int httpclient_on_message_complete(http_parser *p) {
+  PLOG_DEBUG("request read done");
   proton_http_client_t *client = (proton_http_client_t *)p->data;
   client->keepalive = http_should_keep_alive(&client->parser);
   if (p->type == HTTP_REQUEST) { // server request
@@ -178,6 +179,7 @@ int proton_httpclient_body_write(proton_private_value_t *value,
 }
 
 void httpclient_on_write(uv_write_t *req, int status) {
+  ((proton_coroutine_task *)req->data)->status = QC_STATUS_RUNABLE;
   proton_coroutine_resume(NULL, (proton_coroutine_task *)req->data);
 }
 

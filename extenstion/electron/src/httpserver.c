@@ -51,8 +51,6 @@ void php_new_httpserver_client(proton_private_value_t *server,
 
     proton_object_construct(&coroutine, &task->value);
 
-    ZVAL_COPY(&task->value.myself, &coroutine);
-
     Z_TRY_DELREF(params[0]);
     Z_TRY_DELREF(params[1]);
 

@@ -64,6 +64,7 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
   }
 
   client->context = &wrap->context.context;
+  client->runtime = server->runtime;
   proton_http_client_init(client, HTTP_REQUEST);
 
   // append to list

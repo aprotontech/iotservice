@@ -206,5 +206,4 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
   PLOG_INFO("[COROUTINE] [finish] switch(%lu->%lu)", task->cid,
             RUNTIME_MAIN_COROUTINE(runtime)->cid);
   // RELEASE_VALUE_MYSELF(task->value);
-  // ZVAL_UNDEF(&task->value.myself);
 }
