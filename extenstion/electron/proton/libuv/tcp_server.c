@@ -54,7 +54,12 @@ int proton_tcpserver_listen(proton_private_value_t *value, const char *host,
 
   struct sockaddr_in addr;
   uv_ip4_addr(host, port, &addr);
-  uv_tcp_bind(&server->tcp, (struct sockaddr *)&addr, 0);
+  int rc = uv_tcp_bind(&server->tcp, (struct sockaddr *)&addr, 0);
+  if (rc != 0) {
+    PLOG_WARN("[TCPSERVER] server bind(%s:%d) failed with [%d](%s).", host,
+              port, rc, uv_err_name(rc));
+    return -1;
+  }
 
   return uv_listen((uv_stream_t *)&server->tcp, 128,
                    tcpserver_on_new_connection);

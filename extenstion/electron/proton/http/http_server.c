@@ -47,10 +47,17 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
 
   struct sockaddr_in addr;
   uv_ip4_addr(server->config.host, server->config.port, &addr);
-  uv_tcp_bind(&server->tcp, (struct sockaddr *)&addr, 0);
+  int rc = uv_tcp_bind(&server->tcp, (struct sockaddr *)&addr, 0);
+  if (rc != 0) {
+    PLOG_WARN("[TCPSERVER] server bind(%s:%d) failed with [%d](%s).",
+              server->config.host, server->config.port, rc, uv_err_name(rc));
+    return NULL;
+  }
 
   server->runtime = runtime;
   server->value.type = &__proton_httpserver_type;
+
+  PROTON_WAIT_OBJECT_INIT(server->wq_close);
 
   return &server->value;
 }
@@ -83,21 +90,40 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
 
 int proton_httpserver_start(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
-  proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  proton_http_server_t *server = (proton_http_server_t *)value;
   MAKESURE_ON_COROTINUE(server->runtime);
   return uv_listen((uv_stream_t *)&server->tcp, 128,
                    httpserver_on_new_connection);
 }
 
+void httpserver_on_closed(uv_handle_t *handle) {
+  proton_http_server_t *server = (proton_http_server_t *)handle->data;
+
+  PLOG_DEBUG("server closed");
+
+  proton_coroutine_wakeup(server->runtime, &server->wq_close, NULL);
+
+  RELEASE_VALUE_MYSELF(server->value);
+}
+
 int proton_httpserver_stop(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
-  proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  proton_http_server_t *server = (proton_http_server_t *)value;
   MAKESURE_ON_COROTINUE(server->runtime);
-  return 0;
+
+  if (uv_is_closing((uv_handle_t *)&server->tcp) ||
+      !LL_isspin(&server->wq_close.head)) {
+    PLOG_INFO("[HTTPSERVER] httpserver is closing");
+    return -1;
+  }
+
+  uv_close((uv_handle_t *)&server->tcp, httpserver_on_closed);
+
+  proton_coroutine_waitfor(server->runtime, &server->wq_close, NULL);
 }
 
 int proton_httpserver_uninit(proton_private_value_t *value) {
-  proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  proton_http_server_t *server = (proton_http_server_t *)value;
   if (uv_is_closing((uv_handle_t *)&server->tcp)) {
     PLOG_WARN("[HTTPSERVER] server is closing");
     return -1;

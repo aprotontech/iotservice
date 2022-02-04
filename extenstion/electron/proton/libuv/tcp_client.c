@@ -75,7 +75,6 @@ void tcpclient_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
 
 void tcpclient_on_read(uv_stream_t *handle, ssize_t nread,
                        const uv_buf_t *buf) {
-  PLOG_DEBUG("read");
   proton_tcpclient_t *client = (proton_tcpclient_t *)handle->data;
   client->reading->filled = nread;
   uv_read_stop((uv_stream_t *)handle);

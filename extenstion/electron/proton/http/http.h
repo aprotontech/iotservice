@@ -41,6 +41,7 @@ typedef struct _proton_http_server_t {
   proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
   list_link_t clients;
+  proton_wait_object_t wq_close;
   proton_http_server_config_t config;
 } proton_http_server_t;
 
@@ -89,6 +90,8 @@ typedef struct _proton_http_client_t {
   char rstatus;
 
   proton_buffer_t *read_buffer;
+
+  proton_wait_object_t wq_read;
 
   proton_http_client_context_t *context;
 } proton_http_client_t;

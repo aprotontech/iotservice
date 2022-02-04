@@ -10,10 +10,14 @@ class ProtonHTTPServerTest extends ProtonTestCase
         Proton\go(function ($test) {
             $test->log()->info("startup");
             $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
-                $test->log()->info("server($server) new request($request)");
-                $request->end(200, "OK");
+                $test->log()->info("[testHttpServer] server($server) new request($request)");
+                $request->end(200, "testHttpServer");
             });
             $server->start();
+
+            Proton\sleep(500);
+
+            $server->stop();
         }, $this);
 
         Proton\go(function ($test) {
@@ -35,7 +39,7 @@ class ProtonHTTPServerTest extends ProtonTestCase
 
             $v = explode("\r\n", $s);
             $test->assertTrue(count($v) > 0);
-            $test->assertEquals("OK", $v[count($v) - 1]);
+            $test->assertEquals("testHttpServer", $v[count($v) - 1]);
 
             $test->assertTrue(strlen($s) > 0);
 
@@ -46,5 +50,33 @@ class ProtonHTTPServerTest extends ProtonTestCase
 
 
         Proton\Runtime::start();
+    }
+
+    public function testCurlHttpServer()
+    {
+        $count = 0;
+        Proton\go(function ($test) use (&$count) {
+            $test->log()->info("startup");
+
+            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test, &$count) {
+                $test->log()->info("[testCurlHttpServer] server($server) new request($request)");
+                $request->end(200, "testCurlHttpServer");
+                $request->close();
+
+                ++$count;
+            });
+            $server->start();
+
+            Proton\sleep(500);
+
+            $server->stop();
+            Proton\Runtime::stop();
+        }, $this);
+
+        system("curl -v http://127.0.0.1:18180/version >/dev/null 2>&1 &");
+
+        Proton\Runtime::start();
+
+        $this->assertEquals(1, $count);
     }
 }
