@@ -12,12 +12,20 @@
  */
 #include "uvobject.h"
 
+PROTON_TYPE_WHOAMI_DEFINE(_tcp_server_get_type, "tcpserver")
+
+static proton_value_type_t __proton_tcpserver_type = {
+    .construct = NULL,
+    .destruct = proton_tcpserver_free,
+    .whoami = _tcp_server_get_type};
+
 proton_private_value_t *
 proton_tcpserver_create(proton_coroutine_runtime *runtime) {
   proton_tcpserver_t *server =
       (proton_tcpserver_t *)qmalloc(sizeof(proton_tcpserver_t));
 
   uv_tcp_init(RUNTIME_UV_LOOP(runtime), &server->tcp);
+  server->value.type = &__proton_tcpserver_type;
   server->new_connection_count = 0;
   server->tcp.data = server;
   server->runtime = runtime;

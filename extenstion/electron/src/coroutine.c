@@ -123,12 +123,7 @@ PHP_METHOD(coroutine, __construct) {
 
 /** {{{
  */
-PHP_METHOD(coroutine, __destruct) {
-  PLOG_DEBUG("coroutine::__destruct");
-  proton_coroutine_destory(
-      (proton_coroutine_task *)proton_object_get(getThis()));
-  proton_object_destruct(getThis());
-}
+PHP_METHOD(coroutine, __destruct) { proton_object_destruct(getThis()); }
 /* }}} */
 
 /** {{{

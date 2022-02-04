@@ -22,8 +22,15 @@ proton_coroutine_runtime *proton_get_runtime() {
 }
 
 void destruct_proton_private_value(zend_resource *rsrc) {
-  PLOG_INFO("[ELECTRON] private_value destruct");
-  // qfree(rsrc->ptr);
+  PLOG_DEBUG("[ELECTRON] private_value free");
+  if (rsrc != NULL && rsrc->ptr != NULL) {
+    proton_private_value_t *value = (proton_private_value_t *)rsrc->ptr;
+    if (value->type != NULL && value->type->destruct) {
+      PLOG_INFO("[ELECTRON] private_value(%s) free(%p)", value->type->whoami(),
+                value);
+      value->type->destruct(value);
+    }
+  }
 }
 
 int proton_object_construct(zval *self, proton_private_value_t *val) {

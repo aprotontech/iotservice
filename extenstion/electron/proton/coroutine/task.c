@@ -22,6 +22,15 @@ typedef struct _task_context_wrap_t {
   zend_function *func;
 } task_context_wrap_t;
 
+int proton_coroutine_destory(proton_private_value_t *task);
+
+PROTON_TYPE_WHOAMI_DEFINE(_coroutine_get_type, "coroutine")
+
+static proton_value_type_t __proton_coroutine_type = {
+    .construct = NULL,
+    .destruct = proton_coroutine_destory,
+    .whoami = _coroutine_get_type};
+
 #define proton_coroutine_ALIGN_SIZE(size)                                      \
   (((sizeof(task_context_wrap_t) % size) + 1) * size)
 
@@ -68,6 +77,7 @@ proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
   LL_init(&task->waiting);
   task->vars = NULL;
   ZVAL_UNDEF(&task->value.myself);
+  task->value.type = &__proton_coroutine_type;
   if (IS_REAL_COROUTINE(task->parent)) {
     Z_TRY_ADDREF(task->parent->value.myself);
   }
@@ -85,26 +95,29 @@ proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
 }
 
 extern int _free_var_item(any_t item, const char *key, any_t data);
-void proton_coroutine_destory(proton_coroutine_task *task) {
-  if (task != NULL) {
-    PLOG_INFO("[COROUTINE] task(%lu) destory", task->cid);
-    if (task->status == QC_STATUS_STOPED) {
-      LL_remove(&task->runable);
-      LL_remove(&task->waiting);
-      if (task->vars != NULL) { // free all vars
-        hashmap_iterate(task->vars, _free_var_item, NULL);
-        hashmap_free(task->vars);
-        task->vars = NULL;
-      }
-      if (task->page != NULL) {
-        qfree(task->page);
-      }
+int proton_coroutine_destory(proton_private_value_t *value) {
+  proton_coroutine_task *task = (proton_coroutine_task *)value;
+  MAKESURE_PTR_NOT_NULL(task);
 
-      qfree(task);
-    } else {
-      PLOG_ERROR("[COROUTINE] [INVALIDATE STATUS]");
+  PLOG_INFO("[COROUTINE] task(%lu) destory", task->cid);
+  if (task->status == QC_STATUS_STOPED) {
+    LL_remove(&task->runable);
+    LL_remove(&task->waiting);
+    if (task->vars != NULL) { // free all vars
+      hashmap_iterate(task->vars, _free_var_item, NULL);
+      hashmap_free(task->vars);
+      task->vars = NULL;
     }
+    if (task->page != NULL) {
+      qfree(task->page);
+    }
+
+    qfree(task);
+  } else {
+    PLOG_ERROR("[COROUTINE] [INVALIDATE STATUS]");
   }
+
+  return 0;
 }
 
 proton_coroutine_task *save_vm_stack(proton_coroutine_task *task) {
@@ -201,9 +214,8 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
   task->status = QC_STATUS_STOPED;
   RUNTIME_CURRENT_COROUTINE(runtime) = RUNTIME_MAIN_COROUTINE(runtime);
 
-  PLOG_INFO("[COROUTINE] id=%lu, after finished, myself refcount=%d", task->cid,
+  PLOG_INFO("[COROUTINE] [finish] switch(%lu->%lu), refcount=%d", task->cid,
+            RUNTIME_MAIN_COROUTINE(runtime)->cid,
             Z_REFCOUNT(task->value.myself) - 1);
-  PLOG_INFO("[COROUTINE] [finish] switch(%lu->%lu)", task->cid,
-            RUNTIME_MAIN_COROUTINE(runtime)->cid);
-  // RELEASE_VALUE_MYSELF(task->value);
+  RELEASE_VALUE_MYSELF(task->value);
 }

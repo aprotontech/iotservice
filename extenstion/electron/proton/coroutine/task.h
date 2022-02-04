@@ -75,8 +75,4 @@ typedef struct _proton_coroutine_entry {
   uint32_t argc;
 } proton_coroutine_entry;
 
-int proton_coroutine_env_init();
-
-void proton_coroutine_destory(proton_coroutine_task *task);
-
 #endif

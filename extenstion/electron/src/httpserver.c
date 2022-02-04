@@ -96,9 +96,7 @@ PHP_METHOD(httpserver, __construct) {
 
 /** {{{
  */
-PHP_METHOD(httpserver, __destruct) {
-  proton_httpserver_free(proton_object_get(getThis()));
-}
+PHP_METHOD(httpserver, __destruct) { proton_object_destruct(getThis()); }
 /* }}} */
 
 /** {{{

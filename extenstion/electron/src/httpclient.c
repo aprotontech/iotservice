@@ -24,10 +24,7 @@ PHP_METHOD(httpclient, __construct) {
 
 /** {{{
  */
-PHP_METHOD(httpclient, __destruct) {
-  PLOG_DEBUG("__destruct");
-  proton_httpclient_free(proton_object_get(getThis()));
-}
+PHP_METHOD(httpclient, __destruct) { proton_object_destruct(getThis()); }
 /* }}} */
 
 /** {{{

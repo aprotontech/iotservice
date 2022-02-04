@@ -17,6 +17,13 @@ typedef struct _proton_http_server_client_wrap_t {
   proton_sc_context_t context;
 } proton_http_server_client_wrap_t;
 
+PROTON_TYPE_WHOAMI_DEFINE(_http_server_get_type, "httpserver")
+
+static proton_value_type_t __proton_httpserver_type = {
+    .construct = NULL,
+    .destruct = proton_httpserver_free,
+    .whoami = _http_server_get_type};
+
 proton_private_value_t *
 proton_httpserver_create(proton_coroutine_runtime *runtime,
                          proton_http_server_config_t *config) {
@@ -42,6 +49,7 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
   uv_tcp_bind(&server->tcp, (struct sockaddr *)&addr, 0);
 
   server->runtime = runtime;
+  server->value.type = &__proton_httpserver_type;
 
   return &server->value;
 }

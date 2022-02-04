@@ -25,13 +25,7 @@ PHP_METHOD(tcpclient, __construct) {
 
 /** {{{
  */
-PHP_METHOD(tcpclient, __destruct) {
-  proton_private_value_t *value = proton_object_get(getThis());
-
-  proton_object_destruct(getThis());
-
-  proton_tcpclient_free(value);
-}
+PHP_METHOD(tcpclient, __destruct) { proton_object_destruct(getThis()); }
 /* }}} */
 
 /** {{{

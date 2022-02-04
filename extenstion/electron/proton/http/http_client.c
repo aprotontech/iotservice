@@ -16,6 +16,13 @@
 #define HTTPCLIENT_MAX_BUFFER_SIZE (2 * 1024 * 1024)
 #define STRING_ARRAY_PARAM(s) s, sizeof(s) - 1
 
+PROTON_TYPE_WHOAMI_DEFINE(_http_client_get_type, "httpclient")
+
+static proton_value_type_t __proton_httpclient_type = {
+    .construct = NULL,
+    .destruct = proton_httpclient_free,
+    .whoami = _http_client_get_type};
+
 proton_private_value_t *
 proton_httpclient_create(proton_coroutine_runtime *runtime) {
   return NULL;
@@ -129,6 +136,7 @@ int httpclient_on_body_cb(http_parser *p, const char *at, size_t len) {
 
 int proton_http_client_init(proton_http_client_t *client,
                             enum http_parser_type type) {
+  client->value.type = &__proton_httpclient_type;
   client->tcp.data = client;
   proton_link_buffer_init(&client->rbody, HTTPCLIENT_DEFAULT_ALLOC_SIZE,
                           HTTPCLIENT_MAX_BUFFER_SIZE);

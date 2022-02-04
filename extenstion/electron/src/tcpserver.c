@@ -24,14 +24,7 @@ PHP_METHOD(tcpserver, __construct) {
 
 /** {{{
  */
-PHP_METHOD(tcpserver, __destruct) {
-  PLOG_DEBUG("tcpserver::__destruct");
-  proton_private_value_t *value = proton_object_get(getThis());
-
-  proton_object_destruct(getThis());
-
-  proton_tcpserver_free(value);
-}
+PHP_METHOD(tcpserver, __destruct) { proton_object_destruct(getThis()); }
 /* }}} */
 
 /** {{{
