@@ -13,11 +13,13 @@ class ProtonHTTPServerTest extends ProtonTestCase
                 $test->log()->info("[testHttpServer] server($server) new request($request)");
                 $request->end(200, "testHttpServer");
             });
-            $server->start();
+            $test->assertEquals(0, $server->start());
 
             Proton\sleep(500);
 
             $server->stop();
+
+            Proton\Runtime::stop();
         }, $this);
 
         Proton\go(function ($test) {
@@ -44,8 +46,6 @@ class ProtonHTTPServerTest extends ProtonTestCase
             $test->assertTrue(strlen($s) > 0);
 
             $test->assertEquals(0, $c->close());
-
-            Proton\Runtime::stop();
         }, $this);
 
 
@@ -65,7 +65,7 @@ class ProtonHTTPServerTest extends ProtonTestCase
 
                 ++$count;
             });
-            $server->start();
+            $test->assertEquals(0, $server->start());
 
             Proton\sleep(500);
 
