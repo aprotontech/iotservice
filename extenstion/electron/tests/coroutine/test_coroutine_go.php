@@ -18,7 +18,7 @@ class ProtonGoTest extends ProtonTestCase
     {
         ProtonGoTest::$testValues = [];
 
-        proton\go('test1');
+        Proton\go('test1');
 
         $this->assertEquals(ProtonGoTest::COUNT, count(ProtonGoTest::$testValues));
         for ($i = 0; $i < count(ProtonGoTest::$testValues); ++$i) {
@@ -29,11 +29,11 @@ class ProtonGoTest extends ProtonTestCase
     public function testRunTwoCoroutines()
     {
         ProtonGoTest::$testValues = [];
-        proton\go(function () {
+        Proton\go(function () {
             for ($i = 0; $i < ProtonGoTest::COUNT; ++$i) {
                 ProtonGoTest::$testValues[] = "xyz-$i";
                 if ($i == 1) {
-                    proton\go('test1');
+                    Proton\go('test1');
                 }
             }
         });
@@ -55,7 +55,7 @@ class ProtonGoTest extends ProtonTestCase
         $v3 = &$v1;
 
 
-        proton\go(function ($v1, $v3) use (&$v2) {
+        Proton\go(function ($v1, $v3) use (&$v2) {
             for ($i = 0; $i < 3; ++$i) {
                 ++$v1;
                 ++$v3;
@@ -71,7 +71,7 @@ class ProtonGoTest extends ProtonTestCase
     public function testArgRef()
     {
         $values = [];
-        proton\go(function () use (&$values) {
+        Proton\go(function () use (&$values) {
             $values[] = 1;
         });
 
@@ -81,9 +81,9 @@ class ProtonGoTest extends ProtonTestCase
     public function testComplexArgs()
     {
         $values = [];
-        proton\go(function () use (&$values) {
+        Proton\go(function () use (&$values) {
             $values[] = 1;
-            proton\go(function (&$values) {
+            Proton\go(function (&$values) {
                 $values[] = 2;
             }, $values);
         });

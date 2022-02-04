@@ -7,7 +7,7 @@ function child1()
     for ($i = 0; $i < 3; ++$i) {
         ProtonCoroutinePauseTest::$values[] = "child1-$i";
         if ($i == 1) {
-            proton\pause();
+            Proton\pause();
         }
     }
 }
@@ -17,7 +17,7 @@ function child2()
     for ($i = 0; $i < 3; ++$i) {
         ProtonCoroutinePauseTest::$values[] = "child2-$i";
         if ($i == 1) {
-            proton\pause();
+            Proton\pause();
         }
     }
 }
@@ -29,12 +29,12 @@ class ProtonCoroutinePauseTest extends ProtonTestCase
     public function testSimplePause()
     {
         $values = [];
-        proton\go(function () use (&$values) {
+        Proton\go(function () use (&$values) {
 
             for ($i = 0; $i < 3; ++$i) {
                 $values[] = $i;
                 if ($i == 1) {
-                    proton\pause();
+                    Proton\pause();
                 }
             }
         });
@@ -49,11 +49,11 @@ class ProtonCoroutinePauseTest extends ProtonTestCase
     public function testComplexPause()
     {
         ProtonCoroutinePauseTest::$values = [];
-        proton\go(function () {
+        Proton\go(function () {
             ProtonCoroutinePauseTest::$values[] = "parent-1";
-            proton\go('child1');
+            Proton\go('child1');
             ProtonCoroutinePauseTest::$values[] = "parent-2";
-            proton\go('child2');
+            Proton\go('child2');
         });
 
         $values = ProtonCoroutinePauseTest::$values;
@@ -70,7 +70,7 @@ class ProtonCoroutinePauseTest extends ProtonTestCase
     public function testSimpleResume()
     {
         $tvalues = [];
-        $coroutine = new proton\coroutine(function () use (&$tvalues) {
+        $coroutine = new Proton\Coroutine(function () use (&$tvalues) {
             for ($i = 0; $i < 3; ++$i) {
                 $tvalues[] = "test-$i";
             }
@@ -87,7 +87,7 @@ class ProtonCoroutinePauseTest extends ProtonTestCase
     public function testResume2()
     {
         ProtonCoroutinePauseTest::$values = [];
-        $coroutine = new proton\coroutine('child1');
+        $coroutine = new Proton\Coroutine('child1');
 
         $coroutine->resume();
 

@@ -52,7 +52,7 @@ zend_class_entry *_runtime_ce;
 zend_class_entry *regist_runtime_class() {
   zend_class_entry runtime;
 
-  INIT_NS_CLASS_ENTRY(runtime, PROTON_NAMESPACE, "runtime", runtime_functions);
+  INIT_NS_CLASS_ENTRY(runtime, PROTON_NAMESPACE, "Runtime", runtime_functions);
   _runtime_ce = zend_register_internal_class_ex(&runtime, NULL);
 
   return _runtime_ce;

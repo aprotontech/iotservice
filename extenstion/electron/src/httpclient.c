@@ -116,7 +116,7 @@ zend_class_entry *_httpclient_ce;
 zend_class_entry *regist_httpclient_class() {
   zend_class_entry httpclient;
 
-  INIT_NS_CLASS_ENTRY(httpclient, PROTON_NAMESPACE, "httpclient",
+  INIT_NS_CLASS_ENTRY(httpclient, PROTON_NAMESPACE, "HttpClient",
                       httpclient_functions);
   _httpclient_ce = zend_register_internal_class_ex(&httpclient, NULL);
   // httpclient_ce->create_object = NULL;

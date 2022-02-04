@@ -22,7 +22,7 @@
 #include "proton/coroutine/runtime.h"
 #include "proton/http/http.h"
 
-#define PROTON_NAMESPACE "proton"
+#define PROTON_NAMESPACE "Proton"
 
 #define PHP_PRIVATE_VALUE_RESOURCE_NAME "proton_private_value"
 

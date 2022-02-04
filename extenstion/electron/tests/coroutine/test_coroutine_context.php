@@ -8,8 +8,8 @@ class ProtonCoroutineContextTest extends ProtonTestCase
     public function testContextStatus()
     {
         ProtonCoroutineContextTest::$values = [];
-        proton\go(function () {
-            ProtonCoroutineContextTest::$values[] = "status=" . proton\context()->status();
+        Proton\go(function () {
+            ProtonCoroutineContextTest::$values[] = "status=" . Proton\context()->status();
             for ($i = 0; $i < 3; ++$i) {
                 ProtonCoroutineContextTest::$values[] = "test1-$i";
             }
@@ -27,8 +27,8 @@ class ProtonCoroutineContextTest extends ProtonTestCase
     public function testContextStatus2()
     {
         ProtonCoroutineContextTest::$values = [];
-        $coroutine = new proton\coroutine(function () {
-            ProtonCoroutineContextTest::$values[] = "status=" . proton\context()->status();
+        $coroutine = new Proton\Coroutine(function () {
+            ProtonCoroutineContextTest::$values[] = "status=" . Proton\context()->status();
         });
 
         $this->assertEquals(1, $coroutine->status());
@@ -41,10 +41,10 @@ class ProtonCoroutineContextTest extends ProtonTestCase
     public function testContextPause()
     {
         ProtonCoroutineContextTest::$values = [];
-        $coroutine = new proton\coroutine(function () {
+        $coroutine = new Proton\Coroutine(function () {
 
             ProtonCoroutineContextTest::$values[] = "test-1";
-            proton\context()->pause();
+            Proton\context()->pause();
             ProtonCoroutineContextTest::$values[] = "test-2";
         });
 

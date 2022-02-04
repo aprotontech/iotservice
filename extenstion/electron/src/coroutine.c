@@ -204,7 +204,7 @@ const zend_function_entry coroutine_functions[] = {
 zend_class_entry *regist_coroutine_class() {
   zend_class_entry coroutine;
 
-  INIT_NS_CLASS_ENTRY(coroutine, PROTON_NAMESPACE, "coroutine",
+  INIT_NS_CLASS_ENTRY(coroutine, PROTON_NAMESPACE, "Coroutine",
                       coroutine_functions);
   _coroutine_ce = zend_register_internal_class_ex(&coroutine, NULL);
   // tcpserver_ce->create_object = NULL;

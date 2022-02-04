@@ -7,17 +7,17 @@ class ProtonHTTPServerTest extends ProtonTestCase
 
     public function testHttpServer()
     {
-        proton\go(function ($test) {
+        Proton\go(function ($test) {
             $test->log()->info("startup");
-            $server = new proton\httpserver("127.0.0.1", 18180, function ($server, $request) use ($test) {
-                $test->log()->info("new request($request)");
+            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
+                $test->log()->info("server($server) new request($request)");
                 $request->end(200, "OK");
             });
             $server->start();
         }, $this);
 
-        proton\go(function ($test) {
-            $c = new proton\tcpclient();
+        Proton\go(function ($test) {
+            $c = new Proton\TcpClient();
             $test->assertEquals(0, $c->connect("127.0.0.1", 18180));
 
             $r = $c->write(implode("\r\n", [
@@ -41,10 +41,10 @@ class ProtonHTTPServerTest extends ProtonTestCase
 
             $test->assertEquals(0, $c->close());
 
-            proton\runtime::stop();
+            Proton\Runtime::stop();
         }, $this);
 
 
-        proton\runtime::start();
+        Proton\Runtime::start();
     }
 }

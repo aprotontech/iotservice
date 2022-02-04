@@ -53,6 +53,18 @@ PHP_MINIT_FUNCTION(electron) {
   regist_httpclient_class();
 }
 
+/* {{{ PHP_MSHUTDOWN
+ */
+PHP_MSHUTDOWN_FUNCTION(electron) {
+  if (__uv_scheduler != NULL) {
+    if (proton_scheduler_free(__uv_scheduler) != 0) {
+      PLOG_ERROR("uninit proton scheduler failed");
+    }
+    __uv_scheduler = NULL;
+  }
+}
+/* }}} */
+
 /* {{{ PHP_RINIT_FUNCTION
  */
 PHP_RINIT_FUNCTION(electron) {
@@ -127,14 +139,14 @@ static const zend_function_entry electron_functions[] = {
  */
 zend_module_entry electron_module_entry = {
     STANDARD_MODULE_HEADER,
-    "electron",           /* Extension name */
-    electron_functions,   /* zend_function_entry */
-    PHP_MINIT(electron),  /* PHP_MINIT - Module initialization */
-    NULL,                 /* PHP_MSHUTDOWN - Module shutdown */
-    PHP_RINIT(electron),  /* PHP_RINIT - Request initialization */
-    NULL,                 /* PHP_RSHUTDOWN - Request shutdown */
-    PHP_MINFO(electron),  /* PHP_MINFO - Module info */
-    PHP_ELECTRON_VERSION, /* Version */
+    "electron",              /* Extension name */
+    electron_functions,      /* zend_function_entry */
+    PHP_MINIT(electron),     /* PHP_MINIT - Module initialization */
+    PHP_MSHUTDOWN(electron), /* PHP_MSHUTDOWN - Module shutdown */
+    PHP_RINIT(electron),     /* PHP_RINIT - Request initialization */
+    NULL,                    /* PHP_RSHUTDOWN - Request shutdown */
+    PHP_MINFO(electron),     /* PHP_MINFO - Module info */
+    PHP_ELECTRON_VERSION,    /* Version */
     STANDARD_MODULE_PROPERTIES};
 /* }}} */
 

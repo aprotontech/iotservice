@@ -122,7 +122,7 @@ zend_class_entry *_tcpclient_ce;
 zend_class_entry *regist_tcpclient_class() {
   zend_class_entry tcpclient;
 
-  INIT_NS_CLASS_ENTRY(tcpclient, PROTON_NAMESPACE, "tcpclient",
+  INIT_NS_CLASS_ENTRY(tcpclient, PROTON_NAMESPACE, "TcpClient",
                       tcpclient_functions);
   _tcpclient_ce = zend_register_internal_class_ex(&tcpclient, NULL);
 

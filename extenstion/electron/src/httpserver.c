@@ -151,7 +151,7 @@ zend_class_entry *_httpserver_ce;
 zend_class_entry *regist_httpserver_class() {
   zend_class_entry httpserver;
 
-  INIT_NS_CLASS_ENTRY(httpserver, PROTON_NAMESPACE, "httpserver",
+  INIT_NS_CLASS_ENTRY(httpserver, PROTON_NAMESPACE, "HttpServer",
                       httpserver_functions);
   _httpserver_ce = zend_register_internal_class_ex(&httpserver, NULL);
   // httpserver_ce->create_object = NULL;

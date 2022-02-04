@@ -98,7 +98,7 @@ zend_class_entry *_tcpserver_ce;
 zend_class_entry *regist_tcpserver_class() {
   zend_class_entry tcpserver;
 
-  INIT_NS_CLASS_ENTRY(tcpserver, PROTON_NAMESPACE, "tcpserver",
+  INIT_NS_CLASS_ENTRY(tcpserver, PROTON_NAMESPACE, "TcpServer",
                       tcpserver_functions);
   _tcpserver_ce = zend_register_internal_class_ex(&tcpserver, NULL);
   // tcpserver_ce->create_object = NULL;
