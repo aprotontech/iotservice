@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/proton_test.php';
+require_once dirname(__DIR__) . '/proton_test.php';
 
 
 class ProtonCoreDumpTest extends ProtonTestCase
@@ -9,7 +9,7 @@ class ProtonCoreDumpTest extends ProtonTestCase
     public function testDump1()
     {
         $values = [];
-        $coroutine = new proton\coroutine(function () use (&$values) {
+        $coroutine = new Proton\Coroutine(function () use (&$values) {
             for ($i = 0; $i < 3; ++$i) {
                 $values[] = $i;
             }
@@ -25,11 +25,11 @@ class ProtonCoreDumpTest extends ProtonTestCase
     public function testDump2()
     {
         $values = [];
-        proton\go(function () use (&$values) {
+        Proton\go(function () use (&$values) {
             $values[] = 1;
         });
 
-        proton\go(function (&$values) {
+        Proton\go(function (&$values) {
             $values[] = 2;
         }, $values);
 

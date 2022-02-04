@@ -80,7 +80,7 @@ int proton_tcpserver_accept(proton_private_value_t *value,
 
 int proton_tcpserver_close(proton_private_value_t *value);
 
-int proton_tcpserver_free(proton_private_value_t *value);
+int proton_tcpserver_uninit(proton_private_value_t *value);
 
 //////////// TCP-CLIENT
 proton_private_value_t *
@@ -96,6 +96,6 @@ int proton_tcpclient_read(proton_private_value_t *value, char *data, int len);
 
 int proton_tcpclient_close(proton_private_value_t *value);
 
-int proton_tcpclient_free(proton_private_value_t *value);
+int proton_tcpclient_uninit(proton_private_value_t *value);
 
 #endif

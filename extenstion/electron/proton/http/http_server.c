@@ -21,15 +21,16 @@ PROTON_TYPE_WHOAMI_DEFINE(_http_server_get_type, "httpserver")
 
 static proton_value_type_t __proton_httpserver_type = {
     .construct = NULL,
-    .destruct = proton_httpserver_free,
+    .destruct = proton_httpserver_uninit,
     .whoami = _http_server_get_type};
 
 proton_private_value_t *
 proton_httpserver_create(proton_coroutine_runtime *runtime,
                          proton_http_server_config_t *config) {
-  assert(config != NULL);
-  assert(config->handler != NULL);
-  assert(config->host != NULL);
+  if (config == NULL || config->handler == NULL || config->host == NULL) {
+    PLOG_WARN("invalidate input config");
+    return NULL;
+  }
 
   int host_len = strlen(config->host);
   proton_http_server_t *server = (proton_http_server_t *)qmalloc(
@@ -95,4 +96,12 @@ int proton_httpserver_stop(proton_private_value_t *value) {
   return 0;
 }
 
-int proton_httpserver_free(proton_private_value_t *server) { return 0; }
+int proton_httpserver_uninit(proton_private_value_t *value) {
+  proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  if (uv_is_closing((uv_handle_t *)&server->tcp)) {
+    PLOG_WARN("[HTTPSERVER] server is closing");
+    return -1;
+  }
+
+  return 0;
+}

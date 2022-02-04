@@ -17,7 +17,7 @@ PROTON_TYPE_WHOAMI_DEFINE(_tcp_client_get_type, "tcpclient")
 
 static proton_value_type_t __proton_tcpclient_type = {
     .construct = NULL,
-    .destruct = proton_tcpclient_free,
+    .destruct = proton_tcpclient_uninit,
     .whoami = _tcp_client_get_type};
 
 proton_private_value_t *
@@ -182,13 +182,20 @@ int proton_tcpclient_close(proton_private_value_t *value) {
   return 0;
 }
 
-int proton_tcpclient_free(proton_private_value_t *value) {
-  if (value != NULL) {
-    proton_tcpclient_t *client = (proton_tcpclient_t *)value;
-    if (client->reading) {
-      PLOG_INFO("[TCPCLIENT] is reading");
-    }
-    qfree(value);
+int proton_tcpclient_uninit(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+
+  proton_tcpclient_t *client = (proton_tcpclient_t *)value;
+  if (client->reading) {
+    PLOG_INFO("[TCPCLIENT] tcpclient is reading");
+    return -1;
   }
+
+  if (uv_is_closing((uv_handle_t *)&client->tcp) ||
+      client->close_task != NULL) {
+    PLOG_WARN("[TCPCLIENT] tcpclient is closing");
+    return -1;
+  }
+
   return 0;
 }

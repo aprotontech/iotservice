@@ -16,7 +16,7 @@ PROTON_TYPE_WHOAMI_DEFINE(_tcp_server_get_type, "tcpserver")
 
 static proton_value_type_t __proton_tcpserver_type = {
     .construct = NULL,
-    .destruct = proton_tcpserver_free,
+    .destruct = proton_tcpserver_uninit,
     .whoami = _tcp_server_get_type};
 
 proton_private_value_t *
@@ -127,10 +127,13 @@ int proton_tcpserver_close(proton_private_value_t *value) {
   return 0;
 }
 
-int proton_tcpserver_free(proton_private_value_t *value) {
-  if (value != NULL) {
-    proton_tcpserver_t *server = (proton_tcpserver_t *)value;
-    qfree(value);
+int proton_tcpserver_uninit(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+  proton_tcpserver_t *server = (proton_tcpserver_t *)value;
+  if (uv_is_closing((uv_handle_t *)&server->tcp) ||
+      server->close_task != NULL) {
+    PLOG_WARN("[TCPSERVER] tcpserver is closing");
+    return -1;
   }
   return 0;
 }

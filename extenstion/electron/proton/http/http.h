@@ -93,6 +93,7 @@ typedef struct _proton_http_client_t {
   proton_http_client_context_t *context;
 } proton_http_client_t;
 
+//////////////// HTTP-SERVER
 proton_private_value_t *
 proton_httpserver_create(proton_coroutine_runtime *runtime,
                          proton_http_server_config_t *config);
@@ -101,7 +102,9 @@ int proton_httpserver_start(proton_private_value_t *server);
 
 int proton_httpserver_stop(proton_private_value_t *server);
 
-int proton_httpserver_free(proton_private_value_t *server);
+int proton_httpserver_uninit(proton_private_value_t *server);
+
+//////////////// HTTP-CLIENT
 
 int proton_httpclient_body_write(proton_private_value_t *client,
                                  const char *body, int len);
@@ -114,6 +117,6 @@ int proton_httpclient_write_response(proton_private_value_t *value,
 proton_private_value_t *
 proton_httpclient_create(proton_coroutine_runtime *runtime);
 
-int proton_httpclient_free(proton_private_value_t *value);
+int proton_httpclient_uninit(proton_private_value_t *value);
 
 #endif

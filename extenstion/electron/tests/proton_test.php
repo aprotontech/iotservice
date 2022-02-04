@@ -7,8 +7,6 @@ use Monolog\Handler\StreamHandler;
 
 use PHPUnit\Framework\TestCase;
 
-proton_set_logger_level(0);
-
 class ProtonTestCase extends TestCase
 {
     private $logger;

@@ -20,7 +20,7 @@ PROTON_TYPE_WHOAMI_DEFINE(_http_client_get_type, "httpclient")
 
 static proton_value_type_t __proton_httpclient_type = {
     .construct = NULL,
-    .destruct = proton_httpclient_free,
+    .destruct = proton_httpclient_uninit,
     .whoami = _http_client_get_type};
 
 proton_private_value_t *
@@ -28,11 +28,14 @@ proton_httpclient_create(proton_coroutine_runtime *runtime) {
   return NULL;
 }
 
-int proton_httpclient_free(proton_private_value_t *value) {
-  PLOG_DEBUG("free");
-  // proton_http_client_t *client = (proton_http_client_t *)value;
+int proton_httpclient_uninit(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+  proton_http_client_t *client = (proton_http_client_t *)value;
+  if (uv_is_closing((uv_handle_t *)&client->tcp)) {
+    PLOG_WARN("[HTTPCLIENT] client is closing");
+    return -1;
+  }
   // LL_remove(&((proton_sc_context_t *)client->context)->link);
-  // RELEASE_MYSELF(client->myself);
   return 0;
 }
 

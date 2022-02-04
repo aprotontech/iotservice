@@ -4,52 +4,52 @@ require_once dirname(__DIR__) . '/proton_test.php';
 
 function test1()
 {
-    for ($i = 0; $i < ProtonGoTest::COUNT; ++$i) {
-        ProtonGoTest::$testValues[] = "test-$i";
+    for ($i = 0; $i < ProtonCoroutineGoTest::COUNT; ++$i) {
+        ProtonCoroutineGoTest::$testValues[] = "test-$i";
     }
 }
 
-class ProtonGoTest extends ProtonTestCase
+class ProtonCoroutineGoTest extends ProtonTestCase
 {
     public const COUNT = 3;
     public static $testValues = [];
 
     public function testSimpleRun()
     {
-        ProtonGoTest::$testValues = [];
+        ProtonCoroutineGoTest::$testValues = [];
 
         Proton\go('test1');
 
-        $this->assertEquals(ProtonGoTest::COUNT, count(ProtonGoTest::$testValues));
-        for ($i = 0; $i < count(ProtonGoTest::$testValues); ++$i) {
-            $this->assertEquals("test-$i", ProtonGoTest::$testValues[$i]);
+        $this->assertEquals(ProtonCoroutineGoTest::COUNT, count(ProtonCoroutineGoTest::$testValues));
+        for ($i = 0; $i < count(ProtonCoroutineGoTest::$testValues); ++$i) {
+            $this->assertEquals("test-$i", ProtonCoroutineGoTest::$testValues[$i]);
         }
     }
 
     public function testRunTwoCoroutines()
     {
-        ProtonGoTest::$testValues = [];
+        ProtonCoroutineGoTest::$testValues = [];
         Proton\go(function () {
-            for ($i = 0; $i < ProtonGoTest::COUNT; ++$i) {
-                ProtonGoTest::$testValues[] = "xyz-$i";
+            for ($i = 0; $i < ProtonCoroutineGoTest::COUNT; ++$i) {
+                ProtonCoroutineGoTest::$testValues[] = "xyz-$i";
                 if ($i == 1) {
                     Proton\go('test1');
                 }
             }
         });
 
-        $this->assertEquals(ProtonGoTest::COUNT + 2, count(ProtonGoTest::$testValues));
+        $this->assertEquals(ProtonCoroutineGoTest::COUNT + 2, count(ProtonCoroutineGoTest::$testValues));
         for ($i = 0; $i <= 1; ++$i) {
-            $this->assertEquals("xyz-$i", ProtonGoTest::$testValues[$i]);
+            $this->assertEquals("xyz-$i", ProtonCoroutineGoTest::$testValues[$i]);
         }
-        for ($i = 0; $i < ProtonGoTest::COUNT; ++$i) {
-            $this->assertEquals("test-$i", ProtonGoTest::$testValues[$i + 2]);
+        for ($i = 0; $i < ProtonCoroutineGoTest::COUNT; ++$i) {
+            $this->assertEquals("test-$i", ProtonCoroutineGoTest::$testValues[$i + 2]);
         }
     }
 
     public function testArgs()
     {
-        ProtonGoTest::$testValues = [];
+        ProtonCoroutineGoTest::$testValues = [];
         $v1 = 3;
         $v2 = 4;
         $v3 = &$v1;

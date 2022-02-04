@@ -28,7 +28,12 @@ void destruct_proton_private_value(zend_resource *rsrc) {
     if (value->type != NULL && value->type->destruct) {
       PLOG_INFO("[ELECTRON] private_value(%s) free(%p)", value->type->whoami(),
                 value);
-      value->type->destruct(value);
+      if (value->type->destruct(value) == 0) {
+        qfree(value);
+      }
+
+    } else {
+      PLOG_ERROR("[ELECTRON] private_value(%p) invalidate status", value);
     }
   }
 }

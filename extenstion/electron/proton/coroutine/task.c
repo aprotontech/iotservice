@@ -110,9 +110,8 @@ int proton_coroutine_destory(proton_private_value_t *value) {
     }
     if (task->page != NULL) {
       qfree(task->page);
+      task->page = NULL;
     }
-
-    qfree(task);
   } else {
     PLOG_ERROR("[COROUTINE] [INVALIDATE STATUS]");
   }
