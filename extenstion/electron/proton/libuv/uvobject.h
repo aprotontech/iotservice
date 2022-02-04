@@ -46,15 +46,15 @@ typedef struct _proton_tcpserver_t {
   proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
   int new_connection_count;
-  list_link_t waiting_coroutines;
-  proton_coroutine_task *close_task;
+  proton_wait_object_t wq_accept;
+  proton_wait_object_t wq_close;
 } proton_tcpserver_t;
 
 typedef struct _proton_read_context_t {
   uv_buf_t buffer;
   ssize_t filled;
 
-  proton_coroutine_task *coroutine;
+  proton_wait_object_t wq_read;
 } proton_read_context_t;
 
 typedef struct _proton_tcpclient_t {
@@ -62,12 +62,29 @@ typedef struct _proton_tcpclient_t {
   proton_coroutine_runtime *runtime;
   uv_tcp_t tcp;
   proton_read_context_t *reading;
-  proton_coroutine_task *close_task;
+  proton_wait_object_t wq_close;
 } proton_tcpclient_t;
+
+typedef struct _proton_write_t {
+  uv_write_t writer;
+  proton_wait_object_t wq_write;
+} proton_write_t;
+
+typedef struct _proton_connect_t {
+  uv_connect_t connect;
+  proton_wait_object_t wq_connect;
+  int status;
+} proton_connect_t;
 
 //////////// SCHEDULE
 proton_uv_scheduler *proton_scheduler_create();
 int proton_scheduler_free(proton_uv_scheduler *scheduler);
+
+int proton_runtime_loop(proton_coroutine_runtime *runtime);
+int proton_runtime_stop(proton_coroutine_runtime *runtime);
+
+//////////// TIMER
+int proton_coroutine_sleep(proton_coroutine_runtime *runtime, long time_ms);
 
 //////////// TCP-SERVER
 proton_private_value_t *

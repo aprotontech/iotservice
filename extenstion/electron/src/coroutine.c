@@ -74,7 +74,7 @@ PHP_FUNCTION(proton_context) {
 PHP_FUNCTION(proton_yield) {
   proton_coroutine_runtime *runtime = proton_get_runtime();
 
-  if (proton_coroutine_yield(runtime) != 0) {
+  if (proton_coroutine_yield(runtime, NULL) != 0) {
     RETURN_FALSE;
   }
 
@@ -145,7 +145,7 @@ PHP_METHOD(coroutine, status) {
 PHP_METHOD(coroutine, pause) {
   proton_coroutine_runtime *runtime = proton_get_runtime();
 
-  if (proton_coroutine_yield(runtime) != 0) {
+  if (proton_coroutine_yield(runtime, NULL) != 0) {
     RETURN_FALSE;
   }
 

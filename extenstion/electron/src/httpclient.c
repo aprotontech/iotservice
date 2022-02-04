@@ -44,18 +44,6 @@ PHP_METHOD(httpclient, __toString) {
 
 /** {{{
  */
-PHP_METHOD(httpclient, __get) {
-  char *key = NULL;
-  size_t key_len;
-  ZEND_PARSE_PARAMETERS_START(1, 1)
-    Z_PARAM_STRING(key, key_len)
-  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
-  RETURN_STRING("{httpclient}");
-}
-/* }}} */
-
-/** {{{
- */
 PHP_METHOD(httpclient, get) {
   ZEND_PARSE_PARAMETERS_NONE();
   RETURN_LONG(0);
@@ -102,9 +90,7 @@ const zend_function_entry httpclient_functions[] = {
     PHP_ME(httpclient, __destruct, NULL,
            ZEND_ACC_PUBLIC | ZEND_ACC_DTOR) // httpclient::__destruct
     PHP_ME(httpclient, __toString, NULL,
-           ZEND_ACC_PUBLIC) // httpclient::__toString
-    PHP_ME(httpclient, __get, arginfo_proton_httpclient_get,
-           ZEND_ACC_PUBLIC)                          // httpclient::__get
+           ZEND_ACC_PUBLIC)                          // httpclient::__toString
     PHP_ME(httpclient, get, NULL, ZEND_ACC_PUBLIC)   // httpclient::get
     PHP_ME(httpclient, end, NULL, ZEND_ACC_PUBLIC)   // httpclient::end
     PHP_ME(httpclient, close, NULL, ZEND_ACC_PUBLIC) // httpclient::close

@@ -48,7 +48,7 @@ proton_uv_scheduler *proton_scheduler_create() {
 
 int proton_scheduler_uninit(proton_uv_scheduler *scheduler) { return 0; }
 
-int quark_runtime_loop(proton_coroutine_runtime *runtime) {
+int proton_runtime_loop(proton_coroutine_runtime *runtime) {
   MAKESURE_PTR_NOT_NULL(runtime);
 
   if (RUNTIME_CURRENT_COROUTINE(runtime) != RUNTIME_MAIN_COROUTINE(runtime)) {
@@ -58,7 +58,7 @@ int quark_runtime_loop(proton_coroutine_runtime *runtime) {
   return uv_run((uv_loop_t *)runtime->data, UV_RUN_DEFAULT);
 }
 
-int quark_runtime_stop(proton_coroutine_runtime *runtime) {
+int proton_runtime_stop(proton_coroutine_runtime *runtime) {
   if (runtime == NULL) {
     PLOG_WARN("input runtime is null");
     return -1;

@@ -43,24 +43,54 @@ typedef struct _proton_coroutine_runtime_t {
   proton_coroutine_task main;
 } proton_coroutine_runtime;
 
+typedef struct _proton_wait_object_t proton_wait_object_t;
+typedef int (*proton_wait_cancel)(proton_wait_object_t *value);
+
+typedef enum _proton_wait_mode {
+  QC_MODE_FIFO = 0,
+} proton_wait_mode;
+
+typedef struct _proton_wait_object_t {
+  // link to [proton_coroutine_task.waiting]
+  list_link_t head;
+  proton_wait_mode mode;
+
+  // TODO: support later
+  proton_wait_cancel cancel;
+} proton_wait_object_t;
+
+#define PROTON_WAIT_OBJECT_INIT(obj)                                           \
+  {                                                                            \
+    (obj).mode = QC_MODE_FIFO;                                                 \
+    (obj).cancel = NULL;                                                       \
+    LL_init(&((obj).head));                                                    \
+  }
+
+///////////// RUNTIME
 proton_coroutine_runtime *
 proton_runtime_init(proton_coroutine_runtime *runtime);
 
-int quark_runtime_loop(proton_coroutine_runtime *runtime);
-int quark_runtime_stop(proton_coroutine_runtime *runtime);
+int proton_coroutine_schedule(proton_coroutine_runtime *runtime);
+
+///////////// COROUTINE
 
 proton_coroutine_task *
 proton_coroutine_create(proton_coroutine_runtime *runtime,
                         proton_coroutine_entry *entry, int c_stack_size,
                         int php_stack_size);
 
-int proton_coroutine_sleep(proton_coroutine_runtime *runtime, long time_ms);
-int proton_coroutine_yield(proton_coroutine_runtime *runtime);
-int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
-                             proton_private_value_t *value);
+int proton_coroutine_yield(proton_coroutine_runtime *runtime,
+                           proton_coroutine_task **task);
+
 int proton_coroutine_resume(proton_coroutine_runtime *runtime,
                             proton_coroutine_task *task);
 
-int proton_coroutine_schedule(proton_coroutine_runtime *runtime);
+int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
+                             proton_wait_object_t *value,
+                             proton_coroutine_task **task);
+
+int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
+                            proton_wait_object_t *value,
+                            proton_coroutine_task **task);
 
 #endif

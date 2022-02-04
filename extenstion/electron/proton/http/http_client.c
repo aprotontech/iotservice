@@ -190,8 +190,9 @@ int proton_httpclient_body_write(proton_private_value_t *value,
 }
 
 void httpclient_on_write(uv_write_t *req, int status) {
-  ((proton_coroutine_task *)req->data)->status = QC_STATUS_RUNABLE;
-  proton_coroutine_resume(NULL, (proton_coroutine_task *)req->data);
+  proton_http_client_t *client = (proton_http_client_t *)req->handle->data;
+  proton_write_t *pw = (proton_write_t *)req->data;
+  proton_coroutine_wakeup(client->runtime, &pw->wq_write, NULL);
 }
 
 int proton_httpclient_write_response(proton_private_value_t *value,
@@ -244,16 +245,18 @@ int proton_httpclient_write_response(proton_private_value_t *value,
       {.base = proton_link_buffer_get_ptr(&lbf, 0), .len = lbf.total_used_size},
       {.base = (char *)body, .len = body_len}};
 
-  uv_write_t write;
-  write.data = RUNTIME_CURRENT_COROUTINE(client->runtime);
-  int rc = uv_write(&write, (uv_stream_t *)&client->tcp, rbufs, 2,
+  proton_write_t pw;
+  pw.writer.data = &pw;
+  PROTON_WAIT_OBJECT_INIT(pw.wq_write);
+
+  int rc = uv_write(&pw.writer, (uv_stream_t *)&client->tcp, rbufs, 2,
                     httpclient_on_write);
 
   if (rc == 0) {
-    proton_coroutine_waitfor(client->runtime, &client->value);
+    proton_coroutine_waitfor(client->runtime, &pw.wq_write, NULL);
 
-    if (write.error != 0) {
-      rc = write.error;
+    if (pw.writer.error != 0) {
+      rc = pw.writer.error;
     }
   }
 

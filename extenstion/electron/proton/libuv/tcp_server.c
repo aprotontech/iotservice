@@ -29,9 +29,9 @@ proton_tcpserver_create(proton_coroutine_runtime *runtime) {
   server->new_connection_count = 0;
   server->tcp.data = server;
   server->runtime = runtime;
-  server->close_task = NULL;
 
-  LL_init(&server->waiting_coroutines);
+  PROTON_WAIT_OBJECT_INIT(server->wq_accept);
+  PROTON_WAIT_OBJECT_INIT(server->wq_close);
 
   return &server->value;
 }
@@ -41,13 +41,8 @@ void tcpserver_on_new_connection(uv_stream_t *s, int status) {
   proton_tcpserver_t *server = (proton_tcpserver_t *)s->data;
   ++server->new_connection_count;
 
-  if (!LL_isspin(&server->waiting_coroutines)) {
-    proton_coroutine_task *task = container_of(server->waiting_coroutines.next,
-                                               proton_coroutine_task, waiting);
-
-    LL_remove(&task->waiting); // remove from queue
-    task->status = QC_STATUS_RUNABLE;
-    proton_coroutine_resume(NULL, task); // swap to it
+  if (!LL_isspin(&server->wq_accept.head)) { // some coroutine is waiting
+    proton_coroutine_wakeup(server->runtime, &server->wq_accept, NULL);
   }
 }
 
@@ -73,10 +68,8 @@ int proton_tcpserver_accept(proton_private_value_t *value,
 
   MAKESURE_ON_COROTINUE(server->runtime);
 
-  if (server->new_connection_count == 0) {
-    // insert to wait queue
-    LL_insert(&current->waiting, server->waiting_coroutines.prev);
-    proton_coroutine_waitfor(server->runtime, &server->value);
+  if (server->new_connection_count == 0) { // insert to wait queue
+    proton_coroutine_waitfor(server->runtime, &server->wq_accept, NULL);
   }
 
   --server->new_connection_count;
@@ -97,12 +90,10 @@ int proton_tcpserver_accept(proton_private_value_t *value,
 void tcpserver_on_closed(uv_handle_t *handle) {
   PLOG_DEBUG("closed");
   proton_tcpserver_t *server = (proton_tcpserver_t *)handle->data;
-  proton_coroutine_task *task = server->close_task;
+
+  proton_coroutine_wakeup(server->runtime, &server->wq_close, NULL);
 
   RELEASE_VALUE_MYSELF(server->value);
-
-  task->status = QC_STATUS_RUNABLE;
-  proton_coroutine_resume(NULL, task);
 }
 
 int proton_tcpserver_close(proton_private_value_t *value) {
@@ -113,16 +104,14 @@ int proton_tcpserver_close(proton_private_value_t *value) {
   MAKESURE_ON_COROTINUE(server->runtime);
 
   if (uv_is_closing((uv_handle_t *)&server->tcp) ||
-      server->close_task != NULL) {
+      !LL_isspin(&server->wq_close.head)) {
     PLOG_INFO("[TCPSERVER] tcpserver is closing");
     return -1;
   }
 
   uv_close((uv_handle_t *)&server->tcp, tcpserver_on_closed);
 
-  server->close_task = current;
-  proton_coroutine_waitfor(server->runtime, &server->value);
-  server->close_task = NULL;
+  proton_coroutine_waitfor(server->runtime, &server->wq_close, NULL);
 
   return 0;
 }
@@ -131,7 +120,7 @@ int proton_tcpserver_uninit(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
   proton_tcpserver_t *server = (proton_tcpserver_t *)value;
   if (uv_is_closing((uv_handle_t *)&server->tcp) ||
-      server->close_task != NULL) {
+      !LL_isspin(&server->wq_close.head)) {
     PLOG_WARN("[TCPSERVER] tcpserver is closing");
     return -1;
   }

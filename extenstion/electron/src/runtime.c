@@ -17,7 +17,7 @@
  */
 PHP_METHOD(runtime, start) {
   proton_coroutine_runtime *runtime = proton_get_runtime();
-  RETURN_LONG(quark_runtime_loop(runtime));
+  RETURN_LONG(proton_runtime_loop(runtime));
 }
 /* }}} */
 
@@ -25,7 +25,7 @@ PHP_METHOD(runtime, start) {
  */
 PHP_METHOD(runtime, stop) {
   proton_coroutine_runtime *runtime = proton_get_runtime();
-  RETURN_LONG(quark_runtime_stop(runtime));
+  RETURN_LONG(proton_runtime_stop(runtime));
 }
 /* }}} */
 

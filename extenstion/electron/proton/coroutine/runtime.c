@@ -72,25 +72,25 @@ proton_coroutine_create(proton_coroutine_runtime *runtime,
   return NULL;
 }
 
-int proton_coroutine_yield(proton_coroutine_runtime *runtime) {
+int proton_coroutine_yield(proton_coroutine_runtime *runtime,
+                           proton_coroutine_task **out_task) {
   MAKESURE_PTR_NOT_NULL(runtime);
   proton_coroutine_task *task = RUNTIME_CURRENT_COROUTINE(runtime);
 
   if (!LL_isspin(&task->runable)) { // it must be spin
     PLOG_ERROR("current coroutine[%ld] is running, but it masked as runable",
                task->cid);
+    LL_remove(&task->runable);
   }
 
-  LL_remove(&task->runable);
   LL_insert(&task->runable, runtime->runables.prev);
 
-  return proton_coroutine_swap_out(task, QC_STATUS_RUNABLE);
-}
+  int rc = proton_coroutine_swap_out(task, QC_STATUS_RUNABLE);
+  if (rc == 0 && out_task != NULL) {
+    *out_task = task;
+  }
 
-int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
-                             proton_private_value_t *value) {
-  proton_coroutine_task *task = RUNTIME_CURRENT_COROUTINE(runtime);
-  return proton_coroutine_swap_out(task, QC_STATUS_SUSPEND);
+  return rc;
 }
 
 int proton_coroutine_resume(proton_coroutine_runtime *runtime,
@@ -112,8 +112,79 @@ int proton_coroutine_resume(proton_coroutine_runtime *runtime,
     return -1;
   }
 
+  if (LL_isspin(&task->runable)) {
+    PLOG_ERROR("coroutine[%ld] status is invalidate, runable link is spin",
+               task->cid);
+  }
+
   LL_remove(&task->runable);
   return proton_coroutine_swap_in(task);
+}
+
+int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
+                             proton_wait_object_t *value,
+                             proton_coroutine_task **out_task) {
+  MAKESURE_PTR_NOT_NULL(runtime);
+  MAKESURE_PTR_NOT_NULL(value);
+
+  proton_coroutine_task *task = RUNTIME_CURRENT_COROUTINE(runtime);
+
+  if (!LL_isspin(&task->waiting)) {
+    PLOG_WARN("coroutine[%ld] status is invalidate, is waiting now", task->cid);
+    return -1;
+  }
+
+  // insert to wait queue
+  LL_insert(&task->waiting, value->head.prev);
+
+  int rc = proton_coroutine_swap_out(task, QC_STATUS_SUSPEND);
+  if (rc == 0) {
+    if (out_task != NULL) {
+      *out_task = task;
+    }
+  } else { // swap failed, so remove waiting link
+    LL_remove(&task->waiting);
+  }
+
+  return rc;
+}
+
+int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
+                            proton_wait_object_t *value,
+                            proton_coroutine_task **out_task) {
+  MAKESURE_PTR_NOT_NULL(runtime);
+  MAKESURE_PTR_NOT_NULL(value);
+
+  if (LL_isspin(&value->head)) {
+    PLOG_WARN("not found coroutine to wake up");
+    return -1;
+  }
+
+  proton_coroutine_task *task = NULL;
+  switch (value->mode) { // only support FIFO now
+  case QC_MODE_FIFO:
+  default:
+    task = container_of(value->head.next, proton_coroutine_task, waiting);
+    LL_remove(value->head.next);
+    break;
+  }
+
+  if (task->status != QC_STATUS_SUSPEND) {
+    PLOG_ERROR("coroutine[%ld] is not suspend, current status is %d", task->cid,
+               task->status);
+  }
+
+  // TODO: remove later
+  LL_remove(&task->runable);
+
+  int rc = proton_coroutine_swap_in(task);
+  if (rc != 0) {
+    PLOG_ERROR("coroutine[%ld] wake up failed", task->cid);
+    if (out_task != NULL) {
+      *out_task = task;
+    }
+  }
+  return rc;
 }
 
 int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
