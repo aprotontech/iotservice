@@ -25,7 +25,25 @@ PHP_METHOD(httprequest, __destruct) { proton_object_destruct(getThis()); }
 
 /** {{{
  */
-PHP_METHOD(httprequest, __toString) { RETURN_STRING("httprequest"); }
+PHP_METHOD(httprequest, __toString) {
+  php_http_request_t *request =
+      (php_http_request_t *)proton_object_get(getThis());
+
+  if (!HTTP_REQUEST_VALIDATE(request)) {
+    RETURN_STRING("{invalidate-request}");
+  }
+
+  proton_http_client_t *client = request->client;
+
+  char host[1024] = {0};
+  struct sockaddr_in addr;
+  int len = sizeof(addr);
+  uv_tcp_getpeername(&client->tcp, (struct sockaddr *)&addr, &len);
+  snprintf(host, sizeof(host), "{httprequest.%s(%s:%d%s)}",
+           http_method_str(client->current.method), inet_ntoa(addr.sin_addr),
+           ntohs(addr.sin_port), client->current.path);
+  RETURN_STRING(host);
+}
 /* }}} */
 
 /** {{{
@@ -33,16 +51,61 @@ PHP_METHOD(httprequest, __toString) { RETURN_STRING("httprequest"); }
 PHP_METHOD(httprequest, __get) {
   char *key = NULL;
   size_t key_len;
+
+  php_http_request_t *request =
+      (php_http_request_t *)proton_object_get(getThis());
+
   ZEND_PARSE_PARAMETERS_START(1, 1)
     Z_PARAM_STRING(key, key_len)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
-  RETURN_STRING("{httprequest}");
+
+  if (HTTP_REQUEST_VALIDATE(request)) {
+    if (strcasecmp(key, "path") == 0) {
+      RETURN_STRING(request->message->path);
+    }
+  }
+
+  RETURN_NULL();
 }
 /* }}} */
 
 /** {{{
  */
-PHP_METHOD(httprequest, end) { RETURN_LONG(0); }
+PHP_METHOD(httprequest, getClient) {
+  ZEND_PARSE_PARAMETERS_NONE();
+
+  php_http_request_t *request =
+      (php_http_request_t *)proton_object_get(getThis());
+
+  if (HTTP_REQUEST_VALIDATE(request)) {
+    RETURN_ZVAL(&request->client->value.myself, 1, 0);
+  }
+  RETURN_NULL();
+}
+/* }}} */
+
+/** {{{
+ */
+PHP_METHOD(httprequest, end) {
+  long status_code;
+  char *body = NULL;
+  size_t body_len;
+
+  ZEND_PARSE_PARAMETERS_START(2, 2)
+    Z_PARAM_LONG(status_code)
+    Z_PARAM_STRING(body, body_len)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  php_http_request_t *request =
+      (php_http_request_t *)proton_object_get(getThis());
+
+  if (HTTP_REQUEST_VALIDATE(request)) {
+    RETURN_LONG(proton_httpclient_write_response(
+        &request->client->value, status_code, NULL, 0, body, body_len));
+  }
+
+  RETURN_LONG(-1);
+}
 /* }}} */
 
 ZEND_BEGIN_ARG_INFO(arginfo_proton_httprequest_get, 1)
@@ -58,6 +121,8 @@ const zend_function_entry httprequest_functions[] = {
            ZEND_ACC_PROTECTED | ZEND_ACC_CTOR) // httprequest::__construct
     PHP_ME(httprequest, __destruct, NULL,
            ZEND_ACC_PUBLIC | ZEND_ACC_DTOR) // httprequest::__destruct
+    PHP_ME(httprequest, getClient, NULL,
+           ZEND_ACC_PUBLIC) // httprequest::getClient
     PHP_ME(httprequest, __toString, NULL,
            ZEND_ACC_PUBLIC) // httprequest::__toString
     PHP_ME(httprequest, __get, arginfo_proton_httprequest_get,

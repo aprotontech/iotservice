@@ -61,7 +61,8 @@ class ProtonHTTPServerTest extends ProtonTestCase
             $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test, &$count) {
                 $test->log()->info("[testCurlHttpServer] server($server) new request($request)");
                 $request->end(200, "testCurlHttpServer");
-                $request->close();
+                $test->log()->info("client=" . strval($request->getClient()));
+                $request->getClient()->close();
 
                 ++$count;
             });

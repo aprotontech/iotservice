@@ -42,29 +42,11 @@ PHP_METHOD(httpclient, __toString) {
 }
 /* }}} */
 
-/** {{{
+/** {{{ http_request httpclient::get($path, $headers = [])
  */
 PHP_METHOD(httpclient, get) {
   ZEND_PARSE_PARAMETERS_NONE();
   RETURN_LONG(0);
-}
-/* }}} */
-
-/** {{{
- */
-PHP_METHOD(httpclient, end) {
-  long status_code;
-  char *body = NULL;
-  size_t body_len;
-
-  ZEND_PARSE_PARAMETERS_START(2, 2)
-    Z_PARAM_LONG(status_code)
-    Z_PARAM_STRING(body, body_len)
-  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
-
-  proton_coroutine_runtime *runtime = proton_get_runtime();
-  RETURN_LONG(proton_httpclient_write_response(
-      proton_object_get(getThis()), status_code, NULL, 0, body, body_len));
 }
 /* }}} */
 
@@ -92,7 +74,6 @@ const zend_function_entry httpclient_functions[] = {
     PHP_ME(httpclient, __toString, NULL,
            ZEND_ACC_PUBLIC)                          // httpclient::__toString
     PHP_ME(httpclient, get, NULL, ZEND_ACC_PUBLIC)   // httpclient::get
-    PHP_ME(httpclient, end, NULL, ZEND_ACC_PUBLIC)   // httpclient::end
     PHP_ME(httpclient, close, NULL, ZEND_ACC_PUBLIC) // httpclient::close
     {NULL, NULL, NULL} /* Must be the last line in httpclient_functions[] */
 };

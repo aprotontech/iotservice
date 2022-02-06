@@ -55,6 +55,8 @@ int proton_runtime_loop(proton_coroutine_runtime *runtime) {
     PLOG_WARN("[RUNTIME] loop only run on main coroutinue");
     return -1;
   }
+
+  PLOG_INFO("start runtime uvloop");
   return uv_run((uv_loop_t *)runtime->data, UV_RUN_DEFAULT);
 }
 
@@ -64,7 +66,7 @@ int proton_runtime_stop(proton_coroutine_runtime *runtime) {
     return -1;
   }
 
-  PLOG_INFO("stop runtime");
+  PLOG_INFO("stop runtime uvloop");
   uv_stop(RUNTIME_UV_LOOP(runtime));
   return 0;
 }

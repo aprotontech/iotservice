@@ -13,14 +13,32 @@
 
 #include "common.h"
 
-void php_new_httpserver_client(proton_private_value_t *server,
-                               proton_private_value_t *client) {
-  PLOG_DEBUG("new client");
+void php_new_httpserver_request(proton_private_value_t *server,
+                                proton_private_value_t *client) {
+  PLOG_DEBUG("new request");
 
-  zval httpclient;
-  object_init_ex(&httpclient, _httpclient_ce);
+  // if client is not object, create it.
+  // must before create request
+  if (Z_TYPE_P(&client->myself) != IS_OBJECT) {
+    PLOG_INFO("create http client(%p) object", client);
+    zval httpclient;
+    object_init_ex(&httpclient, _httpclient_ce);
 
-  proton_object_construct(&httpclient, client);
+    proton_object_construct(&httpclient, client);
+    ZVAL_PTR_DTOR(&httpclient);
+  }
+
+  proton_private_value_t *request =
+      php_request_create((proton_http_client_t *)client);
+  if (request == NULL) { // create request failed
+    PLOG_WARN("create request failed");
+    return;
+  }
+
+  zval httprequest;
+  object_init_ex(&httprequest, _httprequest_ce);
+
+  proton_object_construct(&httprequest, request);
 
   zval rv;
   zval *self = &((proton_http_server_t *)server)->value.myself;
@@ -29,11 +47,10 @@ void php_new_httpserver_client(proton_private_value_t *server,
       0 TSRMLS_CC, &rv);
 
   if (callback != NULL) {
-
     zval params[2];
 
     ZVAL_COPY(&params[0], self);
-    ZVAL_COPY(&params[1], &httpclient);
+    ZVAL_COPY(&params[1], &httprequest);
 
     proton_coroutine_entry entry = {
         .argc = 2,
@@ -83,7 +100,7 @@ PHP_METHOD(httpserver, __construct) {
   proton_coroutine_runtime *runtime = proton_get_runtime();
 
   proton_http_server_config_t config = {
-      .handler = php_new_httpserver_client, .host = host, .port = port};
+      .handler = php_new_httpserver_request, .host = host, .port = port};
 
   proton_private_value_t *s = proton_httpserver_create(runtime, &config);
   proton_object_construct(getThis(), s);

@@ -21,6 +21,7 @@
 #include "proton/libuv/uvobject.h"
 #include "proton/coroutine/runtime.h"
 #include "proton/http/http.h"
+#include "proton/http/php_request.h"
 
 #define PROTON_NAMESPACE "Proton"
 

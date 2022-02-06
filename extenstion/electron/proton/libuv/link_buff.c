@@ -79,7 +79,7 @@ char *proton_link_buffer_copy_string(proton_link_buffer_t *lbf, const char *ptr,
 
   char *dst = pbt->buff.base + pbt->used;
   memcpy(dst, ptr, len);
-  dst[len] = 0;
+  dst[len] = '\0';
   pbt->used += len + 1;
   return dst;
 }

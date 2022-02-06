@@ -63,6 +63,7 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
 }
 
 extern int proton_http_client_init(proton_http_client_t *client,
+                                   proton_buffer_t *read_buffer,
                                    enum http_parser_type type);
 void httpserver_on_new_connection(uv_stream_t *s, int status) {
   proton_http_server_t *server = (proton_http_server_t *)s->data;
@@ -81,7 +82,7 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
 
   client->context = &wrap->context.context;
   client->runtime = server->runtime;
-  proton_http_client_init(client, HTTP_REQUEST);
+  proton_http_client_init(client, NULL, HTTP_REQUEST);
 
   // append to list
   wrap->context.server = server;
@@ -110,6 +111,8 @@ int proton_httpserver_stop(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
   proton_http_server_t *server = (proton_http_server_t *)value;
   MAKESURE_ON_COROTINUE(server->runtime);
+
+  PLOG_DEBUG("[HTTPSERVER] stop httpserver");
 
   if (uv_is_closing((uv_handle_t *)&server->tcp) ||
       !LL_isspin(&server->wq_close.head)) {

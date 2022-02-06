@@ -1,14 +1,18 @@
 /*
  * **************************************************************************
- *
+ * 
  *  Copyright (c) 2022 aproton.tech, Inc. All Rights Reserved
- *
+ * 
  * **************************************************************************
- *
- *  @file     http_request.c
+ * 
+ *  @file     channel.h
  *  @author   kuper - <kuper@aproton.tech>
- *  @data     2022-01-23 05:26:35
- *
+ *  @data     2022-02-05 12:45:51
+ * 
  */
 
-#include "http.h"
+#ifndef _PROTON_COROUTINE_CHANNEL_H_
+#define _PROTON_COROUTINE_CHANNEL_H_
+
+
+#endif
