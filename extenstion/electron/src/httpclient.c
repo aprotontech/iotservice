@@ -16,9 +16,20 @@
 /** {{{
  */
 PHP_METHOD(httpclient, __construct) {
+
+  long port;
+  char *host = NULL;
+  size_t host_len;
+
+  ZEND_PARSE_PARAMETERS_START(2, 2)
+    Z_PARAM_STRING(host, host_len)
+    Z_PARAM_LONG(port)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
   proton_coroutine_runtime *runtime = proton_get_runtime();
 
-  proton_object_construct(getThis(), proton_httpclient_create(runtime));
+  proton_private_value_t *s = proton_httpclient_create(runtime, host, port);
+  proton_object_construct(getThis(), s);
 }
 /* }}} */
 
@@ -30,8 +41,8 @@ PHP_METHOD(httpclient, __destruct) { proton_object_destruct(getThis()); }
 /** {{{
  */
 PHP_METHOD(httpclient, __toString) {
-  proton_http_client_t *client =
-      (proton_http_client_t *)proton_object_get(getThis());
+  proton_http_connect_t *client =
+      (proton_http_connect_t *)proton_object_get(getThis());
   char host[40] = {0};
   struct sockaddr_in addr;
   int len = sizeof(addr);
@@ -45,8 +56,52 @@ PHP_METHOD(httpclient, __toString) {
 /** {{{ http_request httpclient::get($path, $headers = [])
  */
 PHP_METHOD(httpclient, get) {
-  ZEND_PARSE_PARAMETERS_NONE();
-  RETURN_LONG(0);
+  char *url = NULL;
+  size_t url_len;
+  zval *headers = NULL;
+  const char **input_headers = NULL;
+  int input_headers_count = 0;
+
+  ZEND_PARSE_PARAMETERS_START(1, 2)
+    Z_PARAM_STRING(url, url_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ARRAY(headers)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  if (headers != NULL) {
+    HashTable *array_hash = HASH_OF(headers);
+    input_headers_count = zend_array_count(array_hash);
+    if (input_headers_count != 0) {
+      zend_ulong num_idx, valid_idx = 0;
+      zend_string *str_idx;
+      zval *entry;
+      input_headers =
+          (const char **)malloc(sizeof(char *) * input_headers_count);
+      ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(headers), num_idx, str_idx, entry) {
+        if (Z_TYPE_P(entry) != IS_STRING) {
+          php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                           "input headers item must be string");
+          free(input_headers);
+          return;
+        }
+
+        zend_string *value = Z_STR_P(entry);
+        input_headers[valid_idx++] = value->val;
+      }
+      ZEND_HASH_FOREACH_END();
+
+      input_headers_count = valid_idx;
+    }
+  }
+
+  int rc =
+      proton_httpclient_request(proton_object_get(getThis()), HTTP_GET, url,
+                                input_headers, input_headers_count, NULL, 0);
+  if (input_headers != NULL) {
+    free(input_headers);
+  }
+
+  RETURN_LONG(rc);
 }
 /* }}} */
 

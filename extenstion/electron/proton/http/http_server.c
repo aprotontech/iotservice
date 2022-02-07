@@ -11,11 +11,7 @@
  *
  */
 #include "http.h"
-
-typedef struct _proton_http_server_client_wrap_t {
-  proton_http_client_t client;
-  proton_sc_context_t context;
-} proton_http_server_client_wrap_t;
+#include "php_request.h"
 
 PROTON_TYPE_WHOAMI_DEFINE(_http_server_get_type, "httpserver")
 
@@ -23,6 +19,22 @@ static proton_value_type_t __proton_httpserver_type = {
     .construct = NULL,
     .destruct = proton_httpserver_uninit,
     .whoami = _http_server_get_type};
+
+proton_http_message_t *
+http_server_new_request_message(proton_private_value_t *self,
+                                proton_http_connect_t *connection) {
+  proton_private_value_t *request = php_request_create(connection);
+  return &(((php_http_request_t *)request)->message);
+}
+
+int http_server_request_handler(proton_private_value_t *self,
+                                proton_http_connect_t *connection,
+                                proton_http_message_t *message) {
+  php_http_request_t *request =
+      container_of(message, php_http_request_t, message);
+  ((proton_http_server_t *)self)->config.handler(self, &request->value);
+  return 0;
+}
 
 proton_private_value_t *
 proton_httpserver_create(proton_coroutine_runtime *runtime,
@@ -41,6 +53,10 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
   server->config = *config;
   server->config.host = (char *)&server[1];
   strcpy(server->config.host, config->host);
+
+  server->callbacks.new_message = http_server_new_request_message;
+  server->callbacks.request_handler = http_server_request_handler;
+  server->callbacks.self = &server->value;
 
   uv_tcp_init((uv_loop_t *)runtime->data, &server->tcp);
   server->tcp.data = server;
@@ -62,15 +78,11 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
   return &server->value;
 }
 
-extern int proton_http_client_init(proton_http_client_t *client,
-                                   proton_buffer_t *read_buffer,
-                                   enum http_parser_type type);
 void httpserver_on_new_connection(uv_stream_t *s, int status) {
   proton_http_server_t *server = (proton_http_server_t *)s->data;
-  proton_http_server_client_wrap_t *wrap =
-      (proton_http_server_client_wrap_t *)qmalloc(
-          sizeof(proton_http_server_client_wrap_t));
-  proton_http_client_t *client = &wrap->client;
+
+  proton_http_connect_t *client =
+      (proton_http_connect_t *)qmalloc(sizeof(proton_http_connect_t));
 
   uv_tcp_init(server->tcp.loop, &client->tcp);
   int rc = uv_accept((uv_stream_t *)&server->tcp, (uv_stream_t *)&client->tcp);
@@ -80,13 +92,10 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
     return;
   }
 
-  client->context = &wrap->context.context;
   client->runtime = server->runtime;
-  proton_http_client_init(client, NULL, HTTP_REQUEST);
+  proton_http_connection_init(client, NULL, HTTP_REQUEST);
 
-  // append to list
-  wrap->context.server = server;
-  LL_insert(&wrap->context.link, server->clients.prev);
+  LL_insert(&client->link, server->clients.prev);
 }
 
 int proton_httpserver_start(proton_private_value_t *value) {
@@ -119,6 +128,8 @@ int proton_httpserver_stop(proton_private_value_t *value) {
     PLOG_INFO("[HTTPSERVER] httpserver is closing");
     return -1;
   }
+
+  /// close all clients
 
   uv_close((uv_handle_t *)&server->tcp, httpserver_on_closed);
 

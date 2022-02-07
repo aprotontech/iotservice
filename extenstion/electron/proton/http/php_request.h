@@ -21,16 +21,12 @@ typedef struct _php_http_request_t {
   proton_private_value_t value;
   proton_coroutine_runtime *runtime;
 
-  proton_http_client_t *client;
-  proton_http_message_t *message;
-  uint64_t message_version;
+  proton_http_connect_t *connect;
+
+  proton_http_message_t message;
 
 } php_http_request_t;
 
-#define HTTP_REQUEST_VALIDATE(request)                                         \
-  ((request) != NULL && (request)->client != NULL &&                           \
-   (request)->message_version == (request)->client->message_version)
-
-proton_private_value_t *php_request_create(proton_http_client_t *client);
+proton_private_value_t *php_request_create(proton_http_connect_t *client);
 
 #endif

@@ -14,25 +14,22 @@
 #include "common.h"
 
 void php_new_httpserver_request(proton_private_value_t *server,
-                                proton_private_value_t *client) {
+                                proton_private_value_t *request) {
   PLOG_DEBUG("new request");
 
-  // if client is not object, create it.
+  // if connect is not object, create it.
   // must before create request
-  if (Z_TYPE_P(&client->myself) != IS_OBJECT) {
-    PLOG_INFO("create http client(%p) object", client);
-    zval httpclient;
-    object_init_ex(&httpclient, _httpclient_ce);
+  proton_private_value_t *connect =
+      &(((php_http_request_t *)request)->connect->value);
+  if (Z_TYPE_P(&connect->myself) != IS_OBJECT) {
+    PLOG_INFO("create http connect(%p) object", connect);
+    zval httpconnect;
+    object_init_ex(&httpconnect, _httpconnect_ce);
 
-    proton_object_construct(&httpclient, client);
-    ZVAL_PTR_DTOR(&httpclient);
-  }
+    proton_object_construct(&httpconnect, connect);
 
-  proton_private_value_t *request =
-      php_request_create((proton_http_client_t *)client);
-  if (request == NULL) { // create request failed
-    PLOG_WARN("create request failed");
-    return;
+    // connect->myself is holding it, so can dec ref-count here
+    ZVAL_PTR_DTOR(&httpconnect);
   }
 
   zval httprequest;

@@ -89,9 +89,20 @@ typedef struct _proton_value_type_t {
 typedef struct _proton_private_value_t {
   proton_value_type_t *type;
   zval myself;
+#ifdef PROTON_DEBUG_TRACE_OBJECT
+  list_link_t link;
+#endif
 } proton_private_value_t;
 
 #define PROTON_TYPE_WHOAMI_DEFINE(func_name, type_name)                        \
   const char *func_name() { return type_name; }
 
+extern list_link_t *__all_values;
+
+#ifdef PROTON_DEBUG_TRACE_OBJECT
+#define PROTON_TRACE_VALUE(value) LL_insert(&value.link, __all_values->prev)
+#define PROTON_REMOVE_TRACE(value) LL_remove(&value.link)
+#else
+#define PROTON_TRACE_VALUE(value)
+#endif
 #endif
