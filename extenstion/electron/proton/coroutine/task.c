@@ -233,6 +233,8 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
             RUNTIME_MAIN_COROUTINE(runtime)->cid,
             Z_REFCOUNT(task->value.myself) - 1);
 
+  // don't call RELEASE_VALUE_MYSELF(task->value.myself) here
+  // because may use [task->context.uc_link] after this function stoped
   LL_remove(&task->link);
   LL_insert(&task->link, task->runtime->releaseables.prev);
 
