@@ -23,6 +23,6 @@ PHP_FUNCTION(proton_sleep) {
     Z_PARAM_LONG(time_ms)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  proton_coroutine_sleep(runtime, time_ms);
+  RETURN_LONG(proton_coroutine_sleep(runtime, time_ms));
 }
 /* }}}*/

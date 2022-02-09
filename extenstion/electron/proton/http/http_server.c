@@ -93,7 +93,7 @@ void httpserver_on_new_connection(uv_stream_t *s, int status) {
   }
 
   client->runtime = server->runtime;
-  proton_http_connection_init(client, NULL, HTTP_REQUEST);
+  proton_http_connection_init(client, &server->callbacks, HTTP_REQUEST);
 
   LL_insert(&client->link, server->clients.prev);
 }

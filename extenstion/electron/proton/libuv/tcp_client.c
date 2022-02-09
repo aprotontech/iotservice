@@ -25,11 +25,14 @@ proton_tcpclient_create(proton_coroutine_runtime *runtime) {
   proton_tcpclient_t *client =
       (proton_tcpclient_t *)qmalloc(sizeof(proton_tcpclient_t));
 
-  uv_tcp_init(RUNTIME_UV_LOOP(runtime), &client->tcp);
   client->value.type = &__proton_tcpclient_type;
-  client->tcp.data = client;
+  ZVAL_UNDEF(&client->value.myself);
+
   client->reading = NULL;
   client->runtime = runtime;
+
+  uv_tcp_init(RUNTIME_UV_LOOP(runtime), &client->tcp);
+  client->tcp.data = client;
 
   PROTON_WAIT_OBJECT_INIT(client->wq_close);
 
@@ -37,6 +40,7 @@ proton_tcpclient_create(proton_coroutine_runtime *runtime) {
 }
 
 void tcpclient_on_write(uv_write_t *req, int status) {
+  PLOG_DEBUG("write status=%d", status);
   proton_tcpclient_t *client = (proton_tcpclient_t *)req->handle->data;
   proton_write_t *pw = (proton_write_t *)req->data;
   proton_coroutine_wakeup(client->runtime, &pw->wq_write, NULL);
@@ -61,6 +65,8 @@ int proton_tcpclient_write(proton_private_value_t *value, const char *data,
 
     if (pw.writer.error != 0) {
       rc = pw.writer.error;
+      PLOG_WARN("client(%p) write failed with error[%d](%s)", client, rc,
+                uv_err_name(rc));
     }
   }
 
@@ -161,12 +167,14 @@ void tcpclient_on_closed(uv_handle_t *handle) {
 
   proton_coroutine_wakeup(client->runtime, &client->wq_close, NULL);
 
+  PLOG_DEBUG("tcpclient(%p) refcount=%d", client,
+             Z_REFCOUNT(client->value.myself) - 1);
+
   RELEASE_VALUE_MYSELF(client->value);
 }
 
 int proton_tcpclient_close(proton_private_value_t *value) {
   proton_tcpclient_t *client = (proton_tcpclient_t *)value;
-  proton_coroutine_task *current = RUNTIME_CURRENT_COROUTINE(client->runtime);
 
   MAKESURE_ON_COROTINUE(client->runtime);
 
@@ -192,8 +200,7 @@ int proton_tcpclient_uninit(proton_private_value_t *value) {
     return -1;
   }
 
-  if (uv_is_closing((uv_handle_t *)&client->tcp) ||
-      !LL_isspin(&client->wq_close.head)) {
+  if (!LL_isspin(&client->wq_close.head)) {
     PLOG_WARN("[TCPCLIENT] tcpclient is closing");
     return -1;
   }

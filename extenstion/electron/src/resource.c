@@ -22,7 +22,7 @@ proton_coroutine_runtime *proton_get_runtime() {
 }
 
 void destruct_proton_private_value(zend_resource *rsrc) {
-  PLOG_DEBUG("[ELECTRON] private_value free");
+  // PLOG_DEBUG("[ELECTRON] private_value free");
   if (rsrc != NULL && rsrc->ptr != NULL) {
     proton_private_value_t *value = (proton_private_value_t *)rsrc->ptr;
     if (value->type != NULL && value->type->destruct) {
@@ -56,6 +56,7 @@ int proton_object_construct(zval *self, proton_private_value_t *val) {
                        &value TSRMLS_CC);
 
   ZVAL_COPY(&val->myself, self);
+  ZVAL_PTR_DTOR(&value); // remove value's ref-count
   return 0;
 }
 

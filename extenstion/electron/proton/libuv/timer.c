@@ -20,6 +20,12 @@ typedef struct _proton_timer_t {
   proton_coroutine_runtime *runtime;
 } proton_timer_t;
 
+void on_timer_closed(uv_handle_t *handle) {
+  proton_timer_t *pt = (proton_timer_t *)handle->data;
+
+  qfree(pt);
+}
+
 void on_coroutine_sleep_done(uv_timer_t *timer) {
   PLOG_DEBUG("timer(%p) sleep done", timer);
   proton_timer_t *pt = (proton_timer_t *)timer->data;
@@ -27,19 +33,22 @@ void on_coroutine_sleep_done(uv_timer_t *timer) {
   uv_timer_stop(timer);
 
   proton_coroutine_wakeup(pt->runtime, &pt->wq_tick, NULL);
+
+  uv_close((uv_handle_t *)&pt->timer, on_timer_closed);
 }
 
 int proton_coroutine_sleep(proton_coroutine_runtime *runtime, long time_ms) {
   MAKESURE_ON_COROTINUE(runtime);
-  proton_timer_t pt;
-  pt.runtime = runtime;
+  proton_timer_t *pt = (proton_timer_t *)qmalloc(sizeof(proton_timer_t));
+  pt->runtime = runtime;
+  PROTON_WAIT_OBJECT_INIT(pt->wq_tick);
 
-  uv_timer_init(RUNTIME_UV_LOOP(runtime), &pt.timer);
-  pt.timer.data = &pt;
+  uv_timer_init(RUNTIME_UV_LOOP(runtime), &pt->timer);
+  pt->timer.data = pt;
 
-  PROTON_WAIT_OBJECT_INIT(pt.wq_tick);
+  uv_timer_start(&pt->timer, on_coroutine_sleep_done, time_ms, 0);
 
-  uv_timer_start(&pt.timer, on_coroutine_sleep_done, time_ms, 0);
+  proton_coroutine_waitfor(runtime, &pt->wq_tick, NULL);
 
-  return proton_coroutine_waitfor(runtime, &pt.wq_tick, NULL);
+  return 0;
 }

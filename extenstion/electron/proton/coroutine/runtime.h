@@ -32,6 +32,9 @@ typedef struct _proton_coroutine_runtime_t {
 
   list_link_t clist;
 
+  // task can be released
+  list_link_t releaseables;
+
   list_link_t runables;
 
   void *data; // custom data --> scheduler loop

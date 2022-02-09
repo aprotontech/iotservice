@@ -42,6 +42,7 @@ typedef struct _proton_coroutine_task {
   size_t vm_stack_page_size;
   zend_execute_data *execute_data;
 
+  void *c_stack;
   zend_vm_stack page;
 
   struct _proton_coroutine_task *parent; // no use now

@@ -61,10 +61,10 @@ PHP_METHOD(tcpserver, accept) {
 
   zval tcpclient;
   object_init_ex(&tcpclient, _tcpclient_ce);
-
   proton_object_construct(&tcpclient, client);
 
-  RETURN_ZVAL(&tcpclient, 1, 0);
+  // tcpclient had a ref, so don't add ref-count here
+  RETURN_ZVAL(&tcpclient, 0, 0);
 }
 /* }}} */
 

@@ -13,9 +13,12 @@ class ProtonTcpServerTest extends ProtonTestCase
             $test->assertEquals(0, $server->listen("127.0.0.1", 18180));
             $c = $server->accept();
             $test->assertNotNull($c);
-            Proton\sleep(100);
-            $r = $c->write("hello test\n");
-            $test->assertEquals(0, $r);
+
+            for ($i = 0; $i < 1; ++$i) {
+                Proton\sleep(100);
+                $r = $c->write("hello test\n");
+                $test->assertEquals(0, $r);
+            }
 
             $test->assertEquals(0, $c->close());
             $test->assertEquals(0, $server->close());
@@ -27,7 +30,7 @@ class ProtonTcpServerTest extends ProtonTestCase
         });
 
         $this->log()->info("system");
-        system("telnet 127.0.0.1 18180 &");
+        system("echo abc | telnet 127.0.0.1 18180 &");
 
 
         Proton\Runtime::start();

@@ -66,7 +66,7 @@ zend_class_entry *_httpconnect_ce;
 zend_class_entry *regist_httpconnect_class() {
   zend_class_entry httpconnect;
 
-  INIT_NS_CLASS_ENTRY(httpconnect, PROTON_NAMESPACE, "httpconnect",
+  INIT_NS_CLASS_ENTRY(httpconnect, PROTON_NAMESPACE, "HttpConnect",
                       httpconnect_functions);
   _httpconnect_ce = zend_register_internal_class_ex(&httpconnect, NULL);
 

@@ -46,4 +46,21 @@ class ProtonCoroutineSleepTest extends ProtonTestCase
             $this->assertEquals(2, $values[$i]);
         }
     }
+
+    public function testManySleeps()
+    {
+        $count = 0;
+        Proton\go(function () use (&$count) {
+            for ($i = 0; $i < 100; ++$i) {
+                Proton\sleep(10);
+
+                ++$count;
+            }
+            Proton\Runtime::stop();
+        });
+
+        Proton\Runtime::start();
+
+        $this->assertEquals(100, $count);
+    }
 }

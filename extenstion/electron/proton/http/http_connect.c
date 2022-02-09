@@ -122,7 +122,7 @@ int proton_http_connection_init(proton_http_connect_t *client,
                        httpconnect_on_read);
 }
 
-int proton_http_connect_uninit(proton_private_value_t *value) {
+int proton_httpconnect_uninit(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
   proton_http_connect_t *client = (proton_http_connect_t *)value;
   if (uv_is_closing((uv_handle_t *)&client->tcp)) {

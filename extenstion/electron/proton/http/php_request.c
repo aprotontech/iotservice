@@ -31,7 +31,9 @@ proton_private_value_t *php_request_create(proton_http_connect_t *client) {
   request->value.type = &__proton_http_request_type;
   request->connect = client;
   ZVAL_UNDEF(&request->value.myself);
-  Z_TRY_ADDREF(client->value.myself);
+  if (Z_TYPE_P(&client->value.myself) == IS_OBJECT) {
+    Z_TRY_ADDREF(client->value.myself);
+  }
   return &request->value;
 }
 

@@ -29,7 +29,9 @@ void php_new_httpserver_request(proton_private_value_t *server,
     proton_object_construct(&httpconnect, connect);
 
     // connect->myself is holding it, so can dec ref-count here
-    ZVAL_PTR_DTOR(&httpconnect);
+    // BUT http-request need ref it at function(php_request_create)
+    // so do nothing here
+    // ZVAL_PTR_DTOR(&httpconnect);
   }
 
   zval httprequest;

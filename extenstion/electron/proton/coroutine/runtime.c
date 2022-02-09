@@ -18,6 +18,7 @@ extern int proton_coroutine_swap_in(proton_coroutine_task *dest);
 extern int proton_coroutine_swap_out(proton_coroutine_task *current,
                                      proton_coroutine_status new_status);
 
+extern void save_vm_stack(proton_coroutine_task *task);
 extern proton_coroutine_task *
 _proton_coroutine_create(proton_coroutine_task *current,
                          proton_coroutine_entry *entry, int c_stack_size,
@@ -31,6 +32,7 @@ proton_runtime_init(proton_coroutine_runtime *runtime) {
 
     LL_init(&runtime->clist);
     LL_init(&runtime->runables);
+    LL_init(&runtime->releaseables);
 
     // init main coroutine
     LL_init(&runtime->main.link);
@@ -39,6 +41,8 @@ proton_runtime_init(proton_coroutine_runtime *runtime) {
 
     runtime->main.runtime = runtime;
     runtime->main.status = QC_STATUS_RUNNING;
+
+    save_vm_stack(&runtime->main);
 
     runtime->current = &runtime->main;
   }
@@ -156,7 +160,7 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
   MAKESURE_PTR_NOT_NULL(value);
 
   if (LL_isspin(&value->head)) {
-    PLOG_WARN("not found coroutine to wake up");
+    PLOG_WARN("not found any coroutine to wake up");
     return -1;
   }
 
@@ -165,7 +169,7 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
   case QC_MODE_FIFO:
   default:
     task = container_of(value->head.next, proton_coroutine_task, waiting);
-    LL_remove(value->head.next);
+    LL_remove(&task->waiting);
     break;
   }
 
@@ -174,15 +178,11 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
                task->status);
   }
 
-  // TODO: remove later
-  LL_remove(&task->runable);
-
   int rc = proton_coroutine_swap_in(task);
   if (rc != 0) {
     PLOG_ERROR("coroutine[%ld] wake up failed", task->cid);
-    if (out_task != NULL) {
-      *out_task = task;
-    }
+  } else if (out_task != NULL) {
+    *out_task = task;
   }
   return rc;
 }
@@ -192,6 +192,20 @@ int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
 
   if (RUNTIME_CURRENT_COROUTINE(runtime) != RUNTIME_MAIN_COROUTINE(runtime)) {
     PLOG_ERROR("coroutine_schedule must running on main coroutine");
+  }
+
+  if (!LL_isspin(&runtime->releaseables)) {
+    int max_release_batch = 500;
+    list_link_t *p = runtime->releaseables.next;
+    while (p != &runtime->releaseables && max_release_batch-- > 0) {
+      proton_coroutine_task *task =
+          container_of(p, proton_coroutine_task, link);
+      p = LL_remove(p);
+      if (task != NULL) {
+        // PLOG_DEBUG("found task to release(%p)", task);
+        RELEASE_VALUE_MYSELF(task->value);
+      }
+    }
   }
 
   if (!LL_isspin(&runtime->runables)) {

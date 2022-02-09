@@ -14,6 +14,20 @@
 #include "task.h"
 #include "runtime.h"
 
+extern void save_vm_stack(proton_coroutine_task *task);
+extern void restore_vm_stack(proton_coroutine_task *task);
+
+int switch_coroutine(proton_coroutine_task *dest,
+                     proton_coroutine_task *origin) {
+  // save php-stack to [origin(current)] coroutine
+  // restore [dest] php-stack
+  save_vm_stack(origin);
+  restore_vm_stack(dest);
+
+  // jump to [dest->context], save to [origin->context]
+  return swapcontext(&(origin->context), &(dest->context));
+}
+
 // swap to coroutine[dest]
 int proton_coroutine_swap_in(proton_coroutine_task *dest) {
   if (dest == NULL || dest == RUNTIME_CURRENT_COROUTINE(dest->runtime)) {
@@ -21,25 +35,22 @@ int proton_coroutine_swap_in(proton_coroutine_task *dest) {
     return -1;
   }
 
-  ucontext_t *org_context =
-      &(RUNTIME_CURRENT_COROUTINE(dest->runtime)->context);
+  proton_coroutine_task *origin = RUNTIME_CURRENT_COROUTINE(dest->runtime);
 
   dest->status = QC_STATUS_RUNNING;
-  dest->origin = RUNTIME_CURRENT_COROUTINE(dest->runtime);
+  dest->origin = origin;
 
-  if (IS_REAL_COROUTINE(dest->origin)) {
+  if (IS_REAL_COROUTINE(origin)) {
     // add ref to running coroutine(save to [origin]), when [dest] swap out,
     // will swap to [origin]
-    Z_TRY_ADDREF(dest->origin->value.myself);
+    Z_TRY_ADDREF(origin->value.myself);
   }
 
-  PLOG_INFO("[COROUTINE] [resume] switch(%lu->%lu)", dest->origin->cid,
-            dest->cid);
+  PLOG_INFO("[COROUTINE] [resume] switch(%lu->%lu)", origin->cid, dest->cid);
 
   RUNTIME_CURRENT_COROUTINE(dest->runtime) = dest;
 
-  // jump to [dest->context], save to [org_context]
-  swapcontext(org_context, &(dest->context));
+  switch_coroutine(dest, origin);
   return 0;
 }
 
@@ -64,6 +75,8 @@ int proton_coroutine_swap_out(proton_coroutine_task *current,
 
   current->status = new_status;
 
+  proton_coroutine_task *org_origin = current->origin;
+
   // origin coroutinue is waiting for some object or signal
   // so swap to main coroutine(schedule to a runable coroutinue)
   proton_coroutine_status org_status = current->origin->status;
@@ -82,12 +95,11 @@ int proton_coroutine_swap_out(proton_coroutine_task *current,
   RUNTIME_CURRENT_COROUTINE(current->runtime) = origin;
   current->origin = RUNTIME_MAIN_COROUTINE(current->runtime);
 
-  if (IS_REAL_COROUTINE(origin)) {
+  if (IS_REAL_COROUTINE(org_origin)) {
     // [current] no need [origin] now, so un-ref it
-    RELEASE_VALUE_MYSELF(origin->value);
+    RELEASE_VALUE_MYSELF(org_origin->value);
   }
 
-  // jump to [origin->context], save to [current->context]
-  swapcontext(&(current->context), &(origin->context));
+  switch_coroutine(origin, current);
   return 0;
 }

@@ -26,6 +26,7 @@ proton_tcpserver_create(proton_coroutine_runtime *runtime) {
 
   uv_tcp_init(RUNTIME_UV_LOOP(runtime), &server->tcp);
   server->value.type = &__proton_tcpserver_type;
+  ZVAL_UNDEF(&server->value.myself);
   server->new_connection_count = 0;
   server->tcp.data = server;
   server->runtime = runtime;
@@ -67,7 +68,9 @@ int proton_tcpserver_listen(proton_private_value_t *value, const char *host,
 
 int proton_tcpserver_accept(proton_private_value_t *value,
                             proton_private_value_t **client) {
+  PLOG_DEBUG("accept");
   MAKESURE_PTR_NOT_NULL(value);
+  MAKESURE_PTR_NOT_NULL(client);
   proton_tcpserver_t *server = (proton_tcpserver_t *)value;
   proton_coroutine_task *current = RUNTIME_CURRENT_COROUTINE(server->runtime);
 
@@ -124,8 +127,7 @@ int proton_tcpserver_close(proton_private_value_t *value) {
 int proton_tcpserver_uninit(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
   proton_tcpserver_t *server = (proton_tcpserver_t *)value;
-  if (uv_is_closing((uv_handle_t *)&server->tcp) ||
-      !LL_isspin(&server->wq_close.head)) {
+  if (!LL_isspin(&server->wq_close.head)) {
     PLOG_WARN("[TCPSERVER] tcpserver is closing");
     return -1;
   }
