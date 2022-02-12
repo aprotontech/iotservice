@@ -142,7 +142,7 @@ void httpconnect_on_read(uv_stream_t *handle, ssize_t nread,
                                         message);
     if (!is_keepalive) {
       PLOG_DEBUG("[HTTPCONNECT] not keep alive");
-      uv_read_stop((uv_stream_t *)&connect->tcp);
+      // uv_read_stop((uv_stream_t *)&connect->tcp);
       if (connect->type == HTTP_RESPONSE) {
         // httpclient, parse done. so close the socket
         uv_close((uv_handle_t *)handle, httpconnect_on_closed);
@@ -278,6 +278,10 @@ int httpconnect_finish_message(proton_http_connect_t *connect) {
   _httpconnect_clear_ref(connect, 0);
   if (is_keepalive) { // renew message
     _httpconnect_init_read_buffer(connect, NULL);
+  } else if (connect->type == HTTP_REQUEST) {
+    // fix ab-test debug.
+    PLOG_DEBUG("http request is not keepalive, so close the connection");
+    uv_close((uv_handle_t *)&connect->tcp, httpconnect_on_closed);
   }
   return 0;
 }

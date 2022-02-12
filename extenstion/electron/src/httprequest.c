@@ -82,6 +82,46 @@ PHP_METHOD(httprequest, getConnect) {
 
 /** {{{
  */
+PHP_METHOD(httprequest, getHeaders) {
+  zend_bool skip_same = 1;
+
+  ZEND_PARSE_PARAMETERS_START(0, 1)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(skip_same)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  php_http_request_t *request =
+      (php_http_request_t *)proton_object_get(getThis());
+
+  if (php_request_wait_parse_finish(request) == 0) {
+    zval headers;
+    ZVAL_NEW_ARR(&headers);
+    zend_hash_init(Z_ARRVAL(headers), 10, NULL, ZVAL_PTR_DTOR, 0);
+    list_link_t *p = request->message.request_headers.next;
+    while (p != &request->message.request_headers) {
+      proton_header_t *header = container_of(p, proton_header_t, link);
+      p = p->next;
+
+      zval value;
+      ZVAL_STR(&value,
+               zend_string_init(header->value, strlen(header->value), 0));
+      zend_string *key = zend_string_init(header->key, strlen(header->key), 0);
+      if (skip_same) {
+        zend_hash_add(Z_ARRVAL(headers), key, &value);
+      } else {
+        zend_hash_add_new(Z_ARRVAL(headers), key, &value);
+      }
+    }
+
+    RETURN_ZVAL(&headers, 0, 0);
+  }
+
+  RETURN_FALSE;
+}
+/* }}} */
+
+/** {{{
+ */
 PHP_METHOD(httprequest, end) {
   long status_code;
   char *body = NULL;
@@ -118,7 +158,9 @@ const zend_function_entry httprequest_functions[] = {
     PHP_ME(httprequest, __toString, NULL,
            ZEND_ACC_PUBLIC) // httprequest::__toString
     PHP_ME(httprequest, __get, arginfo_proton_httprequest_get,
-           ZEND_ACC_PUBLIC)                         // httprequest::__get
+           ZEND_ACC_PUBLIC) // httprequest::__get
+    PHP_ME(httprequest, getHeaders, NULL,
+           ZEND_ACC_PUBLIC)                         // httpresponse::getHeaders
     PHP_ME(httprequest, end, NULL, ZEND_ACC_PUBLIC) // httprequest::end
     {NULL, NULL, NULL} /* Must be the last line in httprequest_functions[] */
 };
