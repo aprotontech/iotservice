@@ -42,7 +42,7 @@ PHP_METHOD(httpconnect, __toString) {
  */
 PHP_METHOD(httpconnect, close) {
   ZEND_PARSE_PARAMETERS_NONE();
-  RETURN_LONG(0);
+  RETURN_LONG(proton_httpconnect_close(proton_object_get(getThis())));
 }
 /* }}} */
 

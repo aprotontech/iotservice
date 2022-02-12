@@ -41,6 +41,10 @@ typedef struct _proton_coroutine_task {
   zend_vm_stack vm_stack;
   size_t vm_stack_page_size;
   zend_execute_data *execute_data;
+  zend_error_handling_t error_handling;
+  zend_class_entry *exception_class;
+  zend_object *exception;
+  JMP_BUF *bailout;
 
   void *c_stack;
   zend_vm_stack page;

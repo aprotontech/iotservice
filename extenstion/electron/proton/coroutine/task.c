@@ -19,6 +19,7 @@ typedef struct _task_context_wrap_t {
   proton_coroutine_task task;
   proton_coroutine_entry entry;
   zend_function *func;
+  zend_execute_data *call;
 } task_context_wrap_t;
 
 int proton_coroutine_destory(proton_private_value_t *task);
@@ -36,14 +37,23 @@ static proton_value_type_t __proton_coroutine_type = {
 static uint64_t __next_coroutine_id = 0;
 
 zend_vm_stack vm_stack_init(uint32_t size);
-zend_function *init_coroutinue_php_stack(proton_coroutine_task *task,
-                                         proton_coroutine_entry *entry);
+zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap);
 
 static void _quark_task_runner(task_context_wrap_t *wrap) {
   void run_proton_coroutine_task(proton_coroutine_task * task,
                                  zend_function * func);
 
   run_proton_coroutine_task(&wrap->task, wrap->func);
+
+  /*
+    // release call
+    for (int i = 0; i < wrap->entry.argc; ++i) {
+      zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
+      ZVAL_PTR_DTOR(param); // release argv, no need now
+    }
+  */
+
+  ZVAL_PTR_DTOR(&wrap->entry.func);
 }
 
 proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
@@ -85,7 +95,7 @@ proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
   task->vm_stack_page_size = php_stack_size;
   task->page = vm_stack_init(php_stack_size);
   ptr->entry = *entry;
-  ptr->func = init_coroutinue_php_stack(task, entry);
+  ptr->func = init_coroutinue_php_stack(ptr);
 
   makecontext(&(task->context), (void (*)(void))(_quark_task_runner), 1, ptr);
 
@@ -131,6 +141,10 @@ void save_vm_stack(proton_coroutine_task *task) {
   task->vm_stack_end = EG(vm_stack_end);
   task->vm_stack_page_size = EG(vm_stack_page_size);
   task->execute_data = EG(current_execute_data);
+  task->exception = EG(exception);
+  task->exception_class = EG(exception_class);
+  task->error_handling = EG(error_handling);
+  task->bailout = EG(bailout);
 }
 
 void restore_vm_stack(proton_coroutine_task *task) {
@@ -139,6 +153,10 @@ void restore_vm_stack(proton_coroutine_task *task) {
   EG(vm_stack_end) = task->vm_stack_end;
   EG(vm_stack_page_size) = task->vm_stack_page_size;
   EG(current_execute_data) = task->execute_data;
+  EG(exception) = task->exception;
+  EG(exception_class) = task->exception_class;
+  EG(error_handling) = task->error_handling;
+  EG(bailout) = task->bailout;
 }
 
 zend_vm_stack vm_stack_init(uint32_t size) {
@@ -151,8 +169,9 @@ zend_vm_stack vm_stack_init(uint32_t size) {
   return page;
 }
 
-zend_function *init_coroutinue_php_stack(proton_coroutine_task *task,
-                                         proton_coroutine_entry *entry) {
+zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
+  proton_coroutine_task *task = &wrap->task;
+  proton_coroutine_entry *entry = &wrap->entry;
   zend_execute_data *call = NULL;
 
   zend_fcall_info fci = empty_fcall_info;
@@ -172,6 +191,10 @@ zend_function *init_coroutinue_php_stack(proton_coroutine_task *task,
   task->vm_stack_top = page->top;
   task->vm_stack_end = page->end;
   task->execute_data = NULL;
+  task->exception = NULL;
+  task->exception_class = NULL;
+  task->error_handling = EH_NORMAL;
+  task->bailout = NULL;
 
   save_vm_stack(task->parent);
   restore_vm_stack(task);
@@ -189,10 +212,11 @@ zend_function *init_coroutinue_php_stack(proton_coroutine_task *task,
     zval *arg = &entry->argv[i];
     param = ZEND_CALL_ARG(call, i + 1);
     ZVAL_COPY(param, arg);
-    // ZVAL_PTR_DTOR(arg); // release argv, no need now
   }
   save_vm_stack(task);
   restore_vm_stack(task->parent);
+
+  wrap->call = call;
 
   return func;
 }
@@ -211,6 +235,20 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
     EG(current_execute_data) = NULL;
     zend_init_func_execute_data(call, &func->op_array, &retval);
     zend_execute_ex(EG(current_execute_data));
+  }
+
+  if (EG(exception) != NULL) { // exception is error
+    const char *class_name = "";
+    if (EG(exception_class) != NULL) {
+      class_name = ZSTR_VAL(EG(exception_class)->name);
+    }
+    zval tmp;
+    ZVAL_OBJ(&tmp, EG(exception));
+
+    zend_string *msg = zend_print_zval_r_to_str(&tmp, 0);
+    PLOG_ERROR("exception class(%s), message(%s)", class_name, ZSTR_VAL(msg));
+
+    zend_string_free(msg);
   }
 
   zval_ptr_dtor(&retval);

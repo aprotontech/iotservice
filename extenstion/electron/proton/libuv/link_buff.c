@@ -89,6 +89,7 @@ char *proton_link_buffer_append_string(proton_link_buffer_t *lbf,
   char *dest = proton_link_buffer_alloc(lbf, len, 1);
   if (dest != NULL) {
     memcpy(dest, ptr, len);
+    // dest[len] = '\0';
   }
   return dest;
 }
@@ -108,4 +109,14 @@ char *proton_link_buffer_get_ptr(proton_link_buffer_t *lbf, size_t offset) {
   return 0;
 }
 
-int proton_link_buffer_uninit(proton_link_buffer_t *lbf) { return 0; }
+int proton_link_buffer_uninit(proton_link_buffer_t *lbf) {
+  MAKESURE_PTR_NOT_NULL(lbf);
+  list_link_t *p = lbf->link.next;
+  while (p != &lbf->link) {
+    proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
+    p = LL_remove(p);
+    qfree(pbt);
+  }
+
+  return 0;
+}

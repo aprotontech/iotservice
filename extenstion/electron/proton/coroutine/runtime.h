@@ -51,6 +51,7 @@ typedef int (*proton_wait_cancel)(proton_wait_object_t *value);
 
 typedef enum _proton_wait_mode {
   QC_MODE_FIFO = 0,
+  QC_MODE_ALL = 1,
 } proton_wait_mode;
 
 typedef struct _proton_wait_object_t {

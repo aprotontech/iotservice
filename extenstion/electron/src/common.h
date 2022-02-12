@@ -47,5 +47,6 @@ extern zend_class_entry *_httpserver_ce;
 extern zend_class_entry *_httpconnect_ce;
 extern zend_class_entry *_httpclient_ce;
 extern zend_class_entry *_httprequest_ce;
+extern zend_class_entry *_httpresponse_ce;
 
 #endif

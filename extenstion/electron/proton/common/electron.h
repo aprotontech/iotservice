@@ -73,7 +73,7 @@ extern const char *__proton_logger_level_string(int level);
     return 100;                                                                \
   }
 
-#define RELEASE_VALUE_MYSELF(value) ZVAL_PTR_DTOR((&value.myself))
+#define RELEASE_VALUE_MYSELF(value) ZVAL_PTR_DTOR((&((value).myself)))
 
 typedef struct _proton_private_value_t proton_private_value_t;
 typedef int (*proton_value_new)(proton_private_value_t *value);

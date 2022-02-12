@@ -20,13 +20,6 @@ static proton_value_type_t __proton_httpserver_type = {
     .destruct = proton_httpserver_uninit,
     .whoami = _http_server_get_type};
 
-proton_http_message_t *
-http_server_new_request_message(proton_private_value_t *self,
-                                proton_http_connect_t *connection) {
-  proton_private_value_t *request = php_request_create(connection);
-  return &(((php_http_request_t *)request)->message);
-}
-
 int http_server_request_handler(proton_private_value_t *self,
                                 proton_http_connect_t *connection,
                                 proton_http_message_t *message) {
@@ -54,7 +47,6 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
   server->config.host = (char *)&server[1];
   strcpy(server->config.host, config->host);
 
-  server->callbacks.new_message = http_server_new_request_message;
   server->callbacks.request_handler = http_server_request_handler;
   server->callbacks.self = &server->value;
 
@@ -81,21 +73,24 @@ proton_httpserver_create(proton_coroutine_runtime *runtime,
 void httpserver_on_new_connection(uv_stream_t *s, int status) {
   proton_http_server_t *server = (proton_http_server_t *)s->data;
 
-  proton_http_connect_t *client =
+  proton_http_connect_t *connect =
       (proton_http_connect_t *)qmalloc(sizeof(proton_http_connect_t));
 
-  uv_tcp_init(server->tcp.loop, &client->tcp);
-  int rc = uv_accept((uv_stream_t *)&server->tcp, (uv_stream_t *)&client->tcp);
+  proton_http_connection_init(connect, server->runtime, &server->callbacks,
+                              HTTP_REQUEST);
+
+  int rc = uv_accept((uv_stream_t *)&server->tcp, (uv_stream_t *)&connect->tcp);
   if (rc != 0) { // acception new client failed
     PLOG_WARN("[HTTPSERVER] accept new client failed! err=%d", rc);
-    qfree(client);
+    qfree(connect);
     return;
   }
 
-  client->runtime = server->runtime;
-  proton_http_connection_init(client, &server->callbacks, HTTP_REQUEST);
+  // start read
+  httpconnect_start_message(connect);
+  httpconnect_start_read(connect);
 
-  LL_insert(&client->link, server->clients.prev);
+  LL_insert(&connect->link, server->clients.prev);
 }
 
 int proton_httpserver_start(proton_private_value_t *value) {
@@ -138,8 +133,8 @@ int proton_httpserver_stop(proton_private_value_t *value) {
 
 int proton_httpserver_uninit(proton_private_value_t *value) {
   proton_http_server_t *server = (proton_http_server_t *)value;
-  if (uv_is_closing((uv_handle_t *)&server->tcp)) {
-    PLOG_WARN("[HTTPSERVER] server is closing");
+  if (!UV_HANDEL_IS_CLOSED(server->tcp)) {
+    PLOG_WARN("[HTTPSERVER] server is not closed, stop it first");
     return -1;
   }
 

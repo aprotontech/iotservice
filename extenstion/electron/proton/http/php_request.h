@@ -25,8 +25,14 @@ typedef struct _php_http_request_t {
 
   proton_http_message_t message;
 
+  proton_wait_object_t wq_parser;
+
 } php_http_request_t;
 
-proton_private_value_t *php_request_create(proton_http_connect_t *client);
+int php_request_init(proton_http_connect_t *connect,
+                     php_http_request_t *request);
+int php_request_uninit(proton_private_value_t *value);
+
+int php_request_wait_parse_finish(php_http_request_t *request);
 
 #endif

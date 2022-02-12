@@ -51,12 +51,17 @@ PHP_METHOD(httprequest, __get) {
   php_http_request_t *request =
       (php_http_request_t *)proton_object_get(getThis());
 
+  proton_http_message_t *message = &request->message;
+  if (message == NULL) {
+    RETURN_NULL();
+  }
+
   ZEND_PARSE_PARAMETERS_START(1, 1)
     Z_PARAM_STRING(key, key_len)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  if (strcasecmp(key, "path") == 0) {
-    RETURN_STRING(request->message.path);
+  if (strcasecmp(key, "Path") == 0 && message->path != NULL) {
+    RETURN_STRING(message->path);
   }
 
   RETURN_NULL();

@@ -75,6 +75,8 @@ void php_new_httpserver_request(proton_private_value_t *server,
     PLOG_INFO("switch to callback done try dtor coroutine(%lu)", task->cid);
     ZVAL_PTR_DTOR(&coroutine); // release it
   }
+
+  ZVAL_PTR_DTOR(&httprequest); // release it
 }
 
 /** {{{

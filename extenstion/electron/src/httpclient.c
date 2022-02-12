@@ -17,11 +17,12 @@
  */
 PHP_METHOD(httpclient, __construct) {
 
-  long port;
+  long port = 0;
   char *host = NULL;
   size_t host_len;
 
-  ZEND_PARSE_PARAMETERS_START(2, 2)
+  ZEND_PARSE_PARAMETERS_START(0, 2)
+    Z_PARAM_OPTIONAL
     Z_PARAM_STRING(host, host_len)
     Z_PARAM_LONG(port)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
@@ -30,6 +31,15 @@ PHP_METHOD(httpclient, __construct) {
 
   proton_private_value_t *s = proton_httpclient_create(runtime, host, port);
   proton_object_construct(getThis(), s);
+
+  {                   // create connect object
+    zval httpconnect; // no need to dec httpconnect.ref_count(httpclient ref it)
+    object_init_ex(&httpconnect, _httpconnect_ce);
+
+    proton_object_construct(&httpconnect,
+                            &(((proton_http_client_t *)s)->connect->value));
+    // Z_TRY_ADDREF(httpconnect); // because first request ref to http connect
+  }
 }
 /* }}} */
 
@@ -53,36 +63,22 @@ PHP_METHOD(httpclient, __toString) {
 }
 /* }}} */
 
-/** {{{ http_request httpclient::get($path, $headers = [])
- */
-PHP_METHOD(httpclient, get) {
-  char *url = NULL;
-  size_t url_len;
-  zval *headers = NULL;
-  const char **input_headers = NULL;
-  int input_headers_count = 0;
-
-  ZEND_PARSE_PARAMETERS_START(1, 2)
-    Z_PARAM_STRING(url, url_len)
-    Z_PARAM_OPTIONAL
-    Z_PARAM_ARRAY(headers)
-  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
-
+const char **get_input_headers(zval *headers, int *output_headers_count) {
   if (headers != NULL) {
     HashTable *array_hash = HASH_OF(headers);
-    input_headers_count = zend_array_count(array_hash);
+    int input_headers_count = zend_array_count(array_hash);
     if (input_headers_count != 0) {
       zend_ulong num_idx, valid_idx = 0;
       zend_string *str_idx;
       zval *entry;
-      input_headers =
+      const char **input_headers =
           (const char **)malloc(sizeof(char *) * input_headers_count);
       ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(headers), num_idx, str_idx, entry) {
         if (Z_TYPE_P(entry) != IS_STRING) {
           php_error_docref(NULL TSRMLS_CC, E_WARNING,
                            "input headers item must be string");
           free(input_headers);
-          return;
+          return NULL;
         }
 
         zend_string *value = Z_STR_P(entry);
@@ -90,18 +86,66 @@ PHP_METHOD(httpclient, get) {
       }
       ZEND_HASH_FOREACH_END();
 
-      input_headers_count = valid_idx;
+      *output_headers_count = valid_idx;
+
+      return input_headers;
     }
   }
 
+  return NULL;
+}
+
+/** {{{ http_request httpclient::get($path, $headers = [])
+ */
+PHP_METHOD(httpclient, get) {
+  char *url = NULL;
+  size_t url_len;
+  zval *headers = NULL;
+
+  ZEND_PARSE_PARAMETERS_START(1, 2)
+    Z_PARAM_STRING(url, url_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ARRAY(headers)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  proton_http_client_t *client =
+      (proton_http_client_t *)proton_object_get(getThis());
+
+  int input_headers_count = 0;
+  const char **input_headers = get_input_headers(headers, &input_headers_count);
+
   int rc =
-      proton_httpclient_request(proton_object_get(getThis()), HTTP_GET, url,
-                                input_headers, input_headers_count, NULL, 0);
+      proton_httpclient_request(&client->value, HTTP_GET, url, input_headers,
+                                input_headers_count, NULL, 0);
   if (input_headers != NULL) {
     free(input_headers);
   }
 
-  RETURN_LONG(rc);
+  if (rc == 0) { // create current response
+    php_http_request_t *request =
+        container_of(client->connect->current, php_http_request_t, message);
+
+    zval httpresponse;
+    object_init_ex(&httpresponse, _httpresponse_ce);
+
+    proton_object_construct(&httpresponse, &request->value);
+
+    RETURN_ZVAL(&httpresponse, 0, 0);
+  }
+
+  RETURN_NULL();
+}
+/* }}} */
+
+/** {{{
+ */
+PHP_METHOD(httpclient, getConnect) {
+  ZEND_PARSE_PARAMETERS_NONE();
+
+  proton_http_client_t *client =
+      (proton_http_client_t *)proton_object_get(getThis());
+
+  RETURN_ZVAL(&client->connect->value.myself, 1, 0);
 }
 /* }}} */
 
@@ -127,7 +171,9 @@ const zend_function_entry httpclient_functions[] = {
     PHP_ME(httpclient, __destruct, NULL,
            ZEND_ACC_PUBLIC | ZEND_ACC_DTOR) // httpclient::__destruct
     PHP_ME(httpclient, __toString, NULL,
-           ZEND_ACC_PUBLIC)                          // httpclient::__toString
+           ZEND_ACC_PUBLIC) // httpclient::__toString
+    PHP_ME(httpclient, getConnect, NULL,
+           ZEND_ACC_PUBLIC)                          // httprequest::getConnect
     PHP_ME(httpclient, get, NULL, ZEND_ACC_PUBLIC)   // httpclient::get
     PHP_ME(httpclient, close, NULL, ZEND_ACC_PUBLIC) // httpclient::close
     {NULL, NULL, NULL} /* Must be the last line in httpclient_functions[] */

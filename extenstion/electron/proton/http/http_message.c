@@ -22,6 +22,8 @@ int httpclient_on_chunk_complete(http_parser *p) { return 0; }
 int httpclient_on_headers_complete(http_parser *p) {
   proton_http_connect_t *client = (proton_http_connect_t *)p->data;
   client->current->method = p->method;
+
+  client->current->read_status = PROTON_HTTP_STATUS_READ_BODY;
   return 0;
 }
 
@@ -32,6 +34,8 @@ int httpclient_on_message_complete(http_parser *p) {
   proton_http_connect_t *client = (proton_http_connect_t *)p->data;
   client->current->keepalive = http_should_keep_alive(&client->current->parser);
   client->current->parse_finished = 1;
+
+  client->current->read_status = PROTON_HTTP_STATUS_READ_DONE;
 
   return 0;
 }
@@ -52,23 +56,6 @@ int httpclient_header_field_cb(http_parser *p, const char *at, size_t len) {
   return 0;
 }
 
-static map_t *_get_headers_map(proton_http_message_t *message) {
-  map_t *headers = NULL;
-  if (message->parser.type == HTTP_REQUEST) {
-    if (message->request_headers == NULL) {
-      message->request_headers = hashmap_new();
-    }
-    headers = message->request_headers;
-  } else {
-    if (message->response_headers == NULL) {
-      message->response_headers = hashmap_new();
-    }
-    headers = message->response_headers;
-  }
-
-  return headers;
-}
-
 int httpclient_header_value_cb(http_parser *p, const char *at, size_t len) {
   proton_http_connect_t *client = (proton_http_connect_t *)p->data;
   char *value =
@@ -83,14 +70,11 @@ int httpclient_header_value_cb(http_parser *p, const char *at, size_t len) {
     new_header->key = key;
     new_header->value = value;
 
-    any_t header = NULL;
-    map_t *headers = _get_headers_map(client->current);
-    if (hashmap_get(headers, key, &header) == MAP_OK) {
-      LL_insert(&new_header->link, ((proton_header_t *)header)->link.prev);
-    } else {
-      LL_init(&new_header->link);
-      hashmap_put(headers, key, new_header);
-    }
+    list_link_t *prev = client->current->parser.type == HTTP_REQUEST
+                            ? client->current->request_headers.prev
+                            : client->current->response_headers.prev;
+
+    LL_insert(&new_header->link, prev);
   }
 
   return 0;
@@ -103,6 +87,8 @@ int httpclient_on_body_cb(http_parser *p, const char *at, size_t len) {
   } else {
     proton_link_buffer_append_string(&client->current->response_body, at, len);
   }
+
+  return 0;
 }
 
 int http_message_init(proton_http_connect_t *client,
@@ -116,8 +102,8 @@ int http_message_init(proton_http_connect_t *client,
   message->parse_finished = 0;
   message->last_header_key = NULL;
 
-  message->write_status = PROTON_HTTP_STATUS_WRITE_HEAD;
-  message->read_status = PROTON_HTTP_STATUS_READ_HEAD;
+  message->write_status = PROTON_HTTP_STATUS_WRITE_NONE;
+  message->read_status = PROTON_HTTP_STATUS_READ_NONE;
 
   /* setup callback */
   message->settings.on_message_begin = httpclient_on_message_begin;
@@ -125,6 +111,9 @@ int http_message_init(proton_http_connect_t *client,
   message->settings.on_header_value = httpclient_header_value_cb;
   message->settings.on_url = httpclient_on_url_cb;
   message->settings.on_body = httpclient_on_body_cb;
+  message->settings.on_status = NULL;
+  message->settings.on_chunk_header = NULL;
+  message->settings.on_chunk_complete = NULL;
   message->settings.on_headers_complete = httpclient_on_headers_complete;
   message->settings.on_message_complete = httpclient_on_message_complete;
 
@@ -132,14 +121,14 @@ int http_message_init(proton_http_connect_t *client,
                           HTTPCLIENT_MAX_BUFFER_SIZE);
 
   // request
-  message->request_headers = NULL;
+  LL_init(&message->request_headers);
   message->request_is_chunk_mode = 0;
   proton_link_buffer_init(&message->request_body, HTTPCLIENT_DEFAULT_ALLOC_SIZE,
                           HTTPCLIENT_MAX_BUFFER_SIZE);
 
   // response
   message->response_is_chunk_mode = 0;
-  message->response_headers = NULL;
+  LL_init(&message->response_headers);
   proton_link_buffer_init(&message->response_body,
                           HTTPCLIENT_DEFAULT_ALLOC_SIZE,
                           HTTPCLIENT_MAX_BUFFER_SIZE);
@@ -148,13 +137,8 @@ int http_message_init(proton_http_connect_t *client,
 }
 
 int http_message_uninit(proton_http_message_t *message) {
-  if (message->request_headers != NULL) {
-    hashmap_free(message->request_headers);
-  }
-
-  if (message->response_headers != NULL) {
-    hashmap_free(message->response_headers);
-  }
+  LL_init(&message->request_headers);
+  LL_init(&message->response_headers);
 
   proton_link_buffer_uninit(&message->buffers);
   proton_link_buffer_uninit(&message->request_body);
@@ -165,6 +149,9 @@ int http_message_uninit(proton_http_message_t *message) {
 
 int http_message_parse_content(proton_http_message_t *message, char *buff,
                                int len) {
+  if (message->read_status == PROTON_HTTP_STATUS_READ_NONE) {
+    message->read_status = PROTON_HTTP_STATUS_READ_HEAD;
+  }
   size_t r =
       http_parser_execute(&message->parser, &message->settings, buff, len);
   if (message->parser.http_errno != 0) {
@@ -228,8 +215,8 @@ int http_message_build_response_headers(proton_link_buffer_t *plb,
 int http_message_build_request_headers(proton_link_buffer_t *plb,
                                        proton_http_message_t *message,
                                        enum http_method method,
-                                       const char *headers[], int header_count,
-                                       int body_length) {
+                                       const char *host, const char *headers[],
+                                       int header_count, int body_length) {
 
   proton_link_buffer_append_string(plb, http_method_str(method),
                                    strlen(http_method_str(method)));
@@ -237,10 +224,14 @@ int http_message_build_request_headers(proton_link_buffer_t *plb,
   proton_link_buffer_append_string(plb, message->path, strlen(message->path));
 
   if (message->keepalive) { // http/1.1
-    proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM(" HTTP/1.1"));
+    proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM(" HTTP/1.1\r\n"));
   } else {
-    proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM(" HTTP/1.0 "));
+    proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM(" HTTP/1.0\r\n"));
   }
+
+  proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM("Host: "));
+  proton_link_buffer_append_string(plb, host, strlen(host));
+  proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM("\r\n"));
 
   for (int i = 0; i < header_count; ++i) {
     proton_link_buffer_append_string(plb, headers[i], strlen(headers[i]));
@@ -265,16 +256,26 @@ int http_message_build_request_headers(proton_link_buffer_t *plb,
   if (message->keepalive) {
     proton_link_buffer_append_string(
         plb, STRING_ARRAY_PARAM("Connection: keep-alive\r\n"));
-  } else {
-    proton_link_buffer_append_string(
-        plb, STRING_ARRAY_PARAM("Connection: Close\r\n"));
   }
 
   proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM("Accept: */*\r\n"));
 
-  proton_link_buffer_append_string(
-      plb, STRING_ARRAY_PARAM("Content-Type: text/html\r\n"));
   proton_link_buffer_append_string(plb, STRING_ARRAY_PARAM("\r\n"));
 
   return 0;
 }
+
+/*void _httpconnect_restart_parse(proton_http_connect_t *client) {
+  enum http_parser_type type = client->current->parser.type;
+  proton_buffer_t *buffer = client->read_buffer;
+  if (!LL_isspin(&client->current->buffers.link) &&
+      container_of(client->current->buffers.link.next, proton_buffer_t, link) ==
+          buffer) {
+    // buffer is using self-alloced content, so release it
+    buffer = NULL;
+  }
+
+  http_message_uninit(client->current);
+  http_message_init(client, client->current, type);
+  _httpconnect_init_read_buffer(client, buffer);
+}*/

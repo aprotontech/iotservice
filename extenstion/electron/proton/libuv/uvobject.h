@@ -32,6 +32,9 @@
 
 #define RUNTIME_UV_LOOP(runtime) ((uv_loop_t *)runtime->data)
 
+#define UV_HANDEL_IS_CLOSED(handel)                                            \
+  (((handel).flags & /*UV_HANDLE_CLOSED*/ 0x02) == /*UV_HANDLE_CLOSED*/ 0x02)
+
 typedef struct _proton_uv_scheduler_t {
   proton_coroutine_runtime runtime;
 
@@ -75,6 +78,11 @@ typedef struct _proton_connect_t {
   proton_wait_object_t wq_connect;
   int status;
 } proton_connect_t;
+
+typedef struct _proton_work_t {
+  uv_work_t work;
+  proton_wait_object_t wq_work;
+} proton_work_t;
 
 //////////// SCHEDULE
 proton_uv_scheduler *proton_scheduler_create();
