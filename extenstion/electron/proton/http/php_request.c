@@ -57,8 +57,6 @@ int php_request_uninit(proton_private_value_t *value) {
   php_http_request_t *request = (php_http_request_t *)value;
   MAKESURE_PTR_NOT_NULL(value);
 
-  PLOG_DEBUG("request uninit");
-
   if (!LL_isspin(&request->wq_parser.head)) {
     proton_coroutine_wakeup(request->runtime, &request->wq_parser, NULL);
   }

@@ -130,8 +130,6 @@ int proton_coroutine_destory(proton_private_value_t *value) {
     PLOG_ERROR("[COROUTINE] [INVALIDATE STATUS] status=%d", task->status);
   }
 
-  return -1;
-
   return 0;
 }
 

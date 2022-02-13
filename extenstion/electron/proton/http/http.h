@@ -20,6 +20,8 @@
 #include "proton/libuv/link_buff.h"
 #include <uv.h>
 
+#include "http_message.h"
+
 #define HTTPCLIENT_DEFAULT_ALLOC_SIZE 4096
 #define HTTPCLIENT_MAX_BUFFER_SIZE (2 * 1024 * 1024)
 
@@ -53,56 +55,6 @@ typedef struct _proton_http_server_t {
   proton_http_server_config_t config;
   http_connect_callbacks_t callbacks;
 } proton_http_server_t;
-
-typedef struct _proton_header_t {
-  list_link_t link; // more than one header has same key
-  char *key;
-  char *value;
-} proton_header_t;
-
-typedef enum _proton_http_message_status {
-  // write status
-  PROTON_HTTP_STATUS_WRITE_NONE = 0,
-  PROTON_HTTP_STATUS_WRITE_HEAD = 1,
-  PROTON_HTTP_STATUS_WRITE_BODY = 2,
-  PROTON_HTTP_STATUS_WRITE_DONE = 3,
-
-  // read status
-  PROTON_HTTP_STATUS_READ_NONE = 0,
-  PROTON_HTTP_STATUS_READ_HEAD = 1,
-  PROTON_HTTP_STATUS_READ_BODY = 2,
-  PROTON_HTTP_STATUS_READ_DONE = 3,
-} proton_http_message_status;
-
-// typedef struct _proton_http_connect_t proton_http_connect_t;
-typedef struct _proton_http_message_t {
-
-  http_parser parser;
-  http_parser_settings settings;
-  char *last_header_key;
-  char keepalive;
-  char parse_finished;
-
-  enum http_method method;
-  char *path;
-
-  proton_link_buffer_t buffers; // buffers
-
-  proton_http_message_status read_status;
-  proton_http_message_status write_status;
-
-  ///////////// REQUEST
-  // request headers (item: proton_header_t)
-  list_link_t request_headers;
-  char request_is_chunk_mode;
-  proton_link_buffer_t request_body; // request body
-
-  ///////////// RESPONSE
-  char response_is_chunk_mode;
-  list_link_t response_headers;
-  proton_link_buffer_t response_body; // response body
-
-} proton_http_message_t;
 
 typedef struct _proton_http_connect_t {
   proton_private_value_t value;
@@ -186,8 +138,5 @@ int httpconnect_start_message(proton_http_connect_t *connect);
 int httpconnect_finish_message(proton_http_connect_t *connect);
 int httpconnect_write(proton_http_connect_t *connect, uv_buf_t rbufs[],
                       int nbufs);
-int http_message_init(proton_http_connect_t *client,
-                      proton_http_message_t *message,
-                      enum http_parser_type type);
-int http_message_uninit(proton_http_message_t *request);
+
 #endif
