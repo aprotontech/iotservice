@@ -14,7 +14,7 @@ class ProtonHttpServerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'proton:httpserver {action: start/stop/restart} {--address=0.0.0.0 : listen address} {--port=8080 : listen port}';
+    protected $signature = 'proton:httpserver {action : start/stop/restart} {--host=0.0.0.0 : listen host} {--port=8080 : listen port} {--daemon : run at backgroud}';
 
     /**
      * The console command description.
@@ -46,7 +46,7 @@ class ProtonHttpServerCommand extends Command
         });
 
         \Proton\go(function ($cmd) {
-            $address = $cmd->option('address');
+            $address = $cmd->option('host');
             $port = $cmd->option('port');
             Log::notice("Proton Server Listen at $address:$port");
             $server = new \Proton\HttpServer($address, $port, function ($server, $request) {
