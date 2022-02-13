@@ -63,38 +63,6 @@ PHP_METHOD(httpclient, __toString) {
 }
 /* }}} */
 
-const char **get_input_headers(zval *headers, int *output_headers_count) {
-  if (headers != NULL) {
-    HashTable *array_hash = HASH_OF(headers);
-    int input_headers_count = zend_array_count(array_hash);
-    if (input_headers_count != 0) {
-      zend_ulong num_idx, valid_idx = 0;
-      zend_string *str_idx;
-      zval *entry;
-      const char **input_headers =
-          (const char **)malloc(sizeof(char *) * input_headers_count);
-      ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(headers), num_idx, str_idx, entry) {
-        if (Z_TYPE_P(entry) != IS_STRING) {
-          php_error_docref(NULL TSRMLS_CC, E_WARNING,
-                           "input headers item must be string");
-          free(input_headers);
-          return NULL;
-        }
-
-        zend_string *value = Z_STR_P(entry);
-        input_headers[valid_idx++] = value->val;
-      }
-      ZEND_HASH_FOREACH_END();
-
-      *output_headers_count = valid_idx;
-
-      return input_headers;
-    }
-  }
-
-  return NULL;
-}
-
 /** {{{ http_request httpclient::get($path, $headers = [])
  */
 PHP_METHOD(httpclient, get) {

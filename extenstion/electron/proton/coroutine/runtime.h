@@ -39,6 +39,8 @@ typedef struct _proton_coroutine_runtime_t {
 
   void *data; // custom data --> scheduler loop
 
+  zval error_handler;
+
   // current running coroutine
   proton_coroutine_task *current;
 
@@ -73,6 +75,8 @@ typedef struct _proton_wait_object_t {
 ///////////// RUNTIME
 proton_coroutine_runtime *
 proton_runtime_init(proton_coroutine_runtime *runtime);
+
+int proton_runtime_uninit(proton_coroutine_runtime *runtime);
 
 int proton_coroutine_schedule(proton_coroutine_runtime *runtime);
 

@@ -34,6 +34,8 @@ proton_runtime_init(proton_coroutine_runtime *runtime) {
     LL_init(&runtime->runables);
     LL_init(&runtime->releaseables);
 
+    ZVAL_NULL(&runtime->error_handler);
+
     // init main coroutine
     LL_init(&runtime->main.link);
     LL_init(&runtime->main.runable);
@@ -48,6 +50,14 @@ proton_runtime_init(proton_coroutine_runtime *runtime) {
   }
 
   return runtime;
+}
+
+int proton_runtime_uninit(proton_coroutine_runtime *runtime) {
+  MAKESURE_PTR_NOT_NULL(runtime);
+  // ZVAL_PTR_DTOR(&runtime->error_handler);
+  runtime->current = NULL;
+
+  return 0;
 }
 
 proton_coroutine_task *
@@ -187,6 +197,31 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
   return rc;
 }
 
+void _runtime_throw_exception(proton_coroutine_task *task) {
+  zval retval;
+  zval params[2];
+
+  if (!zend_is_callable(&task->runtime->error_handler,
+                        IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
+    PLOG_WARN("coroutine[%ld] exit with error, but callback is null",
+              task->cid);
+    return;
+  }
+
+  ZVAL_NULL(&retval);
+  ZVAL_COPY(&params[0], &task->value.myself);
+  ZVAL_OBJ(&params[1], task->exception);
+  if (call_user_function_ex(EG(function_table), NULL,
+                            &task->runtime->error_handler, &retval, 2, params,
+                            0, NULL TSRMLS_CC) != SUCCESS) {
+    PLOG_ERROR("coroutine[%ld] exit with error, but callback failed",
+               task->cid);
+  }
+
+  Z_TRY_DELREF(params[0]);
+  zval_ptr_dtor(&retval);
+}
+
 int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
   MAKESURE_PTR_NOT_NULL(runtime);
 
@@ -202,6 +237,9 @@ int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
           container_of(p, proton_coroutine_task, link);
       p = LL_remove(p);
       if (task != NULL) {
+        if (task->exception != NULL) { // task exit with exception
+          _runtime_throw_exception(task);
+        }
         // PLOG_DEBUG("found task to release(%p)", task);
         RELEASE_VALUE_MYSELF(task->value);
       }

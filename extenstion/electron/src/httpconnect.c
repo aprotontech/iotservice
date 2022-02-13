@@ -46,6 +46,22 @@ PHP_METHOD(httpconnect, close) {
 }
 /* }}} */
 
+/** {{{
+ */
+PHP_METHOD(httpconnect, getRemote) {
+  ZEND_PARSE_PARAMETERS_NONE();
+  proton_http_connect_t *connect =
+      (proton_http_connect_t *)proton_object_get(getThis());
+  char host[40] = {0};
+  struct sockaddr_in addr;
+  int len = sizeof(addr);
+  uv_tcp_getpeername(&connect->tcp, (struct sockaddr *)&addr, &len);
+  snprintf(host, sizeof(host), "%s:%d", inet_ntoa(addr.sin_addr),
+           ntohs(addr.sin_port));
+  RETURN_STRING(host);
+}
+/* }}} */
+
 /* {{{ httpconnect_functions[]
  *
  * Every user visible function must have an entry in httpconnect_functions[].
@@ -56,7 +72,9 @@ const zend_function_entry httpconnect_functions[] = {
     PHP_ME(httpconnect, __destruct, NULL,
            ZEND_ACC_PUBLIC | ZEND_ACC_DTOR) // httpconnect::__destruct
     PHP_ME(httpconnect, __toString, NULL,
-           ZEND_ACC_PUBLIC)                           // httpconnect::__toString
+           ZEND_ACC_PUBLIC) // httpconnect::__toString
+    PHP_ME(httpconnect, getRemote, NULL,
+           ZEND_ACC_PUBLIC)                           // httpconnect::getRemote
     PHP_ME(httpconnect, close, NULL, ZEND_ACC_PUBLIC) // httpconnect::close
     {NULL, NULL, NULL} /* Must be the last line in httpconnect_functions[] */
 };

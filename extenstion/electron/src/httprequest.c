@@ -62,6 +62,8 @@ PHP_METHOD(httprequest, __get) {
 
   if (strcasecmp(key, "Path") == 0 && message->path != NULL) {
     RETURN_STRING(message->path);
+  } else if (strcasecmp(key, "Method") == 0) {
+    RETURN_STRING(http_method_str(message->method));
   }
 
   RETURN_NULL();
@@ -122,21 +124,52 @@ PHP_METHOD(httprequest, getHeaders) {
 
 /** {{{
  */
+PHP_METHOD(httprequest, getBody) {
+  ZEND_PARSE_PARAMETERS_NONE();
+
+  php_http_request_t *request =
+      (php_http_request_t *)proton_object_get(getThis());
+
+  if (php_request_wait_parse_finish(request) == 0) {
+    // get all bodys
+    proton_link_buffer_t *lbf = &request->message.request_body;
+    RETURN_STRINGL(proton_link_buffer_get_ptr(lbf, 0), lbf->total_used_size);
+  }
+
+  RETURN_FALSE;
+}
+/* }}} */
+
+/** {{{
+ */
 PHP_METHOD(httprequest, end) {
   long status_code;
   char *body = NULL;
   size_t body_len;
+  zval *headers = NULL;
 
-  ZEND_PARSE_PARAMETERS_START(2, 2)
+  ZEND_PARSE_PARAMETERS_START(2, 3)
     Z_PARAM_LONG(status_code)
     Z_PARAM_STRING(body, body_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ARRAY(headers)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
   php_http_request_t *request =
       (php_http_request_t *)proton_object_get(getThis());
 
-  RETURN_LONG(proton_httpconnect_write_response(
-      &request->connect->value, status_code, NULL, 0, body, body_len));
+  int input_headers_count = 0;
+  const char **input_headers = get_input_headers(headers, &input_headers_count);
+
+  int rc = proton_httpconnect_write_response(
+      &request->connect->value, status_code, input_headers, input_headers_count,
+      body, body_len);
+
+  if (input_headers != NULL) {
+    free(input_headers);
+  }
+
+  RETURN_LONG(rc);
 }
 /* }}} */
 
@@ -160,7 +193,9 @@ const zend_function_entry httprequest_functions[] = {
     PHP_ME(httprequest, __get, arginfo_proton_httprequest_get,
            ZEND_ACC_PUBLIC) // httprequest::__get
     PHP_ME(httprequest, getHeaders, NULL,
-           ZEND_ACC_PUBLIC)                         // httpresponse::getHeaders
+           ZEND_ACC_PUBLIC) // httprequest::getHeaders
+    PHP_ME(httprequest, getBody, NULL,
+           ZEND_ACC_PUBLIC)                         // httprequest::getBody
     PHP_ME(httprequest, end, NULL, ZEND_ACC_PUBLIC) // httprequest::end
     {NULL, NULL, NULL} /* Must be the last line in httprequest_functions[] */
 };

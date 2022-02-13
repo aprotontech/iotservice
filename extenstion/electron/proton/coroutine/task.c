@@ -274,6 +274,9 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
   LL_remove(&task->link);
   LL_insert(&task->link, task->runtime->releaseables.prev);
 
+  // save current exception to task
+  save_vm_stack(task);
+
   // restore to main php-stack
   restore_vm_stack(RUNTIME_MAIN_COROUTINE(runtime));
 }

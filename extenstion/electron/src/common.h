@@ -39,6 +39,8 @@ extern int proton_object_destruct(zval *self);
 extern void destruct_proton_private_value(zend_resource *rsrc);
 extern proton_coroutine_runtime *proton_get_runtime();
 
+const char **get_input_headers(zval *headers, int *output_headers_count);
+
 extern zend_class_entry *_tcpclient_ce;
 extern zend_class_entry *_tcpserver_ce;
 extern zend_class_entry *_runtime_ce;

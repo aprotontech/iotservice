@@ -65,6 +65,8 @@ int proton_scheduler_uninit(proton_uv_scheduler *scheduler) {
 
   uv_loop_close(&scheduler->loop);
 
+  proton_runtime_uninit(&scheduler->runtime);
+
   return 0;
 }
 
