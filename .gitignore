@@ -2,3 +2,6 @@
 docker-compose.override.yml
 /.idea
 /.vscode
+/proxy
+/build/deploy/.build-cache
+
