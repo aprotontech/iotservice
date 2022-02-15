@@ -16,11 +16,6 @@ use App\Http\Controllers\DebugerController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-
 Route::get('/version', function (Request $request) {
     return json_encode([
         "version" => env('APP_VERSION', '1.0')

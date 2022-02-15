@@ -25,7 +25,8 @@ composer update -vvv
 
 
 cp -rf $PROJECT_ROOT/backend $TMP/iotservice
-
+rm -rf $TMP/iotservice/.env
+rm -rf $TMP/iotservice/.git*
 
 # build extension
 cd $PROJECT_ROOT/extenstion/electron
@@ -35,8 +36,8 @@ make -j8
 make install
 
 cp /usr/lib/php/20190902/electron.so $TMP/electron.so
-
+cp /usr/local/lib/libuv.so.1 $TMP/libuv.so.1
 
 # TODO
-echo "all modules had build and copyed to $TMP"
-echo "cd $TMP && docker build -t aproton/iotservice:v1.0 ."
+echo "all modules had builded and copyed to $TMP"
+echo "cd build/deploy && docker build -t aproton/iotservice:v1.0 ."

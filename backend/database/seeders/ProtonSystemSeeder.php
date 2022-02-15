@@ -114,7 +114,7 @@ class ProtonSystemSeeder extends Seeder
     private function newMenus()
     {
         $menus = [
-            [1,  "Device",       "/#/iot/devicelist",        0,  "0",    0,  '{"mainMenuId":"device"}'],
+            [1,  "Device",       "#/iot/devicelist",        0,  "0",    0,   '{"mainMenuId":"device"}'],
             [2,  "Admin",        "#/permission",             0,  "0",    2,  '{"mainMenuId":"permission"}'],
             [3,  "UserAccount",  "",                         2,  "0",    0,  '["el-icon-setting"]'],
             [4,  "Users",        "accountlist",              3,  "0",    0,  '{}'],
@@ -126,7 +126,7 @@ class ProtonSystemSeeder extends Seeder
             [10, "DeviceManager", "",                        1,  "0",    0,  '{}'],
             [11, "Devices",       "devicelist",             10,  "0",    0,  '{}'],
             [12, "Export",        "deviceexport",           10,  "0",    1,  '{}'],
-            [13, "Application",   "/#/app/",                 0,  "0",    1,  '{"mainMenuId":"app"}'],
+            [13, "Application",   "#/app/",                 0,  "0",    1,   '{"mainMenuId":"app"}'],
             [14, "Manager",       "",                       13,  "0",    0,  '{}'],
             [15, "List",          "applist",                14,  "0",    0,  '{}'],
             [16, "Apply",         "sntasklist",             10,  "0",    2,  '{}'],
