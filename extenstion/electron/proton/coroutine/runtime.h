@@ -80,6 +80,8 @@ int proton_runtime_uninit(proton_coroutine_runtime *runtime);
 
 int proton_coroutine_schedule(proton_coroutine_runtime *runtime);
 
+int proton_coroutine_notify_reschedule(proton_coroutine_runtime *runtime);
+
 ///////////// COROUTINE
 
 proton_coroutine_task *

@@ -279,4 +279,6 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
 
   // restore to main php-stack
   restore_vm_stack(RUNTIME_MAIN_COROUTINE(runtime));
+
+  proton_coroutine_notify_reschedule(runtime);
 }

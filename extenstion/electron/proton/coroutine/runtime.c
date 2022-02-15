@@ -104,6 +104,8 @@ int proton_coroutine_yield(proton_coroutine_runtime *runtime,
     *out_task = task;
   }
 
+  proton_coroutine_notify_reschedule(runtime);
+
   return rc;
 }
 

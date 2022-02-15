@@ -43,7 +43,7 @@ typedef struct _proton_uv_scheduler_t {
   uv_idle_t idle;
 
   uv_timer_t schedule_timer;
-  // uv_async_t task_update_event;
+  uv_async_t task_update_event;
 
 } proton_uv_scheduler;
 
