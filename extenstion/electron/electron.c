@@ -26,14 +26,16 @@ PHP_FUNCTION(proton_printf) { RETURN_TRUE; }
 /* }}} */
 
 extern zend_class_entry *regist_runtime_class();
+extern zend_class_entry *regist_channel_class();
+extern zend_class_entry *regist_coroutine_class();
 extern zend_class_entry *regist_tcpserver_class();
 extern zend_class_entry *regist_tcpclient_class();
-extern zend_class_entry *regist_coroutine_class();
 extern zend_class_entry *regist_httpserver_class();
 extern zend_class_entry *regist_httpconnect_class();
 extern zend_class_entry *regist_httpclient_class();
 extern zend_class_entry *regist_httprequest_class();
 extern zend_class_entry *regist_httpresponse_class();
+extern zend_class_entry *regist_mqttclient_class();
 PHP_MINIT_FUNCTION(electron) {
 
   pc_private_resource_handle = zend_register_list_destructors_ex(
@@ -49,6 +51,7 @@ PHP_MINIT_FUNCTION(electron) {
   }
 
   regist_runtime_class();
+  regist_channel_class();
   regist_tcpserver_class();
   regist_tcpclient_class();
   regist_coroutine_class();
@@ -57,6 +60,7 @@ PHP_MINIT_FUNCTION(electron) {
   regist_httpclient_class();
   regist_httprequest_class();
   regist_httpresponse_class();
+  regist_mqttclient_class();
 }
 
 /* {{{ PHP_MSHUTDOWN

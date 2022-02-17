@@ -41,6 +41,7 @@ proton_runtime_init(proton_coroutine_runtime *runtime) {
     LL_init(&runtime->main.runable);
     LL_init(&runtime->main.waiting);
 
+    runtime->main.cid = 0;
     runtime->main.runtime = runtime;
     runtime->main.status = QC_STATUS_RUNNING;
 
@@ -190,6 +191,15 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
                task->status);
   }
 
+  proton_coroutine_task *current = RUNTIME_CURRENT_COROUTINE(runtime);
+  if (current != NULL && IS_REAL_COROUTINE(current) && current != task) {
+    // append dest task to runable list
+    task->status = QC_STATUS_RUNABLE;
+    LL_remove(&task->runable);
+    LL_insert(&task->runable, runtime->runables.prev);
+    return proton_coroutine_notify_reschedule(runtime);
+  }
+
   int rc = proton_coroutine_swap_in(task);
   if (rc != 0) {
     PLOG_ERROR("coroutine[%ld] wake up failed", task->cid);
@@ -197,6 +207,12 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
     *out_task = task;
   }
   return rc;
+}
+
+int proton_coroutine_cancel(proton_coroutine_runtime *runtime,
+                            proton_wait_object_t *value,
+                            proton_coroutine_task **task) {
+  return 0;
 }
 
 void _runtime_throw_exception(proton_coroutine_task *task) {

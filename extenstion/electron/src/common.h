@@ -20,6 +20,7 @@
 
 #include "proton/libuv/uvobject.h"
 #include "proton/coroutine/runtime.h"
+#include "proton/coroutine/channel.h"
 #include "proton/http/http.h"
 #include "proton/http/php_request.h"
 
@@ -41,6 +42,7 @@ extern proton_coroutine_runtime *proton_get_runtime();
 
 const char **get_input_headers(zval *headers, int *output_headers_count);
 
+extern zend_class_entry *_channel_ce;
 extern zend_class_entry *_tcpclient_ce;
 extern zend_class_entry *_tcpserver_ce;
 extern zend_class_entry *_runtime_ce;

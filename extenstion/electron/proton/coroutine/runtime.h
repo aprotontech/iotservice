@@ -27,6 +27,12 @@
   ((this_coroutine != NULL) && ((this_coroutine)->runtime != NULL) &&          \
    ((this_coroutine) != RUNTIME_MAIN_COROUTINE((this_coroutine)->runtime)))
 
+#define MAKESURE_ON_COROTINUE(runtime)                                         \
+  if (RUNTIME_CURRENT_COROUTINE(runtime) == RUNTIME_MAIN_COROUTINE(runtime)) { \
+    PLOG_WARN("%s only can run on coroutine", __FUNCTION__);                   \
+    return -1;                                                                 \
+  }
+
 typedef struct _proton_coroutine_runtime_t {
   proton_private_value_t value;
 
@@ -72,6 +78,8 @@ typedef struct _proton_wait_object_t {
     LL_init(&((obj).head));                                                    \
   }
 
+#define IS_COROUTINE_WAITFOR(obj) (!LL_isspin(&((obj).head)))
+
 ///////////// RUNTIME
 proton_coroutine_runtime *
 proton_runtime_init(proton_coroutine_runtime *runtime);
@@ -100,6 +108,10 @@ int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
                              proton_coroutine_task **task);
 
 int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
+                            proton_wait_object_t *value,
+                            proton_coroutine_task **task);
+
+int proton_coroutine_cancel(proton_coroutine_runtime *runtime,
                             proton_wait_object_t *value,
                             proton_coroutine_task **task);
 

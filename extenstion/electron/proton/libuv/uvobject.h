@@ -24,12 +24,6 @@
 
 #define UV_CURRENT_COROUTINUE(uvhandle) (UV_HANDLE_RUNTIME(uvhandle)->current)
 
-#define MAKESURE_ON_COROTINUE(runtime)                                         \
-  if (RUNTIME_CURRENT_COROUTINE(runtime) == RUNTIME_MAIN_COROUTINE(runtime)) { \
-    PLOG_WARN("%s only can run on coroutine", __FUNCTION__);                   \
-    return -1;                                                                 \
-  }
-
 #define RUNTIME_UV_LOOP(runtime) ((uv_loop_t *)runtime->data)
 
 #define UV_HANDEL_IS_CLOSED(handel)                                            \
@@ -84,6 +78,8 @@ typedef struct _proton_connect_t {
 
 typedef struct _proton_work_t {
   uv_work_t work;
+  int status;
+  void *result;
   proton_wait_object_t wq_work;
 } proton_work_t;
 
