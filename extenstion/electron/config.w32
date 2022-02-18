@@ -1,0 +1,7 @@
+ARG_ENABLE('electron', 'electron support', 'no');
+
+if (PHP_ELECTRON != 'no') {
+	AC_DEFINE('HAVE_ELECTRON', 1, 'electron support enabled');
+
+	EXTENSION('electron', 'electron.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}
