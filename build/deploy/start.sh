@@ -2,7 +2,15 @@
 
 set -ex
 
+EMQX_ROOT=/root/emqx
+
 PROJECT_ROOT=/root/iotservice
+
+cd $EMQX_ROOT
+
+# start emqx
+./bin/emqx start
+./bin/emqx_ctl status
 
 cd $PROJECT_ROOT
 
