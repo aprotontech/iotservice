@@ -56,23 +56,61 @@ PHP_METHOD(mqttclient, __toString) { RETURN_STRING("{mqttclient}"); }
  */
 PHP_METHOD(mqttclient, connect) {
   zval *options = NULL;
+  zval *channel = NULL;
 
-  ZEND_PARSE_PARAMETERS_START(1, 1)
+  ZEND_PARSE_PARAMETERS_START(1, 2)
     Z_PARAM_ARRAY(options)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_OBJECT_OF_CLASS(channel, _channel_ce)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  RETURN_LONG(proton_mqttclient_connect(proton_object_get(getThis()), options));
+  RETURN_LONG(proton_mqttclient_connect(proton_object_get(getThis()), options,
+                                        proton_object_get(channel)));
 }
 /* }}} */
 
 /** {{{
  */
-PHP_METHOD(mqttclient, publish) { RETURN_LONG(0); }
+PHP_METHOD(mqttclient, publish) {
+  char *topic = NULL, *message = NULL;
+  size_t topic_len, message_len;
+  long qos = 0, retained = 0;
+
+  ZEND_PARSE_PARAMETERS_START(2, 4)
+    Z_PARAM_STRING(topic, topic_len)
+    Z_PARAM_STRING(message, message_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(qos)
+    Z_PARAM_LONG(retained)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  int dt = 0;
+  int rc =
+      proton_mqttclient_publish(proton_object_get(getThis()), topic, topic_len,
+                                message, message_len, qos, retained, &dt);
+
+  RETURN_LONG(rc);
+}
 /* }}} */
 
 /** {{{
  */
-PHP_METHOD(mqttclient, subscribe) { RETURN_LONG(0); }
+PHP_METHOD(mqttclient, subscribe) {
+  char *topic = NULL;
+  size_t topic_len;
+  long qos = 0;
+  zval *channel = NULL;
+
+  ZEND_PARSE_PARAMETERS_START(2, 3)
+    Z_PARAM_STRING(topic, topic_len)
+    Z_PARAM_OBJECT_OF_CLASS(channel, _channel_ce)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_LONG(qos)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  RETURN_LONG(proton_mqttclient_subscribe(proton_object_get(getThis()), topic,
+                                          topic_len, qos, channel));
+}
 /* }}} */
 
 /** {{{

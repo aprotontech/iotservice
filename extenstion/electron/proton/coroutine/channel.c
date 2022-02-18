@@ -33,20 +33,19 @@ int proton_channel_init(proton_coroutine_runtime *runtime,
     PLOG_WARN("channel current not support maxsize=0");
     return -1;
   }
+
   channel->value.type = &__proton_channel_type;
   channel->runtime = runtime;
   channel->max_size = max_size;
   channel->current_size = 0;
+  channel->closed = 0;
   LL_init(&channel->head);
   PROTON_WAIT_OBJECT_INIT(channel->wq_free);
   PROTON_WAIT_OBJECT_INIT(channel->wq_full);
   return 0;
 }
 
-int proton_channel_uninit(proton_private_value_t *value) {
-  MAKESURE_PTR_NOT_NULL(value);
-  proton_channel_t *channel = (proton_channel_t *)value;
-
+static int cleanup_channel(proton_channel_t *channel) {
   if (IS_COROUTINE_WAITFOR(channel->wq_free)) {
     proton_coroutine_cancel(channel->runtime, &channel->wq_free, NULL);
   }
@@ -64,8 +63,14 @@ int proton_channel_uninit(proton_private_value_t *value) {
   }
 
   channel->current_size = 0;
-
   return 0;
+}
+
+int proton_channel_uninit(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+  proton_channel_t *channel = (proton_channel_t *)value;
+
+  return cleanup_channel(channel);
 }
 
 int proton_channel_push(proton_private_value_t *value, zval *item) {
@@ -73,6 +78,11 @@ int proton_channel_push(proton_private_value_t *value, zval *item) {
   MAKESURE_PTR_NOT_NULL(item);
   proton_channel_t *channel = (proton_channel_t *)value;
   MAKESURE_ON_COROTINUE(channel->runtime);
+
+  if (channel->closed) {
+    PLOG_WARN("channel is closed");
+    return -1;
+  }
 
   if (channel->current_size >= channel->max_size) {
     if (proton_coroutine_waitfor(channel->runtime, &channel->wq_full, NULL)) {
@@ -98,6 +108,11 @@ int proton_channel_pop(proton_private_value_t *value, zval *item) {
   proton_channel_t *channel = (proton_channel_t *)value;
 
   MAKESURE_ON_COROTINUE(channel->runtime);
+
+  if (channel->closed) {
+    PLOG_WARN("channel is closed");
+    return -1;
+  }
 
   if (channel->current_size == 0) {
     if (proton_coroutine_waitfor(channel->runtime, &channel->wq_free, NULL)) {
@@ -125,4 +140,11 @@ int proton_channel_pop(proton_private_value_t *value, zval *item) {
   return 0;
 }
 
-int proton_channel_close(proton_private_value_t *value) { return 0; }
+int proton_channel_close(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+  proton_channel_t *channel = (proton_channel_t *)value;
+
+  channel->closed = 1;
+
+  return cleanup_channel(channel);
+}

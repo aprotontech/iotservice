@@ -16,6 +16,7 @@
 
 #include "proton/common/electron.h"
 #include "proton/coroutine/runtime.h"
+#include "proton/coroutine/channel.h"
 
 #include <uv.h>
 

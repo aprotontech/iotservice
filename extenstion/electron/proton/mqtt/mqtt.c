@@ -44,44 +44,139 @@ extern void delivered(void *context, MQTTClient_deliveryToken dt);
 extern int msgarrvd(void *context, char *topicName, int topicLen,
                     MQTTClient_message *message);
 
-int mqtt_subscribe(proton_mqtt_client_t *mqtt, const char *topic, int topic_len,
-                   int qos) {
+int proton_mqttclient_subscribe(proton_mqtt_client_t *mqtt, const char *topic,
+                                int topic_len, int qos,
+                                proton_private_value_t *channel) {
+  MAKESURE_PTR_NOT_NULL(mqtt);
+  MAKESURE_PTR_NOT_NULL(topic);
+  MAKESURE_PTR_NOT_NULL(channel);
   MAKESURE_ON_COROTINUE(mqtt->runtime);
-  PLOG_INFO("mqtt(%p) subcribe(%s), qos(%d)\n", mqtt, topic, qos);
-  return MQTTClient_subscribe(mqtt->client, topic, qos);
-}
 
-int mqtt_publish(proton_mqtt_client_t *mqtt, const char *topic, int topic_len,
-                 const char *msg, int msg_len, int qos, int retained, int *dt) {
-  MAKESURE_ON_COROTINUE(mqtt->runtime);
-  MQTTClient_deliveryToken token;
-  int rc = MQTTClient_publish(mqtt->client, topic, msg_len, msg, qos, retained,
-                              &token);
-  if (rc == MQTTCLIENT_SUCCESS) {
-    *dt = (int)token;
+  any_t topic_item = NULL;
+  if (hashmap_get(mqtt->subscribe_topics, topic, &topic_item) ==
+      MAP_OK) { // exists subscribe
+    PLOG_WARN("mqtt(%p) had subscribe topic(%s)", mqtt, topic);
+    return -1;
   }
 
-  PLOG_INFO("mqtt(%p) publish(%s), msg(%s), ret(%d)\n", mqtt, topic, msg, rc);
+  PLOG_INFO("mqtt(%p) subcribe(%s), qos(%d)", mqtt, topic, qos);
+  int rc = MQTTClient_subscribe(mqtt->client, topic, qos);
+  if (0 == rc) {
+    proton_mqtt_subscribe_topic_t *st =
+        (proton_mqtt_subscribe_topic_t *)qmalloc(
+            sizeof(proton_mqtt_subscribe_topic_t) + topic_len + 1);
+    st->channel = channel;
+    st->topic = (char *)(&st[1]);
+    st->topic_len = topic_len;
+    strcpy(st->topic, topic);
+    Z_TRY_ADDREF(channel->myself);
+
+    hashmap_put(mqtt->subscribe_topics, st->topic, (any_t)st);
+  }
+
   return rc;
 }
 
+// publish
+static void mqtt_publish_task(uv_work_t *req) {
+  proton_mqtt_publish_watcher_t *pw =
+      (proton_mqtt_publish_watcher_t *)req->data;
+
+  MQTTClient_deliveryToken token;
+  int rc = MQTTClient_publishMessage(pw->mqtt->client, pw->topic, &pw->message,
+                                     &token);
+  if (rc == MQTTCLIENT_SUCCESS) {
+    snprintf(pw->dtid, sizeof(pw->dtid), "%d", (int)token);
+    pthread_mutex_lock(&pw->mqtt->mwatcher);
+
+    hashmap_put(pw->mqtt->publish_watchers, pw->dtid, pw);
+
+    pthread_mutex_unlock(&pw->mqtt->mwatcher);
+
+    if (pw->pw_publish.result != NULL) {
+      *((int *)pw->pw_publish.result) = (int)token;
+    }
+  }
+
+  PLOG_INFO("mqtt(%p) publish(%s), ret(%d)", pw->mqtt, pw->topic, rc);
+}
+
+static void mqtt_publish_result_callback(uv_work_t *req, int status) {
+
+  proton_mqtt_publish_watcher_t *pw =
+      (proton_mqtt_publish_watcher_t *)req->data;
+  pw->pw_publish.status = status;
+
+  // do nothing. wait for dt callback
+}
+
+int proton_mqttclient_publish(proton_mqtt_client_t *mqtt, const char *topic,
+                              int topic_len, const char *msg, int msg_len,
+                              int qos, int retained, int *dt) {
+  MAKESURE_ON_COROTINUE(mqtt->runtime);
+
+  proton_mqtt_publish_watcher_t pwmsg;
+  proton_mqtt_publish_watcher_t *pw = &pwmsg;
+  memset(pw, 0, sizeof(proton_mqtt_publish_watcher_t));
+
+  pw->message.dup = 0;
+  pw->message.qos = qos;
+  pw->message.retained = retained;
+  pw->message.payload = (void *)msg;
+  pw->message.payloadlen = msg_len;
+  pw->topic = (char *)topic;
+
+  pw->mqtt = mqtt;
+
+  pw->pw_publish.work.data = pw;
+  pw->pw_publish.status = 0;
+  pw->pw_publish.result = dt;
+  PROTON_WAIT_OBJECT_INIT(pw->pw_publish.wq_work);
+
+  int rc = uv_queue_work(RUNTIME_UV_LOOP(mqtt->runtime), &pw->pw_publish.work,
+                         mqtt_publish_task, mqtt_publish_result_callback);
+  if (0 != rc) {
+    PLOG_WARN("mqtt connect uv_queue_work failed with %d", rc);
+    return rc;
+  }
+
+  if ((rc = proton_coroutine_waitfor(mqtt->runtime, &pw->pw_publish.wq_work,
+                                     NULL)) != 0) {
+    // make sure watcher is in map
+    if (strlen(pw->dtid) != 0) {
+      pthread_mutex_lock(&mqtt->mwatcher);
+      hashmap_remove(mqtt->publish_watchers, pw->dtid);
+      pthread_mutex_unlock(&mqtt->mwatcher);
+    }
+
+    return rc;
+  }
+
+  if (pw->pw_publish.status != 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
+///////////////// MQTT CONNECT/DISCONNECT
 static void mqtt_connect_task(uv_work_t *req) {
   int rc;
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)req->data;
   if ((rc = MQTTClient_connect(mqtt->client, &mqtt->conn_opts)) !=
       MQTTCLIENT_SUCCESS) {
-    PLOG_WARN("mqtt(%p) Failed to connect, return code %d\n", mqtt, rc);
+    PLOG_WARN("mqtt(%p) Failed to connect, return code %d", mqtt, rc);
   }
 
-  if (mqtt->connect_work.result != NULL) {
-    *((int *)mqtt->connect_work.result) = rc;
+  if (mqtt->pw_connect.result != NULL) {
+    *((int *)mqtt->pw_connect.result) = rc;
   }
 }
 
 static void mqtt_connect_result_callback(uv_work_t *req, int status) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)req->data;
 
-  proton_coroutine_wakeup(mqtt->runtime, &mqtt->connect_work.wq_work, NULL);
+  proton_coroutine_wakeup(mqtt->runtime, &mqtt->pw_connect.wq_work, NULL);
 }
 
 static void mqtt_disconnect_task(uv_work_t *req) {
@@ -89,23 +184,24 @@ static void mqtt_disconnect_task(uv_work_t *req) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)req->data;
   int rc = MQTTClient_disconnect(mqtt->client, 5);
   if (rc != MQTTCLIENT_SUCCESS) {
-    PLOG_WARN("mqtt(%p) Failed to disconnect, return code %d\n", mqtt, rc);
+    PLOG_WARN("mqtt(%p) Failed to disconnect, return code %d", mqtt, rc);
   }
 
-  if (mqtt->disconnect_work.result != NULL) {
-    *((int *)mqtt->disconnect_work.result) = rc;
+  if (mqtt->pw_disconnect.result != NULL) {
+    *((int *)mqtt->pw_disconnect.result) = rc;
   }
 }
 
 static void mqtt_disconnect_result(uv_work_t *req, int status) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)req->data;
 
-  PLOG_DEBUG("mqtt(%p) mqtt_disconnect_result(%d)\n", mqtt, status);
-  mqtt->disconnect_work.status = status;
-  proton_coroutine_wakeup(mqtt->runtime, &mqtt->disconnect_work.wq_work, NULL);
+  PLOG_DEBUG("mqtt(%p) mqtt_disconnect_result(%d)", mqtt, status);
+  mqtt->pw_disconnect.status = status;
+  proton_coroutine_wakeup(mqtt->runtime, &mqtt->pw_disconnect.wq_work, NULL);
 }
 
-int proton_mqttclient_connect(proton_private_value_t *value, zval *options) {
+int proton_mqttclient_connect(proton_private_value_t *value, zval *options,
+                              proton_private_value_t *channel) {
   MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(options);
 
@@ -113,7 +209,7 @@ int proton_mqttclient_connect(proton_private_value_t *value, zval *options) {
 
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
-  if (!LL_isspin(&mqtt->connect_work.wq_work.head)) {
+  if (!LL_isspin(&mqtt->pw_connect.wq_work.head)) {
     PLOG_WARN("[MQTT] mqtt client is connecting...");
     return -1;
   }
@@ -129,23 +225,29 @@ int proton_mqttclient_connect(proton_private_value_t *value, zval *options) {
   FILL_VALUE_STRING(mqtt->conn_opts, options, password);
 
   int connect_result = -1;
-  mqtt->connect_work.result = &connect_result;
+  mqtt->pw_connect.result = &connect_result;
 
-  int rc =
-      uv_queue_work(RUNTIME_UV_LOOP(mqtt->runtime), &mqtt->connect_work.work,
-                    mqtt_connect_task, mqtt_connect_result_callback);
+  int rc = uv_queue_work(RUNTIME_UV_LOOP(mqtt->runtime), &mqtt->pw_connect.work,
+                         mqtt_connect_task, mqtt_connect_result_callback);
   if (0 != rc) {
-    PLOG_WARN("mqtt connect uv_queue_work failed with %d\n", rc);
+    PLOG_WARN("mqtt connect uv_queue_work failed with %d", rc);
     return rc;
   }
 
-  if ((rc = proton_coroutine_waitfor(mqtt->runtime, &mqtt->connect_work.wq_work,
+  if ((rc = proton_coroutine_waitfor(mqtt->runtime, &mqtt->pw_connect.wq_work,
                                      NULL)) != 0) {
     return rc;
   }
 
-  if (mqtt->connect_work.status != 0) {
+  if (mqtt->pw_connect.status != 0) {
     return -1;
+  }
+
+  if (rc == 0) {
+    mqtt->status_channel = channel;
+    if (channel != NULL) { // add ref
+      Z_TRY_ADDREF(channel->myself);
+    }
   }
 
   return connect_result;
@@ -157,33 +259,40 @@ int proton_mqttclient_close(proton_private_value_t *value) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
-  if (!LL_isspin(&mqtt->disconnect_work.wq_work.head)) {
+  if (!LL_isspin(&mqtt->pw_disconnect.wq_work.head)) {
     PLOG_WARN("[MQTT] mqtt client is disconnecting...");
     return -1;
   }
 
   int disconnect_result = -1;
-  mqtt->disconnect_work.result = &disconnect_result;
+  mqtt->pw_disconnect.result = &disconnect_result;
 
   int rc =
-      uv_queue_work(RUNTIME_UV_LOOP(mqtt->runtime), &mqtt->disconnect_work.work,
+      uv_queue_work(RUNTIME_UV_LOOP(mqtt->runtime), &mqtt->pw_disconnect.work,
                     mqtt_disconnect_task, mqtt_disconnect_result);
   if (0 != rc) {
-    PLOG_WARN("mqtt disconnect uv_queue_work failed with %d\n", rc);
+    PLOG_WARN("mqtt disconnect uv_queue_work failed with %d", rc);
     return rc;
   }
 
   if ((rc = proton_coroutine_waitfor(
-           mqtt->runtime, &mqtt->disconnect_work.wq_work, NULL)) != 0) {
+           mqtt->runtime, &mqtt->pw_disconnect.wq_work, NULL)) != 0) {
     return rc;
   }
 
-  if (mqtt->disconnect_work.status != 0) {
+  if (mqtt->pw_disconnect.status != 0) {
     return -1;
   }
+
+  if (mqtt->status_channel != NULL) {
+    RELEASE_VALUE_MYSELF(*mqtt->status_channel);
+    mqtt->status_channel = NULL;
+  }
+
   return disconnect_result;
 }
 
+//////////////////////// MQTT INIT/UNINIT
 int proton_mqttclient_init(proton_coroutine_runtime *runtime,
                            proton_mqtt_client_t *mqtt, const char *client_id,
                            const char *host, int port) {
@@ -199,17 +308,21 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   ZVAL_UNDEF(&mqtt->value.myself);
   ZVAL_UNDEF(&mqtt->options);
 
-  mqtt->connect_work.work.data = mqtt;
-  mqtt->connect_work.status = 0;
-  mqtt->connect_work.result = NULL;
-  PROTON_WAIT_OBJECT_INIT(mqtt->connect_work.wq_work);
-  mqtt->disconnect_work.work.data = mqtt;
-  mqtt->disconnect_work.status = 0;
-  mqtt->disconnect_work.result = NULL;
-  PROTON_WAIT_OBJECT_INIT(mqtt->disconnect_work.wq_work);
+  mqtt->pw_connect.work.data = mqtt;
+  mqtt->pw_connect.status = 0;
+  mqtt->pw_connect.result = NULL;
+  PROTON_WAIT_OBJECT_INIT(mqtt->pw_connect.wq_work);
+  mqtt->pw_disconnect.work.data = mqtt;
+  mqtt->pw_disconnect.status = 0;
+  mqtt->pw_disconnect.result = NULL;
+  PROTON_WAIT_OBJECT_INIT(mqtt->pw_disconnect.wq_work);
 
-  mqtt->events[PME_DISCONNECT] = NULL;
-  mqtt->events[PME_NEW_MESSAGE] = NULL;
+  pthread_mutex_init(&mqtt->mevent, NULL);
+  pthread_mutex_init(&mqtt->mwatcher, NULL);
+
+  mqtt->status_channel = NULL;
+  mqtt->subscribe_topics = hashmap_new();
+  mqtt->publish_watchers = hashmap_new();
 
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
@@ -233,13 +346,15 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   int rc = uv_async_init(RUNTIME_UV_LOOP(mqtt->runtime), &mqtt->notify,
                          mqtt_notify_to_php);
   if (rc != 0) {
-    PLOG_WARN("mqtt(%p) uv_async_init failed with %d\n", mqtt, rc);
+    PLOG_WARN("mqtt(%p) uv_async_init failed with %d", mqtt, rc);
     return -1;
   }
 
   return 0;
 }
 
+static int _free_stopic_item(any_t item, const char *key, any_t data);
+static int _free_pwatcher_item(any_t item, const char *key, any_t data);
 int proton_mqttclient_uninit(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
 
@@ -247,5 +362,38 @@ int proton_mqttclient_uninit(proton_private_value_t *value) {
   ZVAL_PTR_DTOR(&mqtt->options);
   uv_close((uv_handle_t *)&mqtt->notify, NULL);
 
+  if (IS_COROUTINE_WAITFOR(mqtt->pw_connect.wq_work)) {
+
+    // uv_cancel((uv_req_t *)&mqtt->pw_connect.work);
+  }
+
+  if (mqtt->status_channel != NULL) {
+    RELEASE_VALUE_MYSELF(*mqtt->status_channel);
+    mqtt->status_channel = NULL;
+  }
+
+  if (mqtt->subscribe_topics != NULL) {
+    hashmap_iterate(mqtt->subscribe_topics, _free_stopic_item, NULL);
+    hashmap_free(mqtt->subscribe_topics);
+  }
+
+  if (mqtt->publish_watchers != NULL) {
+    hashmap_iterate(mqtt->publish_watchers, _free_pwatcher_item, NULL);
+    hashmap_free(mqtt->publish_watchers);
+  }
+
   return 0;
+}
+
+static int _free_stopic_item(any_t item, const char *key, any_t data) {
+  proton_mqtt_subscribe_topic_t *topic = (proton_mqtt_subscribe_topic_t *)item;
+  if (topic->channel != NULL) {
+    RELEASE_VALUE_MYSELF(*topic->channel);
+  }
+  qfree(topic);
+  return MAP_OK;
+}
+
+static int _free_pwatcher_item(any_t item, const char *key, any_t data) {
+  return MAP_OK;
 }

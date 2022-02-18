@@ -24,6 +24,8 @@ typedef struct _proton_channel_t {
   uint64_t max_size;
   uint64_t current_size;
 
+  int closed;
+
   proton_wait_object_t wq_full;
   proton_wait_object_t wq_free;
 

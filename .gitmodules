@@ -1,3 +1,0 @@
-[submodule "extenstion/electron/third/paho.mqtt.c"]
-	path = extenstion/electron/third/paho.mqtt.c
-	url = git@github.com:eclipse/paho.mqtt.c.git
