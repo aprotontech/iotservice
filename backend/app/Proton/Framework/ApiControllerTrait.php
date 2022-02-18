@@ -3,6 +3,7 @@
 namespace Proton\Framework;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 require_once __DIR__ . '/func.php';
 
@@ -33,18 +34,27 @@ trait ApiControllerTrait
         try {
             $tmStart = defined('LARAVEL_START') ? LARAVEL_START : $tmRoute;
             $rc->start = $tmStart;
+            $responseStr = "";
+            $code = 200;
             if ($r instanceof Error) { // date('Y-m-d H:i:s', $tmRoute), floor(1000 * ($tmRoute - floor($tmRoute)))
-                rclog_notice(
-                    "[CLIENT-REQUEST] start(%d), route(%d), use(%dms), total(%dms), url(%s), request(%s), response(%s)",
-                    floor(1000 * $tmStart),
-                    floor(1000 * $tmRoute),
-                    floor(($tmFinish - $tmRoute) * 1000),
-                    floor(($tmFinish - $tmStart) * 1000),
-                    $request->url(),
-                    json_encode($this->reqToObject($request)),
-                    "$r"
-                );
+                $responseStr = "$r";
+                $code = 200;
+            } else if ($r instanceof Response) {
+                $responseStr = $r->getContent();
+                $code = $r->getStatusCode();
             }
+
+            rclog_notice(
+                "[CLIENT-REQUEST] start(%d), route(%d), use(%dms), total(%dms), url(%s), request(%s), response(%s), code(%d)",
+                floor(1000 * $tmStart),
+                floor(1000 * $tmRoute),
+                floor(($tmFinish - $tmRoute) * 1000),
+                floor(($tmFinish - $tmStart) * 1000),
+                $request->url(),
+                json_encode($this->reqToObject($request)),
+                $responseStr,
+                $code
+            );
         } catch (\Exception $e) {
             error_log(rc_exception_message($e));
         }

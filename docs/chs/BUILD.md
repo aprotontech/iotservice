@@ -107,3 +107,9 @@ npm run dev
 | -- | -- |
 | 用户名 | admin |
 | 密码 | admin123 |
+
+
+## 启动MQTT服务
+目前项目使用EMQX作为mqtt broker，具体使用参考EMQX官方文档安装[EMQX](https://www.emqx.io/docs/zh/v4.4/)；
+
+认证配置文件可以参考： {PROJECT_ROOT}/build/deploy/emqx_auth_http.conf
