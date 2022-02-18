@@ -21,7 +21,7 @@ cp -rf $PROJECT_ROOT/website/dist $TMP/website
 
 # build laravel
 cd $PROJECT_ROOT/backend
-composer update -vvv
+composer install -vvv
 
 
 cp -rf $PROJECT_ROOT/backend $TMP/iotservice
@@ -33,11 +33,11 @@ cd $PROJECT_ROOT/extenstion/electron
 phpize
 ./configure
 make -j8
-make install
+#make install
 
-cp /usr/lib/php/20190902/electron.so $TMP/electron.so
+cp .libs/electron.so $TMP/electron.so
 cp /usr/local/lib/libuv.so.1 $TMP/libuv.so.1
 
 # TODO
 echo "all modules had builded and copyed to $TMP"
-echo "cd build/deploy && docker build -t aproton/iotservice:v1.0 ."
+echo "cd build/deploy && docker build -t aproton/iotservice:v1.0-alpha ."
