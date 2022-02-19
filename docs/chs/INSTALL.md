@@ -19,6 +19,9 @@ docker run --name=iotservice -p 8080:8080 -p 1883:1883 -p18083:18083 -d aproton/
 # 默认登录用户名/密码： admin/public
 ```
 
+部署架构示意图
+
+![架构图](./images/framework.png)
 
 
 ## 高可用部署
