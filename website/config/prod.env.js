@@ -1,5 +1,5 @@
 module.exports = {
   NODE_ENV: '"production"',
-  ROOT_URL: '"/#"',
+  ROOT_URL: '"/#/"',
   ENABLE_AUTH: 'true'
 }

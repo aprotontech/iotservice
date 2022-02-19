@@ -17,16 +17,16 @@ class DeviceAlive implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $clientId;
-    private $active;
+    private $online;
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($clientId, $active = false)
+    public function __construct($clientId, $online = false)
     {
         $this->clientId = $clientId;
-        $this->active = $active;
+        $this->online = $online;
     }
 
     /**
@@ -40,17 +40,23 @@ class DeviceAlive implements ShouldQueue
 
         $device = Device::where('client_id', $this->clientId)->first();
         if ($device) {
-            $this->updateOnline($device);
+            $this->updateStatus($device);
         }
     }
 
-    private function updateOnline($device)
+    private function updateStatus($device)
     {
         $now = date("Y-m-d H:i:s", time());
-        $device->is_online = 1;
-        $device->online_time = $now;
-        if (!$device->active_time) {
-            $device->active_time = $now;
+        if ($this->online) {
+            $device->is_online = 1;
+            $device->online_time = $now;
+
+            if (!$device->active_time) {
+                $device->active_time = $now;
+            }
+        } else {
+            $device->is_online = 0;
+            $device->offline_time = $now;
         }
 
         $device->save();

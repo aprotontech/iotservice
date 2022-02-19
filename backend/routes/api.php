@@ -33,3 +33,4 @@ Route::get('/debug/device', [DebugerController::class, 'getDevice']);
 Route::post('/mqtt/auth', 'Mqtt\AuthController@route');
 Route::post('/mqtt/acl', 'Mqtt\AclController@route');
 Route::post('/mqtt/superuser', 'Mqtt\SuperUserController@route');
+Route::post('/mqtt/webhook', 'Mqtt\WebHookController@route');
