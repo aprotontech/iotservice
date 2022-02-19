@@ -82,11 +82,11 @@ int proton_mqttclient_connect(proton_private_value_t *value, zval *options,
 
 int proton_mqttclient_close(proton_private_value_t *client);
 
-int proton_mqttclient_publish(proton_mqtt_client_t *mqtt, const char *topic,
+int proton_mqttclient_publish(proton_private_value_t *mqtt, const char *topic,
                               int topic_len, const char *msg, int msg_len,
                               int qos, int retained, int *dt);
 
-int proton_mqttclient_subscribe(proton_mqtt_client_t *mqtt, const char *topic,
+int proton_mqttclient_subscribe(proton_private_value_t *mqtt, const char *topic,
                                 int topic_len, int qos,
                                 proton_private_value_t *channel);
 

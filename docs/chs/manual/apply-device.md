@@ -16,3 +16,6 @@
 菜单路径: Device -> Apply
 
 在申请列表页，通过或者拒绝申请。通过后将自动生成对应的设备列表
+
+
+![示例图](../images/apply-accept.png)

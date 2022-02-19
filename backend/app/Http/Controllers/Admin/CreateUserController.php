@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\Paginator;
 
 class CreateUserController extends \App\Http\Controllers\WebController
 {

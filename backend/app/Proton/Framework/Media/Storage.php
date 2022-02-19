@@ -45,7 +45,7 @@ class Storage
     public static function saveFileContent($content, $topic, $fileExt)
     {
         $day = date("Ymd");
-        $title = md5(microtime(true).$topic.getmypid().rand());
+        $title = md5(microtime(true) . $topic . getmypid() . rand());
         $path = "$topic/$day/$title.$fileExt";
         if (!LaravelStorage::put($path, $content)) {
             return rc_error("501", "save file to ($path) failed");
@@ -59,10 +59,8 @@ class Storage
     protected static function getUrl($path)
     {
         if (!self::$url) {
-            self::$url = env('MEDIA_URL', '');
+            self::$url = env('MEDIA_URL_PREFIX', '');
         }
         return self::$url . '/' . $path;
     }
-
 };
-
