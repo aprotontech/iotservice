@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use DB;
 use Exception;
 use Illuminate\Database\Seeder;
 
@@ -19,6 +20,7 @@ class ProtonSystemSeeder extends Seeder
         $this->newAdminRole();
         $this->newMenus();
         $this->newTestApp();
+        $this->newSnTask();
     }
 
     private function newSystem()
@@ -204,6 +206,43 @@ class ProtonSystemSeeder extends Seeder
             $app->creator = $adminUser->id;
             $app->description = "Test Application";
             $app->save();
+        } catch (Exception $e) {
+            if (!$this->isDuplicate($e)) {
+                echo $e->getMessage() . "\n";
+                rclog_exception($e);
+            }
+        }
+    }
+
+    private function newSnTask()
+    {
+        $adminUser = \App\Models\User::where('name', 'admin')->first();
+        try {
+            if (DB::table('sn_tasks')->count() > 0) {
+                return;
+            }
+
+            DB::table('sn_tasks')
+                ->insert([
+                    'app_id' => 'test',
+                    'name' => 'Example-Test-SN-Task',
+                    'prefix' => 'F1010F1F',
+                    'start' => 'F1010F1F000000',
+                    'end' => 'F1010F1F000009',
+                    'count' => 10,
+                    'status' => 1, // accepted
+                    'type' => 1,
+                    'creator' => $adminUser->name,
+                    'description' => 'Example Sn Task',
+                    'acker' => $adminUser->name,
+                    'acked_at' => date('Y-m-d H:i:s'),
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'assign_mac' => 0
+                ]);
+
+            $job = new \App\Jobs\SnTask();
+            $job->handle();
         } catch (Exception $e) {
             if (!$this->isDuplicate($e)) {
                 echo $e->getMessage() . "\n";

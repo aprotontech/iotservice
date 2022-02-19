@@ -27,7 +27,7 @@ Proton-IotService 是一款开源的Iot平台，集成了设备管理后台，�
 
 
 ## 设备SDK
-平台也提供了一套用于快速接入设备的SDK，采用C开发。代码在其他项目待合入。
+平台也提供了一套用于快速接入设备的SDK，采用C开发。代码在其他项目待合入 [quark](https://github.com/aprotontech/quark)。
 
 # 架构设计
 待补充
