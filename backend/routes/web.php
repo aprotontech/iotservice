@@ -17,6 +17,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// get file content
+Route::get('/storage/{topic}/{day}/{file}', 'Web\StorageFileController@route');
+
 Route::get('/debug/login', 'Passport\\DebugUserLoginController@login');
 
 Route::get('/passport/session', 'Passport\\SessionController@getInfo');

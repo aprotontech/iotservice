@@ -17,11 +17,20 @@ Proton-IotService 是一款开源的Iot平台，集成了设备管理后台，�
 ## 设备管理后台
 设备管理后台API接口基于Laravel开发，前端采用VUE开发。
 
+![示例图](./docs/chs/images/device-list.png)
+
+
+## 设备接入API
+平台提供了一套IOT设备接入的API接口，包含设备鉴权,设备属性,定位,OTA等API接口。
+
+接口文档参考： [API](./docs/chs/device-api/README.md)
+
+
 ## 设备SDK
 平台也提供了一套用于快速接入设备的SDK，采用C开发。代码在其他项目待合入。
 
 # 架构设计
-
+待补充
 
 # 目录结构
 

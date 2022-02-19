@@ -12,12 +12,12 @@ COPY php.ini /etc/php/7.4/cli/php.ini
 COPY .build-cache/electron.so /usr/lib/php/20190902/electron.so
 COPY .build-cache/libuv.so.1 /usr/local/lib/libuv.so.1
 
-COPY .build-cache/iotservice /root/iotservice
-COPY .build-cache/website/* /root/iotservice/public
-
 COPY start.sh /root/iotservice/start.sh
 COPY loaded_plugins /root/emqx/data/loaded_plugins
 COPY emqx_auth_http.conf /root/emqx/etc/plugins/emqx_auth_http.conf
+COPY emqx_web_hook.conf /root/emqx/etc/plugins/emqx_web_hook.conf
+
+COPY .build-cache/iotservice /root/iotservice
 
 ENV SERVER_MYSQL_HOST 127.0.0.1
 

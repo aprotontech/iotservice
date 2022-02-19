@@ -22,6 +22,10 @@ class AuthController extends \App\Http\Controllers\ApiController
     {
         $info = $this->reqToObject($request);
 
+        if ($info->password != "_aproton_super_admin") {
+            return response(rc_error("400", "password mismatch"), 400);
+        }
+
         return $this->success();
     }
 }

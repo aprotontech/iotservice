@@ -44,12 +44,13 @@ extern void delivered(void *context, MQTTClient_deliveryToken dt);
 extern int msgarrvd(void *context, char *topicName, int topicLen,
                     MQTTClient_message *message);
 
-int proton_mqttclient_subscribe(proton_mqtt_client_t *mqtt, const char *topic,
-                                int topic_len, int qos,
+int proton_mqttclient_subscribe(proton_private_value_t *value,
+                                const char *topic, int topic_len, int qos,
                                 proton_private_value_t *channel) {
-  MAKESURE_PTR_NOT_NULL(mqtt);
+  MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(topic);
   MAKESURE_PTR_NOT_NULL(channel);
+  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
   any_t topic_item = NULL;
@@ -110,9 +111,13 @@ static void mqtt_publish_result_callback(uv_work_t *req, int status) {
   // do nothing. wait for dt callback
 }
 
-int proton_mqttclient_publish(proton_mqtt_client_t *mqtt, const char *topic,
+int proton_mqttclient_publish(proton_private_value_t *value, const char *topic,
                               int topic_len, const char *msg, int msg_len,
                               int qos, int retained, int *dt) {
+  MAKESURE_PTR_NOT_NULL(value);
+  MAKESURE_PTR_NOT_NULL(topic);
+  MAKESURE_PTR_NOT_NULL(msg);
+  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
   proton_mqtt_publish_watcher_t pwmsg;

@@ -169,7 +169,7 @@ class ProtonSystemSeeder extends Seeder
             $ur->user_id = $adminUser->id;
             $ur->role_id = $adminRole->id;
             $ur->system = 'aproton';
-            $ur->data_rule = '[]';
+            $ur->data_rule = '*';
             $ur->save();
         } catch (Exception $e) {
             if (!$this->isDuplicate($e)) {
