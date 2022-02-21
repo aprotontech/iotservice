@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use DB;
 use Exception;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ProtonSystemSeeder extends Seeder
 {
@@ -206,6 +206,23 @@ class ProtonSystemSeeder extends Seeder
             $app->creator = $adminUser->id;
             $app->description = "Test Application";
             $app->save();
+        } catch (Exception $e) {
+            if (!$this->isDuplicate($e)) {
+                echo $e->getMessage() . "\n";
+                rclog_exception($e);
+            }
+        }
+
+        try {
+            $m = json_decode(file_get_contents(__DIR__ . '/test-app-keys.json'), false);
+            DB::table('app_keys')
+                ->insert([
+                    'app_id' => 'test',
+                    'salt' => '',
+                    'public_key' => $m->pubKey,
+                    'private_key' => $m->priKey,
+                    'secret' => '7045298f456cea6d7a4737c62dd3b89e'
+                ]);
         } catch (Exception $e) {
             if (!$this->isDuplicate($e)) {
                 echo $e->getMessage() . "\n";

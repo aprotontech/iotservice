@@ -1,8 +1,8 @@
 <?php
 
-namespace Proton\Framework;
+namespace Proton\Framework\Response;
 
-class Error implements \JsonSerializable
+class ApiResponse implements \JsonSerializable
 {
 
     private $rc;
@@ -33,6 +33,31 @@ class Error implements \JsonSerializable
     {
         $this->rc = "$rc";
         $this->err = "$msg";
+
+        return $this;
+    }
+
+    public function set()
+    {
+        $args = func_get_args();
+        $length = count($args);
+        if ($length % 2 == 0) {
+            for ($i = $length; $i > 0; $i -= 2) {
+                $key = $args[$i - 2];
+                $val = $args[$i - 1];
+                if (!is_string($key)) {
+                    throw new \Exception("response key is not string. key is " . var_export($key, true));
+                }
+
+                $this->$key = $val;
+            }
+        } elseif ($length == 1 && is_array($args[0])) {
+            foreach ($args[0] as $key => $val) {
+                $this->$key = $val;
+            }
+        } else {
+            throw new \Exception("response args is invalidate, args=" . var_export($args, true));
+        }
 
         return $this;
     }
@@ -73,8 +98,6 @@ class Error implements \JsonSerializable
         $m = get_object_vars($this);
         if ($this->rc === "0") {
             unset($m['err']);
-        } else if (defined('NOT_SHOW_ERROR') && NOT_SHOW_ERROR) {
-            if ($this->isError()) unset($m['err']);
         }
         return $m;
     }

@@ -2,7 +2,8 @@
 
 namespace Proton\Framework\Logger;
 
-class LogServiceProvider extends \Illuminate\Support\ServiceProvider {
+class LogServiceProvider extends \Illuminate\Support\ServiceProvider
+{
 
     public function register()
     {
@@ -10,5 +11,4 @@ class LogServiceProvider extends \Illuminate\Support\ServiceProvider {
             return new LogManager($this->app);
         });
     }
-
 }

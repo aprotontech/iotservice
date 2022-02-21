@@ -2,7 +2,8 @@
 
 namespace Proton\Framework\Rpc;
 
-class Client {
+class Client
+{
 
     public static function newCaller()
     {
@@ -11,7 +12,6 @@ class Client {
 
     public static function newDefaultCaller($service)
     {
-        return new HttpPost($service, config("rpc.".strtolower($service)));
+        return new HttpPost($service, config("rpc." . strtolower($service)));
     }
-  
 };

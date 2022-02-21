@@ -15,12 +15,12 @@ function auto_define($key, $value, $redefine_exception = false)
 
 function rc_success($data = false)
 {
-    return (new \Proton\Framework\Error())->success($data);
+    return (new \Proton\Framework\Response\ApiResponse())->success($data);
 }
 
 function rc_error($rc, $msg)
 {
-    return new \Proton\Framework\Error($rc, $msg);
+    return new \Proton\Framework\Response\ApiResponse($rc, $msg);
 }
 
 function rpc_client($service)
@@ -63,6 +63,12 @@ function rc_mstime()
 function rc_timestamp()
 {
     return floor(microtime(true) * 1000);
+}
+
+function rc_datetime($second = false, $format = 'Y-m-d H:i:s')
+{
+    if (!$second) $second = time();
+    return date($format, $second);
 }
 
 function rc_exception($rc, $msg)

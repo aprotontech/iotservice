@@ -1,3 +1,4 @@
 # 设备API
 
-待完善
+API列表
++ [设备注册](./device-session.md)

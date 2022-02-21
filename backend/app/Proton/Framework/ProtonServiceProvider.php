@@ -15,4 +15,3 @@ class ProtonServiceProvider extends Logger\LogServiceProvider
         parent::register();
     }
 }
-

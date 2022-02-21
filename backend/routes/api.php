@@ -23,12 +23,15 @@ Route::get('/version', function (Request $request) {
 });
 
 /*Route::resource('/dns', 'HttpDnsController');
-Route::resource('/devices', 'DeviceController');
 Route::resource('/device/attrs', 'DeviceAttributeController');
 
 Route::get('/debug/session', [DebugerController::class, 'getSession']);
 Route::get('/debug/device', [DebugerController::class, 'getDevice']);
 */
+
+Route::post('/device/session', 'IotApi\DeviceSession\NewSessionController@route');
+
+Route::post('/time', 'IotApi\TimeServer\ServerTimeController@route');
 
 Route::post('/mqtt/auth', 'Mqtt\AuthController@route');
 Route::post('/mqtt/acl', 'Mqtt\AclController@route');

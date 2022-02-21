@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Device\Web;
 
-use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 use Proton\Media\Storage;
 
@@ -40,7 +40,7 @@ class ExportController extends \App\Http\Controllers\WebController
         }
 
         $list = $query->limit(50000)
-            ->select('app_id', 'client_id', 'mac')
+            ->select('app_id', 'client_id', 'uuid')
             ->get();
 
         $clients = [];
@@ -84,9 +84,9 @@ class ExportController extends \App\Http\Controllers\WebController
     {
 
         $m = [];
-        array_push($m, "clientId,publicKey,secret,mac");
+        array_push($m, "clientId,publicKey,secret,uuid");
         foreach ($devices as $dev) {
-            array_push($m, "$dev->client_id,$dev->public_key,$dev->secret,$dev->mac");
+            array_push($m, "$dev->client_id,$dev->public_key,$dev->secret,$dev->uuid");
         }
         $r = Storage::saveFileContent(implode("\n", $m), "CSV", "csv");
         if ($r->isError()) return '';
