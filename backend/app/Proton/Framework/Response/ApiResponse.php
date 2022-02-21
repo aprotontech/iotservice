@@ -8,15 +8,15 @@ class ApiResponse implements \JsonSerializable
     private $rc;
     private $err;
 
-    public function __construct($rc = '0', $msg = '')
+    public function __construct($rc = 0, $msg = '')
     {
-        $this->rc = "$rc";
+        $this->rc = $rc;
         $this->err = $msg;
     }
 
     public function success($data = false)
     {
-        $this->rc = '0';
+        $this->rc = 0;
         $this->err = 'success';
         if (!is_array($data)) $data = [];
 
@@ -31,7 +31,7 @@ class ApiResponse implements \JsonSerializable
 
     public function error($rc, $msg)
     {
-        $this->rc = "$rc";
+        $this->rc = $rc;
         $this->err = "$msg";
 
         return $this;
@@ -74,12 +74,12 @@ class ApiResponse implements \JsonSerializable
 
     public function isError()
     {
-        return $this->rc !== "0";
+        return $this->rc !== 0;
     }
 
     public function isSuccess()
     {
-        return $this->rc === "0";
+        return $this->rc === 0;
     }
 
     public function __toString()
@@ -96,7 +96,7 @@ class ApiResponse implements \JsonSerializable
     public function jsonSerialize()
     {
         $m = get_object_vars($this);
-        if ($this->rc === "0") {
+        if ($this->rc === 0) {
             unset($m['err']);
         }
         return $m;

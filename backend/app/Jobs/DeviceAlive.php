@@ -49,13 +49,13 @@ class DeviceAlive implements ShouldQueue
         if ($this->online) {
             $device->is_online = 1;
             $device->online_time = $now;
-
-            if (!$device->active_time) {
-                $device->active_time = $now;
-            }
         } else {
             $device->is_online = 0;
             $device->offline_time = $now;
+        }
+
+        if (!$device->active_time) {
+            $device->active_time = $now;
         }
 
         $device->save();
