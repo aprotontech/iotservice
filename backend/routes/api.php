@@ -23,13 +23,14 @@ Route::get('/version', function (Request $request) {
 });
 
 /*Route::resource('/dns', 'HttpDnsController');
-Route::resource('/device/attrs', 'DeviceAttributeController');
+
 
 Route::get('/debug/session', [DebugerController::class, 'getSession']);
 Route::get('/debug/device', [DebugerController::class, 'getDevice']);
 */
 
 Route::post('/device/session', 'IotApi\DeviceSession\NewSessionController@route');
+Route::post('/device/attrs', 'IotApi\Property\DeviceAttributeController@route');
 
 Route::post('/time', 'IotApi\TimeServer\ServerTimeController@route');
 

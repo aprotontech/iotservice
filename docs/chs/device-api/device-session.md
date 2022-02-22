@@ -21,7 +21,7 @@
 
 | 返回值 | 类型 | 意义 |
 | - | - | - |
-| rc | string | 错误码 |
+| rc | int | 错误码 |
 | appId | string | 应用ID |
 | clientId | string | 设备唯一ID |
 | session | string | 设备会话ID |
@@ -57,14 +57,12 @@
 + 返回示例
 ``` json
 {
-    "rc": "0",
-    "data": {
-        "appId": "test",
-        "clientId": "F1010F2F000000",
-        "session": "fef7ebb9936bd44d090729034031d977",
-        "expire": 1645460689,
-        "timeout": 86400
-    }
+    "rc": 0,
+    "appId": "test",
+    "clientId": "F1010F2F000000",
+    "session": "0b2f189070d84cf0cdeec7dac672b4c3",
+    "expire": 1645548443,
+    "timeout": 86400
 }
 ```
 
