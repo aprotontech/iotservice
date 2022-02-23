@@ -1,5 +1,7 @@
 <?php
 
+use Proton\Framework\Filter\JsonRequestFilter;
+
 function is_not_empty($v)
 {
     return !empty($v);
@@ -20,7 +22,18 @@ function is_array_of($tmpl, $minCount = 0, $maxCount = -1)
     return new \Proton\Framework\Filter\ArrayFilter($tmpl, $minCount, $maxCount);
 }
 
+function is_map_of($tmpl)
+{
+    return new \Proton\Framework\Filter\KeyValueFilter($tmpl);
+}
+
 function is_equal_anyof(...$values)
 {
     return new \Proton\Framework\Filter\MatchFilter($values);
+}
+
+function is_value_match(object $value, array $tmpl)
+{
+    $s = new JsonRequestFilter($tmpl);
+    return $s->check("{INPUT}", $value);
 }
