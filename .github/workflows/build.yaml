@@ -20,7 +20,7 @@ jobs:
         run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV; echo $APP_VERSION
       
       - name: Update Code
-        run: rm -rf .git* .env.example && mv build/production.env .env && rm -rf build/build.sh
+        run: bash build/build_to_deploy.sh
 
       - name: Build & push Docker image
         uses: mr-smithers-excellent/docker-build-push@v5
@@ -28,7 +28,8 @@ jobs:
           image: aproton/iotservice
           tags: v0.1-$APP_VERSION, latest
           registry: registry.cn-beijing.aliyuncs.com
-          dockerfile: build/Dockerfile
+          directory: build/deploy
+          dockerfile: Dockerfile
           username: ${{ secrets.ALIYUN_DOCKER_USER_NAME }}
           password: ${{ secrets.ALIYUN_DOCKER_PASSWORD }}
   test-deploy:

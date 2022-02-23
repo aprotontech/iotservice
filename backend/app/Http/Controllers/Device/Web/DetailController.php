@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Device\Web;
 
-use DB;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class DetailController extends \App\Http\Controllers\WebController
@@ -39,29 +39,14 @@ class DetailController extends \App\Http\Controllers\WebController
             ->where('client_id', $info->client_id)
             ->first();
 
-        $attrs = DB::table('dp_values')
-            ->join('dp_defines', 'dp_defines.property', '=', 'dp_values.property')
+        $attrs = DB::table('device_attributes')
             ->where('app_id', $info->app_id)
             ->where('client_id', $info->client_id)
-            //->select('dp_values.property', 'dp_defines.name', 'dp_values.device_val', 'dp_defines.data_type', 'dp_defines.unit_str',
-            //        DB::raw("FROM_UNIXTIME(report_time/1000, '%Y-%m-%d %H:%i:%S') as report_time"))
-            ->select(
-                'dp_values.property',
-                'dp_defines.name',
-                'dp_values.device_val',
-                'dp_defines.data_type',
-                'dp_defines.unit_str',
-                "report_time"
-            )
+            ->select('attr', 'value', 'report_time', 'type')
             ->get();
 
         foreach ($attrs as $t) {
-            if (strtolower($t->data_type) == 'bool') {
-                $t->device_val = $t->device_val ? 'true' : 'false';
-            } else if (trim($t->unit_str)) {
-                $t->device_val = $t->device_val . " ($t->unit_str)";
-            }
-            $t->report_time = date('Y-m-d H:i:s', floor($t->report_time / 1000));
+            $t->report_time = rc_datetime($t->report_time / 1000.0, 'Y-m-d H:i:s.u');
         }
 
         unset($secret->private_key);

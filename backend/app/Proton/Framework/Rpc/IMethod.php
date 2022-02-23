@@ -2,6 +2,7 @@
 
 namespace Proton\Framework\Rpc;
 
-interface IMethod {
+interface IMethod
+{
     public function __call($name, $arguments);
 }

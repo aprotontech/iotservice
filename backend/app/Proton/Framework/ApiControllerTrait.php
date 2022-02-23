@@ -5,6 +5,8 @@ namespace Proton\Framework;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
+use Proton\Framework\Response\ApiResponse;
+
 require_once __DIR__ . '/func.php';
 
 trait ApiControllerTrait
@@ -36,7 +38,7 @@ trait ApiControllerTrait
             $rc->start = $tmStart;
             $responseStr = "";
             $code = 200;
-            if ($r instanceof Error) { // date('Y-m-d H:i:s', $tmRoute), floor(1000 * ($tmRoute - floor($tmRoute)))
+            if ($r instanceof ApiResponse) { // date('Y-m-d H:i:s', $tmRoute), floor(1000 * ($tmRoute - floor($tmRoute)))
                 $responseStr = "$r";
                 $code = 200;
             } else if ($r instanceof Response) {
@@ -154,11 +156,11 @@ trait ApiControllerTrait
 
     public function success($data = false)
     {
-        return (new Error())->success($data);
+        return (new ApiResponse())->success($data);
     }
 
     public function error($rc, $msg)
     {
-        return new Error($rc, $msg);
+        return new ApiResponse($rc, $msg);
     }
 }

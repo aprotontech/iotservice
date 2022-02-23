@@ -12,11 +12,9 @@ class ApiRender
         if ($e instanceof NotFoundHttpException) { // not found exception
             $r = rc_error("404", rc_exception_message($e));
             return response($r, 404);
-        }
-        else if ($e instanceof ApiException) {
+        } else if ($e instanceof ApiException) {
             return response($e->getApiError(), 200)
                 ->header('Content-Type', 'application/json');
         }
     }
-
 }

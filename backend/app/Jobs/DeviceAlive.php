@@ -2,8 +2,7 @@
 
 namespace App\Jobs;
 
-use DB;
-use LRedis as Redis;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -50,13 +49,13 @@ class DeviceAlive implements ShouldQueue
         if ($this->online) {
             $device->is_online = 1;
             $device->online_time = $now;
-
-            if (!$device->active_time) {
-                $device->active_time = $now;
-            }
         } else {
             $device->is_online = 0;
             $device->offline_time = $now;
+        }
+
+        if (!$device->active_time) {
+            $device->active_time = $now;
         }
 
         $device->save();
@@ -92,5 +91,22 @@ class DeviceAlive implements ShouldQueue
         } catch (\Exception $e) {
             rclog_exception($e, true);
         }
+    }
+
+    private function setDeviceActiveRecord($device, $request)
+    {
+        DB::table('device_active_records')
+            ->insert([
+                'app_id' => $device->app_id,
+                'client_id' => $device->client_id,
+                'active_day' => date('Y-m-d'),
+                'ip' => $request->getClientIp(),
+                'country' => '',
+                'city' => '',
+                'address' => '',
+                'wifi' => '',
+                'created_at' => rc_datetime(),
+                'updated_at' => rc_datetime()
+            ]);
     }
 }

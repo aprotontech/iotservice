@@ -33,6 +33,7 @@ cp -rf $PROJECT_ROOT/website/dist/* $TMP/iotservice/public/
 cd $PROJECT_ROOT/extenstion/electron
 phpize
 ./configure
+make clean
 make -j8
 #make install
 

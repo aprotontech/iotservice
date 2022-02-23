@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use DB;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -42,16 +42,12 @@ class SnTask implements ShouldQueue
         }
 
         try {
-            DB::beginTransaction();
-            $this->createClients($task);
-            $this->markTaskStatus($task, TaskStatus::TASK_DONE);
-            DB::commit();
-        } catch (\Symfony\Component\Debug\Exception\FatalThrowableError $e) {
-            DB::rollBack();
-            rclog_exception($e, true);
-            $this->markTaskStatus($task, TaskStatus::TASK_FAILED);
+            DB::transaction(function () use ($task) {
+                $this->createClients($task);
+                $this->markTaskStatus($task, TaskStatus::TASK_DONE);
+            });
         } catch (\Exception $e) {
-            DB::rollBack();
+
             rclog_exception($e, true);
             $this->markTaskStatus($task, TaskStatus::TASK_FAILED);
         }
