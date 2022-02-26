@@ -32,8 +32,9 @@ class HttpDnsController extends \App\Http\Controllers\ApiController
 
             $r = is_value_match($m, [
                 'host' => 'is_string',
-                'ip' => is_array_of('is_string', 1),
-                'protcol' => is_map_of('is_int'),
+                'prefix' => 'is_string',
+                'ips' => is_array_of('is_string', 1),
+                'protocols' => is_map_of('is_int'),
             ]);
 
             if ($r !== true) {
