@@ -136,7 +136,8 @@ int proton_httpconnect_write_response(proton_private_value_t *connect,
 int httpconnect_start_read(proton_http_connect_t *connect);
 int httpconnect_start_message(proton_http_connect_t *connect);
 int httpconnect_finish_message(proton_http_connect_t *connect);
-int httpconnect_write(proton_http_connect_t *connect, uv_buf_t rbufs[],
-                      int nbufs);
+int httpconnect_write_raw_message(proton_http_connect_t *connect,
+                                  proton_link_buffer_t *lbf, const char *body,
+                                  int body_len);
 
 #endif

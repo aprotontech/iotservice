@@ -54,7 +54,7 @@ int proton_mqttclient_subscribe(proton_private_value_t *value,
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
   any_t topic_item = NULL;
-  if (hashmap_get(mqtt->subscribe_topics, topic, &topic_item) ==
+  if (hashmap_get(mqtt->subscribe_topics, (char *)topic, &topic_item) ==
       MAP_OK) { // exists subscribe
     PLOG_WARN("mqtt(%p) had subscribe topic(%s)", mqtt, topic);
     return -1;

@@ -236,6 +236,44 @@ int httpconnect_write(proton_http_connect_t *connect, uv_buf_t rbufs[],
   return rc;
 }
 
+int httpconnect_write_raw_message(proton_http_connect_t *connect,
+                                  proton_link_buffer_t *lbf, const char *body,
+                                  int body_len) {
+  if (LL_isspin(&lbf->link)) {
+    if (body != NULL) {
+      uv_buf_t rbuf = {.base = (char *)body, .len = body_len};
+      return httpconnect_write(connect, &rbuf, 1);
+    }
+  } else if (lbf->link.next == lbf->link.prev) { // only one slice
+    uv_buf_t rbufs[2] = {{.base = proton_link_buffer_get_ptr(lbf, 0),
+                          .len = lbf->total_used_size},
+                         {.base = (char *)body, .len = body_len}};
+
+    return httpconnect_write(connect, rbufs, body == NULL ? 1 : 2);
+  } else { // a lot of slice to write
+    int i = 0;
+    int n = LL_size(&lbf->link) - 1;
+    if (body != NULL) {
+      ++n;
+    }
+    uv_buf_t *rbufs = (uv_buf_t *)qmalloc(n * sizeof(uv_buf_t));
+    list_link_t *p = lbf->link.next;
+    while (p != &lbf->link) {
+      proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
+      p = p->next;
+      rbufs[i].base = pbt->buff.base;
+      rbufs[i].len = pbt->used;
+      ++i;
+    }
+
+    int rc = httpconnect_write(connect, rbufs, n);
+    qfree(rbufs);
+    return rc;
+  }
+
+  return 0;
+}
+
 int proton_httpconnect_close(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
   proton_http_connect_t *connect = (proton_http_connect_t *)value;

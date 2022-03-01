@@ -78,8 +78,7 @@ PHP_METHOD(httpresponse, getBody) {
 
   if (php_request_wait_parse_finish(request) == 0) {
     // get all bodys
-    proton_link_buffer_t *lbf = &request->message.response_body;
-    RETURN_STRINGL(proton_link_buffer_get_ptr(lbf, 0), lbf->total_used_size);
+    RETURN_STR(proton_link_to_string(&request->message.response_body));
   }
 
   RETURN_FALSE;

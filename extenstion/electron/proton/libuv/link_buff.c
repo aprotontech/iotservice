@@ -109,12 +109,35 @@ char *proton_link_buffer_get_ptr(proton_link_buffer_t *lbf, size_t offset) {
   return 0;
 }
 
+zend_string *proton_link_to_string(proton_link_buffer_t *lbf) {
+  if (lbf == NULL) {
+    return NULL;
+  }
+
+  zend_string *s = zend_string_alloc(lbf->total_used_size, 0);
+  if (s != NULL) {
+    list_link_t *p = lbf->link.next;
+    char *q = ZSTR_VAL(s);
+    while (p != &lbf->link) {
+      proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
+      p = p->next;
+
+      memcpy(q, pbt->buff.base, pbt->used);
+
+      q += pbt->used;
+    }
+  }
+
+  return s;
+}
+
 int proton_link_buffer_uninit(proton_link_buffer_t *lbf) {
   MAKESURE_PTR_NOT_NULL(lbf);
   list_link_t *p = lbf->link.next;
   while (p != &lbf->link) {
     proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
     p = LL_remove(p);
+
     qfree(pbt);
   }
 

@@ -239,11 +239,8 @@ int proton_httpclient_request(proton_private_value_t *value,
   http_message_build_request_headers(&lbf, client->connect->current, method,
                                      info->host, headers, header_count,
                                      body_len);
-  uv_buf_t rbufs[2] = {
-      {.base = proton_link_buffer_get_ptr(&lbf, 0), .len = lbf.total_used_size},
-      {.base = (char *)body, .len = body_len}};
 
-  int rc = httpconnect_write(client->connect, rbufs, body == NULL ? 1 : 2);
+  int rc = httpconnect_write_raw_message(client->connect, &lbf, body, body_len);
   if (rc != 0) {
     PLOG_WARN("write data failed, with %d", rc);
   }

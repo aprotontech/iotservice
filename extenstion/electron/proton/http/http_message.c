@@ -264,18 +264,3 @@ int http_message_build_request_headers(proton_link_buffer_t *plb,
 
   return 0;
 }
-
-/*void _httpconnect_restart_parse(proton_http_connect_t *client) {
-  enum http_parser_type type = client->current->parser.type;
-  proton_buffer_t *buffer = client->read_buffer;
-  if (!LL_isspin(&client->current->buffers.link) &&
-      container_of(client->current->buffers.link.next, proton_buffer_t, link) ==
-          buffer) {
-    // buffer is using self-alloced content, so release it
-    buffer = NULL;
-  }
-
-  http_message_uninit(client->current);
-  http_message_init(client, client->current, type);
-  _httpconnect_init_read_buffer(client, buffer);
-}*/
