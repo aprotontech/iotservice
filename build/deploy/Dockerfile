@@ -2,7 +2,7 @@ FROM aproton/system:v1.0
 
 MAINTAINER kuper <kuper@aproton.tech>
 
-RUN apt-get update --fix-missing; apt-get install --fix-missing -y mysql-server php-mysql php-xml php-mbstring php-sqlite3 wget net-tools && rm -rf /var/lib/apt/lists/*
+RUN apt-get update --fix-missing; apt-get install --fix-missing -y mysql-server php-mysql php-curl php-xml php-mbstring php-sqlite3 wget net-tools && rm -rf /var/lib/apt/lists/*
 
 RUN cd /root/ && wget http://api.aproton.tech/emqx-4.4.0-otp23.3.4.9-3-ubuntu20.04-amd64.tar.gz && \
     tar zxvf emqx-4.4.0-otp23.3.4.9-3-ubuntu20.04-amd64.tar.gz && rm -f emqx-4.4.0-otp23.3.4.9-3-ubuntu20.04-amd64.tar.gz
