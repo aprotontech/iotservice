@@ -15,6 +15,7 @@
 #include "php_request.h"
 
 #define PRINT_READ_WRITE 0
+#define MIN_READ_BUF_SIZE 256
 
 PROTON_TYPE_WHOAMI_DEFINE(_http_connect_get_type, "httpconnect")
 
@@ -37,12 +38,9 @@ static int _httpconnect_init_read_buffer(proton_http_connect_t *connect,
 
   connect->read_buffer = buffer;
   if (connect->read_buffer == NULL) {
+    // alloc first buffer to recv data
     connect->read_buffer = proton_link_buffer_new_slice(
-        &connect->current->buffers,
-        HTTPCLIENT_DEFAULT_ALLOC_SIZE); // alloc first buffer to recv data
-
-    // mark all buffer had used
-    connect->read_buffer->used = connect->read_buffer->buff.len;
+        &connect->current->buffers, HTTPCLIENT_DEFAULT_ALLOC_SIZE);
   }
   return 0;
 }
@@ -93,15 +91,22 @@ void httpconnect_on_closed(uv_handle_t *handle) {
 void httpconnect_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
                               uv_buf_t *buf) {
   proton_http_connect_t *connect = (proton_http_connect_t *)handle->data;
+  proton_buffer_t *read_buffer = connect->read_buffer;
 
-  if (connect->read_buffer == NULL) {
+  if (read_buffer == NULL) {
     *buf = uv_buf_init(NULL, 0);
     PLOG_WARN("[HTTP] read buffer is null");
-    // uv_close((uv_handle_t *)&connect->tcp, httpconnect_on_closed);
     return;
   }
 
-  *buf = connect->read_buffer->buff;
+  // if left size is too small, alloc a new buffer
+  if (read_buffer->buff.len - read_buffer->used < MIN_READ_BUF_SIZE) {
+    connect->read_buffer = proton_link_buffer_new_slice(
+        &connect->current->buffers, HTTPCLIENT_DEFAULT_ALLOC_SIZE);
+  }
+
+  *buf = uv_buf_init(read_buffer->buff.base + read_buffer->used,
+                     read_buffer->buff.len - read_buffer->used);
 }
 
 void httpconnect_on_read(uv_stream_t *handle, ssize_t nread,
@@ -119,6 +124,8 @@ void httpconnect_on_read(uv_stream_t *handle, ssize_t nread,
     uv_close((uv_handle_t *)handle, httpconnect_on_closed);
     return;
   }
+
+  connect->read_buffer->used += nread;
 
   int r = http_message_parse_content(connect->current, buf->base, nread);
 

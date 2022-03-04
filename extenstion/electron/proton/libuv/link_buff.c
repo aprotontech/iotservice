@@ -26,6 +26,18 @@ proton_link_buffer_t *proton_link_buffer_init(proton_link_buffer_t *lbf,
   lbf->total_used_size = 0;
 }
 
+int proton_link_buffer_append_slice(proton_link_buffer_t *lbf,
+                                    proton_buffer_t *buffer) {
+  MAKESURE_PTR_NOT_NULL(lbf);
+  MAKESURE_PTR_NOT_NULL(buffer);
+
+  LL_insert(&buffer->link, lbf->link.prev);
+  lbf->total_alloc_size += buffer->buff.len;
+  lbf->total_used_size += buffer->used;
+
+  return 0;
+}
+
 proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
                                               size_t length) {
   length = ((length + lbf->slice_size - 1) / lbf->slice_size) * lbf->slice_size;
@@ -38,6 +50,7 @@ proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
   ptr->buff.base = (char *)&ptr[1];
   ptr->buff.len = length - sizeof(proton_buffer_t);
   ptr->used = 0;
+  ptr->need_free = 1;
   LL_insert(&ptr->link, lbf->link.prev);
   lbf->total_alloc_size += length;
   return ptr;
@@ -138,7 +151,9 @@ int proton_link_buffer_uninit(proton_link_buffer_t *lbf) {
     proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
     p = LL_remove(p);
 
-    qfree(pbt);
+    if (pbt->need_free) {
+      qfree(pbt);
+    }
   }
 
   return 0;

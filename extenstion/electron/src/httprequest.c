@@ -31,13 +31,19 @@ PHP_METHOD(httprequest, __toString) {
 
   proton_http_connect_t *client = request->connect;
 
+  char path[256] = {0};
   char host[1024] = {0};
   struct sockaddr_in addr;
   int len = sizeof(addr);
   uv_tcp_getpeername(&client->tcp, (struct sockaddr *)&addr, &len);
+  if (client->current->path.base != NULL) {
+    memcpy(path, client->current->path.base,
+           min(sizeof(path), client->current->path.len));
+  }
+
   snprintf(host, sizeof(host), "{httprequest.%s(%s:%d%s)}",
            http_method_str(client->current->method), inet_ntoa(addr.sin_addr),
-           ntohs(addr.sin_port), client->current->path);
+           ntohs(addr.sin_port), path);
   RETURN_STRING(host);
 }
 /* }}} */
@@ -60,8 +66,8 @@ PHP_METHOD(httprequest, __get) {
     Z_PARAM_STRING(key, key_len)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  if (strcasecmp(key, "Path") == 0 && message->path != NULL) {
-    RETURN_STRING(message->path);
+  if (strcasecmp(key, "Path") == 0 && message->path.base != NULL) {
+    RETURN_STRINGL(message->path.base, message->path.len);
   } else if (strcasecmp(key, "Method") == 0) {
     RETURN_STRING(http_method_str(message->method));
   }
@@ -99,15 +105,14 @@ PHP_METHOD(httprequest, getHeaders) {
     zval headers;
     ZVAL_NEW_ARR(&headers);
     zend_hash_init(Z_ARRVAL(headers), 10, NULL, ZVAL_PTR_DTOR, 0);
-    list_link_t *p = request->message.request_headers.next;
-    while (p != &request->message.request_headers) {
+    list_link_t *p = request->message.headers.next;
+    while (p != &request->message.headers) {
       proton_header_t *header = container_of(p, proton_header_t, link);
       p = p->next;
 
       zval value;
-      ZVAL_STR(&value,
-               zend_string_init(header->value, strlen(header->value), 0));
-      zend_string *key = zend_string_init(header->key, strlen(header->key), 0);
+      ZVAL_STRINGL(&value, header->value.base, header->value.len);
+      zend_string *key = zend_string_init(header->key.base, header->key.len, 0);
       if (skip_same) {
         zend_hash_add(Z_ARRVAL(headers), key, &value);
       } else {
@@ -132,7 +137,7 @@ PHP_METHOD(httprequest, getBody) {
 
   if (php_request_wait_parse_finish(request) == 0) {
     // get all bodys
-    proton_link_buffer_t *lbf = &request->message.request_body;
+    proton_link_buffer_t *lbf = &request->message.body;
     RETURN_STRINGL(proton_link_buffer_get_ptr(lbf, 0), lbf->total_used_size);
   }
 

@@ -24,6 +24,10 @@
 #include "proton/http/http.h"
 #include "proton/http/php_request.h"
 
+#ifndef min
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 #define PROTON_NAMESPACE "Proton"
 
 #define PHP_PRIVATE_VALUE_RESOURCE_NAME "proton_private_value"

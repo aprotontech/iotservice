@@ -19,8 +19,8 @@
 
 typedef struct _proton_header_t {
   list_link_t link; // more than one header has same key
-  char *key;
-  char *value;
+  uv_buf_t key;
+  uv_buf_t value;
 } proton_header_t;
 
 typedef enum _proton_http_message_status {
@@ -42,28 +42,22 @@ typedef struct _proton_http_message_t {
 
   http_parser parser;
   http_parser_settings settings;
-  char *last_header_key;
+  proton_header_t *current_header;
   char keepalive;
   char parse_finished;
 
   enum http_method method;
-  char *path;
+  uv_buf_t path;
 
   proton_link_buffer_t buffers; // buffers
 
   proton_http_message_status read_status;
   proton_http_message_status write_status;
 
-  ///////////// REQUEST
-  // request headers (item: proton_header_t)
-  list_link_t request_headers;
-  char request_is_chunk_mode;
-  proton_link_buffer_t request_body; // request body
-
-  ///////////// RESPONSE
-  char response_is_chunk_mode;
-  list_link_t response_headers;
-  proton_link_buffer_t response_body; // response body
+  ///////////// REQUEST/RESPONSE
+  char is_chunk_mode;
+  list_link_t headers;
+  proton_link_buffer_t body; // response body
 
 } proton_http_message_t;
 

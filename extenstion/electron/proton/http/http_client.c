@@ -235,7 +235,7 @@ int proton_httpclient_request(proton_private_value_t *value,
   proton_link_buffer_init(&lbf, HTTPCLIENT_DEFAULT_ALLOC_SIZE,
                           HTTPCLIENT_MAX_BUFFER_SIZE);
 
-  client->connect->current->path = info->path;
+  client->connect->current->path = uv_buf_init(info->path, strlen(info->path));
   http_message_build_request_headers(&lbf, client->connect->current, method,
                                      info->host, headers, header_count,
                                      body_len);

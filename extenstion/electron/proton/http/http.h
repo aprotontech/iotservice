@@ -22,7 +22,7 @@
 
 #include "http_message.h"
 
-#define HTTPCLIENT_DEFAULT_ALLOC_SIZE 4096
+#define HTTPCLIENT_DEFAULT_ALLOC_SIZE (1024 * 20)
 #define HTTPCLIENT_MAX_BUFFER_SIZE (2 * 1024 * 1024)
 
 typedef void (*on_new_http_request)(proton_private_value_t *server,
