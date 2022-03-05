@@ -31,11 +31,14 @@ typedef enum _proton_coroutine_status {
   QC_STATUS_STOPED,
 } proton_coroutine_status;
 
+typedef struct _proton_coroutine_task proton_coroutine_task;
+typedef void (*coroutine_task_exception_handler)(proton_coroutine_task *task);
+
 typedef struct _proton_coroutine_runtime_t proton_coroutine_runtime;
 typedef struct _proton_coroutine_task {
   proton_private_value_t value;
 
-  // PHP stack
+  ////// PHP env
   zval *vm_stack_top;
   zval *vm_stack_end;
   zend_vm_stack vm_stack;
@@ -49,8 +52,12 @@ typedef struct _proton_coroutine_task {
   void *c_stack;
   zend_vm_stack page;
 
+  ////
+
   struct _proton_coroutine_task *parent; // no use now
   struct _proton_coroutine_task *origin;
+
+  coroutine_task_exception_handler ehandler;
 
   proton_coroutine_status status;
   uint64_t cid;

@@ -5,7 +5,7 @@ require_once dirname(__DIR__) . '/proton_test.php';
 class ProtonHTTPClientTest extends ProtonTestCase
 {
 
-    public function testCurlBaidu()
+    public function testCurlAprotonTech()
     {
         Proton\go(function ($test) {
             $http = new Proton\HttpClient("82.157.138.167", 80);

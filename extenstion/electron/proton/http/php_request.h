@@ -31,7 +31,7 @@ typedef struct _php_http_request_t {
 
 int php_request_init(proton_http_connect_t *connect,
                      php_http_request_t *request);
-int php_request_uninit(proton_private_value_t *value);
+int php_request_uninit(proton_private_value_t *request);
 
 int php_request_wait_parse_finish(php_http_request_t *request);
 

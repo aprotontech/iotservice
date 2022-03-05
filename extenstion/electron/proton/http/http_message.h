@@ -17,6 +17,13 @@
 #include "proton/common/electron.h"
 #include "proton/libuv/link_buff.h"
 
+typedef enum _proton_http_content_type {
+  PROTON_HTTP_CT_NORMAL = 0,
+  PROTON_HTTP_CT_MULTIPART = 1,
+  PROTON_HTTP_CT_FORM = 2,
+
+} proton_http_content_type;
+
 typedef struct _proton_header_t {
   list_link_t link; // more than one header has same key
   uv_buf_t key;
@@ -49,6 +56,8 @@ typedef struct _proton_http_message_t {
   enum http_method method;
   uv_buf_t path;
 
+  uv_buf_t boundary;
+
   proton_link_buffer_t buffers; // buffers
 
   proton_http_message_status read_status;
@@ -57,7 +66,10 @@ typedef struct _proton_http_message_t {
   ///////////// REQUEST/RESPONSE
   char is_chunk_mode;
   list_link_t headers;
+  proton_http_content_type content_type;
   proton_link_buffer_t body; // response body
+
+  zend_string *raw_body;
 
 } proton_http_message_t;
 
@@ -67,5 +79,10 @@ int http_message_init(proton_http_connect_t *client,
                       proton_http_message_t *message,
                       enum http_parser_type type);
 int http_message_uninit(proton_http_message_t *request);
+
+int http_message_get_multipart_content(proton_http_message_t *message,
+                                       zval *_post, zval *_file);
+
+zend_string *http_message_get_raw_body(proton_http_message_t *message);
 
 #endif

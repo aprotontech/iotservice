@@ -3,16 +3,17 @@
 namespace App\Console\Commands;
 
 use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Http\Request as IlluminateRequest;
+use Illuminate\Http\Request as imRequest;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 use Proton\HttpRequest;
 
 class ProtonAdaptor
 {
     private $kernel;
-    private $illuminateRequest;
-    private $illuminateResponse;
+    private $imRequest;
+    private $imResponse;
 
     public function __construct(Kernel $kernel)
     {
@@ -21,31 +22,38 @@ class ProtonAdaptor
 
     public function handle(HttpRequest $request)
     {
-        $this->illuminateRequest = $this->protonRequestToIlluminateRequest($request);
-        $this->illuminateResponse = $this->kernel->handle(
-            $this->illuminateRequest
+        $this->imRequest = $this->protonRequestToimRequest($request);
+        $this->imResponse = $this->kernel->handle(
+            $this->imRequest
         );
 
         $headers = [];
-        foreach ($this->illuminateResponse->headers->all() as $key => $values) {
+        foreach ($this->imResponse->headers->all() as $key => $values) {
             foreach ($values as $val) {
                 array_push($headers, "$key: $val");
             }
         }
 
+        $response_body = $this->imResponse->getContent();
+        if ($this->imResponse instanceof BinaryFileResponse) {
+            ob_start();
+            $this->imResponse->sendContent();
+            $response_body = ob_get_clean();
+        }
+
         return [
-            'StatusCode' => $this->illuminateResponse->getStatusCode(),
+            'StatusCode' => $this->imResponse->getStatusCode(),
             'Headers' => $headers,
-            'Body' => $this->illuminateResponse->getContent()
+            'Body' => $response_body
         ];
     }
 
     public function terminate()
     {
-        $this->kernel->terminate($this->illuminateRequest, $this->illuminateResponse);
+        $this->kernel->terminate($this->imRequest, $this->imResponse);
     }
 
-    private function protonRequestToIlluminateRequest($request)
+    private function protonRequestToimRequest($request)
     {
         $query = [];
         $srequest = [];
@@ -108,7 +116,7 @@ class ProtonAdaptor
         ) { // append more requests
         }
 
-        return IlluminateRequest::createFromBase(new SymfonyRequest(
+        return imRequest::createFromBase(new SymfonyRequest(
             $query,
             $srequest,
             $attributes,

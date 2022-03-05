@@ -84,7 +84,7 @@ PHP_METHOD(httpresponse, getBody) {
 
   if (php_request_wait_parse_finish(request) == 0) {
     // get all bodys
-    RETURN_STR(proton_link_to_string(&request->message.body));
+    RETURN_STR_COPY(http_message_get_raw_body(&request->message));
   }
 
   RETURN_FALSE;

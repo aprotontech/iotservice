@@ -191,6 +191,7 @@ int proton_http_connection_init(proton_http_connect_t *connect,
   connect->current = NULL;
   connect->read_buffer = NULL;
   connect->tcp_is_connected = 0;
+  connect->auto_save_post_file = 0;
 
   return 0;
 }

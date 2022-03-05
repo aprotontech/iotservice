@@ -70,6 +70,22 @@ PHP_METHOD(httprequest, __get) {
     RETURN_STRINGL(message->path.base, message->path.len);
   } else if (strcasecmp(key, "Method") == 0) {
     RETURN_STRING(http_method_str(message->method));
+  } else if (strcasecmp(key, "_POST") == 0) { // get post content
+    zval _post;
+    ZVAL_NEW_ARR(&_post);
+    zend_hash_init(Z_ARRVAL(_post), 5, NULL, ZVAL_PTR_DTOR, 0);
+
+    http_message_get_multipart_content(message, &_post, NULL);
+
+    RETURN_ZVAL(&_post, 0, 0);
+  } else if (strcasecmp(key, "_FILES") == 0) { // get post content
+    zval _files;
+    ZVAL_NEW_ARR(&_files);
+    zend_hash_init(Z_ARRVAL(_files), 5, NULL, ZVAL_PTR_DTOR, 0);
+
+    http_message_get_multipart_content(message, NULL, &_files);
+
+    RETURN_ZVAL(&_files, 0, 0);
   }
 
   RETURN_NULL();
@@ -136,9 +152,7 @@ PHP_METHOD(httprequest, getBody) {
       (php_http_request_t *)proton_object_get(getThis());
 
   if (php_request_wait_parse_finish(request) == 0) {
-    // get all bodys
-    proton_link_buffer_t *lbf = &request->message.body;
-    RETURN_STRINGL(proton_link_buffer_get_ptr(lbf, 0), lbf->total_used_size);
+    RETURN_STR_COPY(http_message_get_raw_body(&request->message));
   }
 
   RETURN_FALSE;

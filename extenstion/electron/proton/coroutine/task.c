@@ -80,6 +80,7 @@ proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
   task->parent = current;
   task->origin = NULL;
   task->status = QC_STATUS_FREE;
+  task->ehandler = NULL;
 
   LL_init(&task->runable);
   LL_init(&task->waiting);
@@ -247,6 +248,10 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
     PLOG_ERROR("exception class(%s), message(%s)", class_name, ZSTR_VAL(msg));
 
     zend_string_free(msg);
+
+    if (task->ehandler != NULL) {
+      task->ehandler(task); // fire the exception
+    }
   }
 
   zval_ptr_dtor(&retval);

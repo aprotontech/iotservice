@@ -13,7 +13,7 @@
 
 #include "http.h"
 
-#define STRING_ARRAY_PARAM(s) s, sizeof(s) - 1
+extern int is_http_post_file(proton_http_message_t *message);
 
 uv_buf_t realloc_content(proton_link_buffer_t *plb, const char *org_ptr,
                          int org_len, const char *new_ptr, int new_len) {
@@ -36,7 +36,9 @@ int httpclient_on_headers_complete(http_parser *p) {
   proton_http_connect_t *client = (proton_http_connect_t *)p->data;
   client->current->method = p->method;
 
+  client->current->current_header = NULL;
   client->current->read_status = PROTON_HTTP_STATUS_READ_BODY;
+
   return 0;
 }
 
@@ -146,6 +148,7 @@ int http_message_init(proton_http_connect_t *client,
   message->parse_finished = 0;
   message->current_header = NULL;
   message->path = uv_buf_init(NULL, 0);
+  message->boundary = uv_buf_init(NULL, 0);
 
   message->write_status = PROTON_HTTP_STATUS_WRITE_NONE;
   message->read_status = PROTON_HTTP_STATUS_READ_NONE;
@@ -170,6 +173,8 @@ int http_message_init(proton_http_connect_t *client,
   LL_init(&message->headers);
   proton_link_buffer_init(&message->body, HTTPCLIENT_DEFAULT_ALLOC_SIZE,
                           HTTPCLIENT_MAX_BUFFER_SIZE);
+  message->raw_body = NULL;
+  message->content_type = PROTON_HTTP_CT_NORMAL;
 
   return 0;
 }
@@ -179,8 +184,25 @@ int http_message_uninit(proton_http_message_t *message) {
 
   proton_link_buffer_uninit(&message->buffers);
   proton_link_buffer_uninit(&message->body);
+
+  if (message->raw_body != NULL) {
+    zend_string_release(message->raw_body);
+  }
+
   memset(message, 0, sizeof(proton_http_message_t));
   return 0;
+}
+
+zend_string *http_message_get_raw_body(proton_http_message_t *message) {
+  if (message != NULL) {
+    if (message->raw_body == NULL) {
+      message->raw_body = proton_link_to_string(&message->body);
+    }
+
+    return message->raw_body;
+  }
+
+  return NULL;
 }
 
 int http_message_parse_content(proton_http_message_t *message, char *buff,

@@ -129,6 +129,7 @@ zend_string *proton_link_to_string(proton_link_buffer_t *lbf) {
 
   zend_string *s = zend_string_alloc(lbf->total_used_size, 0);
   if (s != NULL) {
+    ZSTR_VAL(s)[lbf->total_used_size] = '\0';
     list_link_t *p = lbf->link.next;
     char *q = ZSTR_VAL(s);
     while (p != &lbf->link) {
