@@ -109,7 +109,8 @@ PHP_METHOD(mqttclient, subscribe) {
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
   RETURN_LONG(proton_mqttclient_subscribe(proton_object_get(getThis()), topic,
-                                          topic_len, qos, channel));
+                                          topic_len, qos,
+                                          proton_object_get(channel)));
 }
 /* }}} */
 

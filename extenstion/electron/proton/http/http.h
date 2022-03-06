@@ -22,8 +22,10 @@
 
 #include "http_message.h"
 
-#define HTTPCLIENT_DEFAULT_ALLOC_SIZE 4096
+#define HTTPCLIENT_DEFAULT_ALLOC_SIZE (1024 * 20)
 #define HTTPCLIENT_MAX_BUFFER_SIZE (2 * 1024 * 1024)
+
+#define STRING_ARRAY_PARAM(s) s, sizeof(s) - 1
 
 typedef void (*on_new_http_request)(proton_private_value_t *server,
                                     proton_private_value_t *request);
@@ -41,9 +43,11 @@ typedef struct _http_connect_callbacks_t {
 } http_connect_callbacks_t;
 
 typedef struct _proton_http_server_config_t {
+  on_new_http_request handler;
   char *host;
   int port;
-  on_new_http_request handler;
+  int auto_save_post_file;
+  char tmp_folder[100];
 } proton_http_server_config_t;
 
 typedef struct _proton_http_server_t {
@@ -63,6 +67,8 @@ typedef struct _proton_http_connect_t {
 
   enum http_parser_type type;
   int tcp_is_connected;
+
+  int auto_save_post_file;
 
   http_connect_callbacks_t *callbacks;
 
@@ -136,7 +142,8 @@ int proton_httpconnect_write_response(proton_private_value_t *connect,
 int httpconnect_start_read(proton_http_connect_t *connect);
 int httpconnect_start_message(proton_http_connect_t *connect);
 int httpconnect_finish_message(proton_http_connect_t *connect);
-int httpconnect_write(proton_http_connect_t *connect, uv_buf_t rbufs[],
-                      int nbufs);
+int httpconnect_write_raw_message(proton_http_connect_t *connect,
+                                  proton_link_buffer_t *lbf, const char *body,
+                                  int body_len);
 
 #endif

@@ -94,6 +94,8 @@ int proton_scheduler_free(proton_uv_scheduler *scheduler) {
   return 0;
 }
 
+extern int proton_runtime_cleanup_temp(proton_coroutine_runtime *runtime,
+                                       int max_release_batch);
 int proton_runtime_loop(proton_coroutine_runtime *runtime) {
   MAKESURE_PTR_NOT_NULL(runtime);
 
@@ -103,7 +105,11 @@ int proton_runtime_loop(proton_coroutine_runtime *runtime) {
   }
 
   PLOG_INFO("start runtime uvloop");
-  return uv_run((uv_loop_t *)runtime->data, UV_RUN_DEFAULT);
+  int rc = uv_run((uv_loop_t *)runtime->data, UV_RUN_DEFAULT);
+
+  // release left coroutinues and fire exceptions
+  proton_runtime_cleanup_temp(runtime, INT_MAX);
+  return rc;
 }
 
 int proton_runtime_stop(proton_coroutine_runtime *runtime) {

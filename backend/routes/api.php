@@ -32,6 +32,8 @@ Route::post('/device/attrs', 'IotApi\Property\DeviceAttributeController@route');
 
 Route::post('/device/dns', 'IotApi\ServiceDns\HttpDnsController@route');
 
+Route::post('/location/report', 'IotApi\Location\ReportController@route');
+
 Route::post('/time', 'IotApi\TimeServer\ServerTimeController@route');
 
 Route::post('/mqtt/auth', 'Mqtt\AuthController@route');

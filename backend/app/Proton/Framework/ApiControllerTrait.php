@@ -34,7 +34,12 @@ trait ApiControllerTrait
         $tmFinish = microtime(true);
         $rc->time->finish = $tmFinish;
         try {
-            $tmStart = defined('LARAVEL_START') ? LARAVEL_START : $tmRoute;
+            $tmStart = $tmRoute;
+            if ($request->server('REQUEST_TIME_FLOAT')) {
+                $tmStart = $request->server('REQUEST_TIME_FLOAT');
+            } else if (defined('LARAVEL_START')) {
+                $tmStart = LARAVEL_START;
+            }
             $rc->start = $tmStart;
             $responseStr = "";
             $code = 200;

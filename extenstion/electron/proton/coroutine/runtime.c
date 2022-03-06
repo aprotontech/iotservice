@@ -24,6 +24,8 @@ _proton_coroutine_create(proton_coroutine_task *current,
                          proton_coroutine_entry *entry, int c_stack_size,
                          int php_stack_size);
 
+void _runtime_throw_exception(proton_coroutine_task *task);
+
 proton_coroutine_runtime *
 proton_runtime_init(proton_coroutine_runtime *runtime) {
   if (runtime != NULL) {
@@ -80,6 +82,7 @@ proton_coroutine_create(proton_coroutine_runtime *runtime,
     LL_insert(&task->runable, runtime->runables.prev);
     LL_insert(&task->link, runtime->clist.prev);
     task->runtime = runtime;
+    task->ehandler = NULL;
 
     return task;
   }
@@ -219,6 +222,8 @@ void _runtime_throw_exception(proton_coroutine_task *task) {
   zval retval;
   zval params[2];
 
+  PLOG_DEBUG("_runtime_throw_exception[%ld]", task->cid);
+
   if (!zend_is_callable(&task->runtime->error_handler,
                         IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
     PLOG_WARN("coroutine[%ld] exit with error, but callback is null",
@@ -240,15 +245,15 @@ void _runtime_throw_exception(proton_coroutine_task *task) {
   zval_ptr_dtor(&retval);
 }
 
-int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
+int proton_runtime_cleanup_temp(proton_coroutine_runtime *runtime,
+                                int max_release_batch) {
   MAKESURE_PTR_NOT_NULL(runtime);
 
   if (RUNTIME_CURRENT_COROUTINE(runtime) != RUNTIME_MAIN_COROUTINE(runtime)) {
-    PLOG_ERROR("coroutine_schedule must running on main coroutine");
+    PLOG_ERROR("proton_runtime_cleanup_temp must running on main coroutine");
   }
 
   if (!LL_isspin(&runtime->releaseables)) {
-    int max_release_batch = 500;
     list_link_t *p = runtime->releaseables.next;
     while (p != &runtime->releaseables && max_release_batch-- > 0) {
       proton_coroutine_task *task =
@@ -258,11 +263,24 @@ int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
         if (task->exception != NULL) { // task exit with exception
           _runtime_throw_exception(task);
         }
+
         // PLOG_DEBUG("found task to release(%p)", task);
         RELEASE_VALUE_MYSELF(task->value);
       }
     }
   }
+
+  return 0;
+}
+
+int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
+  MAKESURE_PTR_NOT_NULL(runtime);
+
+  if (RUNTIME_CURRENT_COROUTINE(runtime) != RUNTIME_MAIN_COROUTINE(runtime)) {
+    PLOG_ERROR("coroutine_schedule must running on main coroutine");
+  }
+
+  proton_runtime_cleanup_temp(runtime, 500);
 
   if (!LL_isspin(&runtime->runables)) {
     list_link_t *p = runtime->runables.next;
