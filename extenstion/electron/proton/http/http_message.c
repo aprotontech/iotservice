@@ -148,7 +148,6 @@ int http_message_init(proton_http_connect_t *client,
   message->parse_finished = 0;
   message->current_header = NULL;
   message->path = uv_buf_init(NULL, 0);
-  message->boundary = uv_buf_init(NULL, 0);
 
   message->write_status = PROTON_HTTP_STATUS_WRITE_NONE;
   message->read_status = PROTON_HTTP_STATUS_READ_NONE;
@@ -176,6 +175,10 @@ int http_message_init(proton_http_connect_t *client,
   message->raw_body = NULL;
   message->content_type = PROTON_HTTP_CT_NORMAL;
 
+  LL_init(&message->multiparts);
+  message->boundary = uv_buf_init(NULL, 0);
+  message->is_parsed_multipart = 0;
+
   return 0;
 }
 
@@ -188,6 +191,17 @@ int http_message_uninit(proton_http_message_t *message) {
   if (message->raw_body != NULL) {
     zend_string_release(message->raw_body);
   }
+
+  list_link_t *p = message->multiparts.next;
+  while (p != &message->multiparts) {
+    proton_multipart_t *mp = container_of(p, proton_multipart_t, link);
+    p = p->next;
+    if (mp->is_file && mp->tmp_name.base != NULL && mp->tmp_name.len != 0) {
+      int ret = unlink(mp->tmp_name.base);
+      PLOG_INFO("remove temp file(%s) ret(%d)", mp->tmp_name.base, ret);
+    }
+  }
+  LL_init(&message->multiparts);
 
   memset(message, 0, sizeof(proton_http_message_t));
   return 0;

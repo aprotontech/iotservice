@@ -64,10 +64,19 @@ class ProtonAdaptor
         $uri = $request->Path;
         $headers = [];
         $poffset = strpos($uri, '?');
-        if ($poffset !== false) {
-            parse_str(substr($uri, $poffset + 1), $query);
 
-            $srequest = $query;
+        switch ($request->Method) {
+            case 'GET':
+                if ($poffset !== false) {
+                    parse_str(substr($uri, $poffset + 1), $query);
+
+                    $srequest = $query;
+                }
+                break;
+            case 'POST':
+                $srequest = $request->_POST;
+                $files = $request->_FILES;
+                break;
         }
 
 

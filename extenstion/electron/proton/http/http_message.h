@@ -30,6 +30,22 @@ typedef struct _proton_header_t {
   uv_buf_t value;
 } proton_header_t;
 
+typedef struct _proton_multipart_t {
+  list_link_t link;
+
+  uv_buf_t name;
+  uv_buf_t filename;
+  uv_buf_t content;
+  uv_buf_t encode;
+  uv_buf_t type;
+
+  int is_file;
+
+  // FILE INFO
+  uv_buf_t tmp_name;
+  int error;
+} proton_multipart_t;
+
 typedef enum _proton_http_message_status {
   // write status
   PROTON_HTTP_STATUS_WRITE_NONE = 0,
@@ -56,8 +72,6 @@ typedef struct _proton_http_message_t {
   enum http_method method;
   uv_buf_t path;
 
-  uv_buf_t boundary;
-
   proton_link_buffer_t buffers; // buffers
 
   proton_http_message_status read_status;
@@ -70,6 +84,12 @@ typedef struct _proton_http_message_t {
   proton_link_buffer_t body; // response body
 
   zend_string *raw_body;
+
+  //////////// MULTIPART
+  // item: proton_multipart_t
+  list_link_t multiparts;
+  uv_buf_t boundary;
+  int is_parsed_multipart;
 
 } proton_http_message_t;
 

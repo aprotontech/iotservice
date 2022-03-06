@@ -5,14 +5,22 @@ require_once dirname(__DIR__) . '/proton_test.php';
 class ProtonHTTPMultiParty extends ProtonTestCase
 {
 
-    public function testPost()
+    public function __construct()
     {
+        parent::__construct();
         $log = $this->log();
         Proton\Runtime::setErrorHandler(function ($coroutine, $error) use ($log) {
             $log->info("Coroutinue[$coroutine]");
-            $log->info("Error=" . var_export($error, true));
+            $log->error("Error=" . $error->getMessage());
+            $lines = explode("\n", var_export($error, true));
+            foreach ($lines as $line) {
+                $log->info($line);
+            }
         });
+    }
 
+    public function testPost()
+    {
         Proton\go(function ($test) {
             $test->log()->info("startup");
             $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {

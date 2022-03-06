@@ -245,15 +245,15 @@ void _runtime_throw_exception(proton_coroutine_task *task) {
   zval_ptr_dtor(&retval);
 }
 
-int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
+int proton_runtime_cleanup_temp(proton_coroutine_runtime *runtime,
+                                int max_release_batch) {
   MAKESURE_PTR_NOT_NULL(runtime);
 
   if (RUNTIME_CURRENT_COROUTINE(runtime) != RUNTIME_MAIN_COROUTINE(runtime)) {
-    PLOG_ERROR("coroutine_schedule must running on main coroutine");
+    PLOG_ERROR("proton_runtime_cleanup_temp must running on main coroutine");
   }
 
   if (!LL_isspin(&runtime->releaseables)) {
-    int max_release_batch = 500;
     list_link_t *p = runtime->releaseables.next;
     while (p != &runtime->releaseables && max_release_batch-- > 0) {
       proton_coroutine_task *task =
@@ -269,6 +269,18 @@ int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
       }
     }
   }
+
+  return 0;
+}
+
+int proton_coroutine_schedule(proton_coroutine_runtime *runtime) {
+  MAKESURE_PTR_NOT_NULL(runtime);
+
+  if (RUNTIME_CURRENT_COROUTINE(runtime) != RUNTIME_MAIN_COROUTINE(runtime)) {
+    PLOG_ERROR("coroutine_schedule must running on main coroutine");
+  }
+
+  proton_runtime_cleanup_temp(runtime, 500);
 
   if (!LL_isspin(&runtime->runables)) {
     list_link_t *p = runtime->runables.next;

@@ -48,7 +48,8 @@ proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
 
   proton_buffer_t *ptr = (proton_buffer_t *)qmalloc(length);
   ptr->buff.base = (char *)&ptr[1];
-  ptr->buff.len = length - sizeof(proton_buffer_t);
+  ptr->buff.len = length - sizeof(proton_buffer_t) - 1; // 1-eof '\0'
+  ptr->buff.base[ptr->buff.len] = '\0';
   ptr->used = 0;
   ptr->need_free = 1;
   LL_insert(&ptr->link, lbf->link.prev);
@@ -102,7 +103,6 @@ char *proton_link_buffer_append_string(proton_link_buffer_t *lbf,
   char *dest = proton_link_buffer_alloc(lbf, len, 1);
   if (dest != NULL) {
     memcpy(dest, ptr, len);
-    // dest[len] = '\0';
   }
   return dest;
 }
