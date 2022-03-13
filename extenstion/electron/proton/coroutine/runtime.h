@@ -69,12 +69,14 @@ typedef struct _proton_wait_object_t {
 
   // TODO: support later
   proton_wait_cancel cancel;
+  int is_canceled;
 } proton_wait_object_t;
 
 #define PROTON_WAIT_OBJECT_INIT(obj)                                           \
   {                                                                            \
     (obj).mode = QC_MODE_FIFO;                                                 \
     (obj).cancel = NULL;                                                       \
+    (obj).is_canceled = 0;                                                     \
     LL_init(&((obj).head));                                                    \
   }
 

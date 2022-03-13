@@ -9,19 +9,20 @@ class ConnectTest extends ProtonTestCase
         $channel = new \Proton\Channel(1);
         Proton\go(function ($test, $channel) {
 
-            $client = new \Proton\MqttClient("F1010F2F001001", "127.0.0.1", "1883");
+            $client = new \Proton\MqttClient("127.0.0.1", "1883");
             $ret = $client->connect([
-                'keepAliveInterval' => 60,
-                'cleansession' => 0,
+                'keepAliveInterval' => 10,
+                'cleanSession' => 1,
                 'reliable' => 1,
                 'connectTimeout' => 2,
                 'retryInterval' => 30,
-                'username' => 'F1010F2F001001',
+                'clientId' => "F1010F2F001001",
+                'userName' => 'F1010F2F001001',
                 'password' => '_mqtt_admin_password'
             ], $channel);
             $test->assertEquals(0, $ret);
 
-            \Proton\sleep(500);
+            \Proton\sleep(50000);
 
             $ret = $client->close();
             $test->assertEquals(0, $ret);
@@ -33,7 +34,7 @@ class ConnectTest extends ProtonTestCase
             $test->assertEquals(0, $status);
 
             Proton\Runtime::stop();
-        });
+        }, $this, $channel);
 
         Proton\Runtime::start();
     }

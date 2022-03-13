@@ -116,8 +116,7 @@ void httpconnect_on_read(uv_stream_t *handle, ssize_t nread,
   PLOG_DEBUG("httpconnect(%p) read(%d), content(%s)", handle, (int)nread,
              buf->base);
 #else
-  PLOG_DEBUG("httpconnect(%p) read(%d), content(%p)", handle, (int)nread,
-             buf->base);
+  PLOG_DEBUG("httpconnect(%p) read(%d)", handle, (int)nread);
 #endif
   if (nread < 0) { // error
     PLOG_WARN("[HTTPCONNECT] read failed with %d", (int)nread);

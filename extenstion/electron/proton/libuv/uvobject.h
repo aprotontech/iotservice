@@ -71,6 +71,11 @@ typedef struct _proton_write_t {
   proton_wait_object_t wq_write;
 } proton_write_t;
 
+typedef struct _proton_once_write_t {
+  uv_write_t write;
+  uv_buf_t buf;
+} proton_once_write_t;
+
 typedef struct _proton_connect_t {
   uv_connect_t connect;
   proton_wait_object_t wq_connect;

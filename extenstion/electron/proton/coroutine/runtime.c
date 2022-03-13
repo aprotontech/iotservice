@@ -162,6 +162,10 @@ int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
     if (out_task != NULL) {
       *out_task = task;
     }
+
+    if (value->is_canceled) { // waiting queue is caceled
+      return RC_ERROR_COROUTINUE_CANCELED;
+    }
   } else { // swap failed, so remove waiting link
     LL_remove(&task->waiting);
   }
@@ -215,7 +219,10 @@ int proton_coroutine_wakeup(proton_coroutine_runtime *runtime,
 int proton_coroutine_cancel(proton_coroutine_runtime *runtime,
                             proton_wait_object_t *value,
                             proton_coroutine_task **task) {
-  return 0;
+  MAKESURE_PTR_NOT_NULL(value);
+  value->is_canceled = 1;
+
+  return proton_coroutine_wakeup(runtime, value, task);
 }
 
 void _runtime_throw_exception(proton_coroutine_task *task) {

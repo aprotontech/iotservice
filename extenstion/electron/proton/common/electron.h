@@ -20,6 +20,7 @@
 
 #include "clist.h"
 #include "hashmap.h"
+#include "errcode.h"
 #include "http_parser.h"
 
 #include "php.h"
