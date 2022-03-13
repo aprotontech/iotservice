@@ -48,10 +48,7 @@ static proton_value_type_t __proton_mqttclient_type = {
 
 int reset_mqtt_read_buffer(proton_mqtt_client_t *mqtt, int new_length);
 void mqttclient_on_tick(uv_timer_t *timer);
-extern void mqtt_notify_to_php(uv_async_t *req);
-extern void connlost(void *context, char *cause);
-extern void publish_callback(void **unused,
-                             struct mqtt_response_publish *published);
+void publish_callback(void **unused, struct mqtt_response_publish *published);
 void mqttclient_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
                              uv_buf_t *buf);
 void mqttclient_on_read(uv_stream_t *handle, ssize_t nread,
@@ -75,7 +72,19 @@ int proton_mqttclient_subscribe(proton_private_value_t *value,
   }
 
   PLOG_INFO("mqtt(%p) subcribe(%s), qos(%d)", mqtt, topic, qos);
-  int rc = 0; // MQTTClient_subscribe(mqtt->client, topic, qos);
+  mqtt_subscribe(&mqtt->client, topic, qos);
+
+  if (mqtt->client.error != MQTT_OK) {
+    PLOG_WARN("package mqtt subscribe message failed");
+    return RC_ERROR_MQTT_SUBSCRIBE;
+  }
+
+  __mqtt_send(&mqtt->client);
+  if (mqtt->client.error != MQTT_OK) {
+    PLOG_WARN("send mqtt subscribe message failed");
+    return RC_ERROR_MQTT_SUBSCRIBE;
+  }
+
   if (0 == rc) {
     proton_mqtt_subscribe_topic_t *st =
         (proton_mqtt_subscribe_topic_t *)qmalloc(
@@ -278,11 +287,6 @@ int proton_mqttclient_close(proton_private_value_t *value) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
-  if (IS_COROUTINE_WAITFOR(mqtt->wq_disconnack)) {
-    PLOG_WARN("[MQTT] mqtt client is disconnecting...");
-    return -1;
-  }
-
   mqtt_disconnect(&mqtt->client);
   if (mqtt->client.error != MQTT_OK) {
     PLOG_WARN("package mqtt disconnect message failed");
@@ -316,7 +320,6 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   ZVAL_UNDEF(&mqtt->value.myself);
 
   PROTON_WAIT_OBJECT_INIT(mqtt->wq_connack);
-  PROTON_WAIT_OBJECT_INIT(mqtt->wq_disconnack);
 
   struct sockaddr_in addr;
   int rc = uv_ip4_addr(host, port, &addr);
@@ -383,10 +386,6 @@ int proton_mqttclient_uninit(proton_private_value_t *value) {
 
   if (IS_COROUTINE_WAITFOR(mqtt->wq_connack)) {
     proton_coroutine_cancel(mqtt->runtime, &mqtt->wq_connack, NULL);
-  }
-
-  if (IS_COROUTINE_WAITFOR(mqtt->wq_disconnack)) {
-    proton_coroutine_cancel(mqtt->runtime, &mqtt->wq_disconnack, NULL);
   }
 
   if (mqtt->status_channel != NULL) {

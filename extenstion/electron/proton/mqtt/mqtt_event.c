@@ -14,45 +14,6 @@
 #include "mqtt_client.h"
 #include "proton/coroutine/channel.h"
 /*
-typedef struct _mqtt_event_t {
-  proton_mqtt_event_t type;
-
-  char *topicName;
-  int topicLength;
-  MQTTClient_message *message;
-
-  list_link_t link;
-} mqtt_event_t;
-
-void new_event(proton_mqtt_client_t *mqtt, mqtt_event_t *event) {
-  pthread_mutex_lock(&mqtt->mevent);
-  LL_insert(&event->link, mqtt->msg_head.prev);
-  pthread_mutex_unlock(&mqtt->mevent);
-  uv_async_send(&mqtt->notify);
-}
-
-void connlost(void *context, char *cause) {
-  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)context;
-
-  int clen = cause == NULL ? 0 : strlen(cause);
-  mqtt_event_t *event = (mqtt_event_t *)malloc(sizeof(mqtt_event_t) + clen + 2);
-
-  event->type = PME_DISCONNECT;
-
-  event->topicName = NULL;
-  event->topicLength = 0;
-
-  event->message = (MQTTClient_message *)malloc(sizeof(MQTTClient_message));
-  memset(event->message, 0, sizeof(MQTTClient_message));
-
-  ((char *)event->message->payload)[clen] = '\0';
-  event->message->payloadlen = clen;
-  if (clen != 0) {
-    memcpy(event->message->payload, cause, clen);
-  }
-
-  new_event(mqtt, event);
-}
 
 int msgarrvd(void *context, char *topicName, int topicLen,
              MQTTClient_message *message) {
@@ -110,39 +71,6 @@ void handle_mqtt_event(proton_mqtt_client_t *mqtt, mqtt_event_t *event) {
   } break;
   case PME_NEW_MESSAGE:
     break;
-  }
-}
-
-void mqtt_notify_to_php(uv_async_t *req) {
-  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)req->data;
-  int max_count = 1000;
-
-  for (int i = 0; i < max_count; ++i) {
-    mqtt_event_t *event = NULL;
-    pthread_mutex_lock(&mqtt->mevent);
-
-    if (!LL_isspin(&mqtt->msg_head)) {
-      list_link_t *p = mqtt->msg_head.next;
-
-      event = container_of(p, mqtt_event_t, link);
-      LL_remove(p);
-    }
-
-    pthread_mutex_unlock(&mqtt->mevent);
-
-    if (event == NULL) {
-      break;
-    }
-
-    handle_mqtt_event(mqtt, event);
-
-    if (event->message != NULL) {
-      MQTTClient_freeMessage(&event->message);
-    }
-    if (event->topicName != NULL) {
-      MQTTClient_free(event->topicName);
-    }
-    free(event);
   }
 }*/
 

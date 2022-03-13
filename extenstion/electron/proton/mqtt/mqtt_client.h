@@ -61,7 +61,6 @@ typedef struct _proton_mqtt_client_t {
   proton_mqtt_client_status status;
 
   proton_wait_object_t wq_connack;
-  proton_wait_object_t wq_disconnack;
 
   proton_private_value_t *status_channel;
 
