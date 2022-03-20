@@ -42,7 +42,6 @@ typedef enum _proton_mqtt_client_status {
   MQTT_CLIENT_CONNECTING,
   MQTT_CLIENT_CONNECTED,
   MQTT_CLIENT_DISCONNECTED,
-  MQTT_CLIENT_TCP_DISCONNECTED,
 } proton_mqtt_client_status;
 
 typedef struct _proton_mqtt_client_t {
@@ -71,8 +70,6 @@ typedef struct _proton_mqtt_client_t {
   map_t publish_watchers;
   pthread_mutex_t mwatcher;
 
-  // message notify
-  uv_async_t notify;
   pthread_mutex_t mevent;
   list_link_t msg_head;
 

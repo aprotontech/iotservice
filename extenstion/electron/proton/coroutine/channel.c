@@ -73,20 +73,26 @@ int proton_channel_uninit(proton_private_value_t *value) {
   return cleanup_channel(channel);
 }
 
-int proton_channel_push(proton_private_value_t *value, zval *item) {
+int _channel_push(proton_private_value_t *value, zval *item, int wait) {
   MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(item);
   proton_channel_t *channel = (proton_channel_t *)value;
-  MAKESURE_ON_COROTINUE(channel->runtime);
+
+  if (wait) {
+    MAKESURE_ON_COROTINUE(channel->runtime);
+  }
 
   if (channel->closed) {
     PLOG_WARN("channel is closed");
-    return -1;
+    return RC_ERROR_CHANNEL_CLOSED;
   }
 
   if (channel->current_size >= channel->max_size) {
-    if (proton_coroutine_waitfor(channel->runtime, &channel->wq_full, NULL)) {
-      return -1;
+    if (wait) {
+      RC_EXPECT_SUCCESS(
+          proton_coroutine_waitfor(channel->runtime, &channel->wq_full, NULL));
+    } else {
+      return RC_ERROR_CHANNEL_FULL;
     }
   }
 
@@ -102,6 +108,20 @@ int proton_channel_push(proton_private_value_t *value, zval *item) {
   return 0;
 }
 
+int proton_channel_is_full(proton_private_value_t *value) {
+  MAKESURE_PTR_NOT_NULL(value);
+  proton_channel_t *channel = (proton_channel_t *)value;
+  return channel->current_size >= channel->max_size;
+}
+
+int proton_channel_try_push(proton_private_value_t *value, zval *item) {
+  return _channel_push(value, item, 0);
+}
+
+int proton_channel_push(proton_private_value_t *value, zval *item) {
+  return _channel_push(value, item, 1);
+}
+
 int proton_channel_pop(proton_private_value_t *value, zval *item) {
   MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(item);
@@ -111,13 +131,12 @@ int proton_channel_pop(proton_private_value_t *value, zval *item) {
 
   if (channel->closed) {
     PLOG_WARN("channel is closed");
-    return -1;
+    return RC_ERROR_CHANNEL_CLOSED;
   }
 
   if (channel->current_size == 0) {
-    if (proton_coroutine_waitfor(channel->runtime, &channel->wq_free, NULL)) {
-      return -1;
-    }
+    RC_EXPECT_SUCCESS(
+        proton_coroutine_waitfor(channel->runtime, &channel->wq_free, NULL));
   }
 
   if (LL_isspin(&channel->head)) {

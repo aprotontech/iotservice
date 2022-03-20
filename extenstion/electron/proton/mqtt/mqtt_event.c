@@ -13,66 +13,6 @@
 
 #include "mqtt_client.h"
 #include "proton/coroutine/channel.h"
-/*
-
-int msgarrvd(void *context, char *topicName, int topicLen,
-             MQTTClient_message *message) {
-  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)context;
-  mqtt_event_t *event = (mqtt_event_t *)emalloc(sizeof(mqtt_event_t));
-  event->type = 0;
-  event->topicName = topicName;
-  event->topicLength = 0;
-  event->message = message;
-  PLOG_DEBUG("mqtt(%p) recv topic(%s), topiclen(%d)\n", mqtt, topicName,
-             topicLen);
-  new_event(mqtt, event);
-
-  return 1;
-}
-
-void delivered(void *context, MQTTClient_deliveryToken dt) {
-  PLOG_DEBUG("Message with token value %d delivery confirmed", dt);
-  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)context;
-  mqtt_event_t *event = (mqtt_event_t *)emalloc(sizeof(mqtt_event_t) + 20);
-  event->type = PME_MSG_DELIVERED;
-  event->topicName = (char *)(&event[1]);
-  event->topicLength = snprintf(event->topicName, 20, "%d", (int)dt);
-  event->message = NULL;
-
-  new_event(mqtt, event);
-}
-
-void handle_mqtt_event(proton_mqtt_client_t *mqtt, mqtt_event_t *event) {
-  switch (event->type) {
-  case PME_DISCONNECT:
-    if (mqtt->status_channel != NULL) {
-      zval message;
-      ZVAL_STRINGL(&message, event->message->payload,
-                   event->message->payloadlen);
-      proton_channel_push(mqtt->status_channel, &message);
-      Z_TRY_DELREF(message);
-    }
-    break;
-  case PME_MSG_DELIVERED: {
-    any_t item = NULL;
-    proton_mqtt_publish_watcher_t *pw = NULL;
-    pthread_mutex_lock(&mqtt->mwatcher);
-    if (hashmap_get(mqtt->publish_watchers, event->topicName, &item) ==
-        MAP_OK) {
-      // found the publish
-      pw = (proton_mqtt_publish_watcher_t *)item;
-      // remove it
-      hashmap_remove(mqtt->publish_watchers, event->topicName);
-    }
-    pthread_mutex_unlock(&mqtt->mwatcher);
-    if (pw != NULL) {
-      proton_coroutine_wakeup(mqtt->runtime, &pw->pw_publish.wq_work, NULL);
-    }
-  } break;
-  case PME_NEW_MESSAGE:
-    break;
-  }
-}*/
 
 int reset_mqtt_read_buffer(proton_mqtt_client_t *mqtt, int new_length) {
   proton_buffer_t *ptr =
@@ -142,13 +82,26 @@ void mqttclient_on_closed(uv_handle_t *handle) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)handle->data;
   PLOG_DEBUG("mqtt(%p) client closed", mqtt);
 
-  /*
-    if (mqtt->status_channel != NULL) {
-      zval message;
-      ZVAL_STRINGL(&message, "closed", sizeof("closed") - 1);
-      proton_channel_push(mqtt->status_channel, &message);
-      Z_TRY_DELREF(message);
-    }*/
+  if (mqtt->status_channel != NULL) {
+    zval status, code, message;
+    ZVAL_NEW_ARR(&status);
+    zend_hash_init(Z_ARRVAL(status), 2, NULL, ZVAL_PTR_DTOR, 0);
+
+    ZVAL_LONG(&code, 0);
+    zend_hash_add(Z_ARRVAL(status),
+                  zend_string_init("status", sizeof("status") - 1, 0), &code);
+
+    ZVAL_STRINGL(&message, "closed", sizeof("closed") - 1);
+    zend_hash_add(Z_ARRVAL(status),
+                  zend_string_init("message", sizeof("message") - 1, 0),
+                  &message);
+
+    if (proton_channel_try_push(mqtt->status_channel, &status) != 0) {
+      php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                       "push connect status message to channel failed");
+    }
+    Z_TRY_DELREF(status);
+  }
 }
 
 void mqttclient_on_connected(uv_connect_t *req, int status) {
@@ -232,6 +185,8 @@ void mqttclient_on_read(uv_stream_t *handle, ssize_t nread,
       return;
     }
   }
+
+  mqtt_sync(&mqtt->client);
 }
 
 void mqttclient_on_tick(uv_timer_t *timer) {
@@ -245,7 +200,11 @@ void publish_callback(void **unused, struct mqtt_response_publish *published) {}
 void mqttclient_on_timer_closed(uv_handle_t *handle) {}
 
 int _mqttclient_close_all(proton_mqtt_client_t *mqtt) {
-  uv_close((uv_handle_t *)&mqtt->tcp, mqttclient_on_closed);
-  uv_close((uv_handle_t *)&mqtt->timer, mqttclient_on_timer_closed);
+  if (!uv_is_closing((uv_handle_t *)&mqtt->tcp)) {
+    uv_close((uv_handle_t *)&mqtt->tcp, mqttclient_on_closed);
+  }
+  if (!uv_is_closing((uv_handle_t *)&mqtt->timer)) {
+    uv_close((uv_handle_t *)&mqtt->timer, mqttclient_on_timer_closed);
+  }
   return 0;
 }

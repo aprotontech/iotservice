@@ -76,6 +76,17 @@ extern const char *__proton_logger_level_string(int level);
 
 #define RELEASE_VALUE_MYSELF(value) ZVAL_PTR_DTOR((&((value).myself)))
 
+#define RC_EXPECT_SUCCESS_WITH_EMSG(expr, message)                             \
+  {                                                                            \
+    int _rc = expr;                                                            \
+    if (_rc != 0) {                                                            \
+      PLOG_WARN("except (%s) success, but faile with %d", message, _rc);       \
+      return _rc;                                                              \
+    }                                                                          \
+  }
+
+#define RC_EXPECT_SUCCESS(expr) RC_EXPECT_SUCCESS_WITH_EMSG(expr, #expr)
+
 typedef struct _proton_private_value_t proton_private_value_t;
 typedef int (*proton_value_new)(proton_private_value_t *value);
 typedef int (*proton_value_del)(proton_private_value_t *value);

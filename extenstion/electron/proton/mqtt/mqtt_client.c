@@ -85,20 +85,17 @@ int proton_mqttclient_subscribe(proton_private_value_t *value,
     return RC_ERROR_MQTT_SUBSCRIBE;
   }
 
-  if (0 == rc) {
-    proton_mqtt_subscribe_topic_t *st =
-        (proton_mqtt_subscribe_topic_t *)qmalloc(
-            sizeof(proton_mqtt_subscribe_topic_t) + topic_len + 1);
-    st->channel = channel;
-    st->topic = (char *)(&st[1]);
-    st->topic_len = topic_len;
-    strcpy(st->topic, topic);
-    Z_TRY_ADDREF(channel->myself);
+  proton_mqtt_subscribe_topic_t *st = (proton_mqtt_subscribe_topic_t *)qmalloc(
+      sizeof(proton_mqtt_subscribe_topic_t) + topic_len + 1);
+  st->channel = channel;
+  st->topic = (char *)(&st[1]);
+  st->topic_len = topic_len;
+  strcpy(st->topic, topic);
+  Z_TRY_ADDREF(channel->myself);
 
-    hashmap_put(mqtt->subscribe_topics, st->topic, (any_t)st);
-  }
+  hashmap_put(mqtt->subscribe_topics, st->topic, (any_t)st);
 
-  return rc;
+  return 0;
 }
 
 // publish
@@ -231,10 +228,9 @@ int proton_mqttclient_connect(proton_private_value_t *value, zval *options,
     return -1;
   }
 
-  rc = proton_coroutine_waitfor(mqtt->runtime, &pc.wq_connect, NULL);
-  if (rc != 0) {
-    return rc;
-  }
+  RC_EXPECT_SUCCESS(
+      proton_coroutine_waitfor(mqtt->runtime, &pc.wq_connect, NULL));
+  RC_EXPECT_SUCCESS_WITH_EMSG(pc.status, "connect failed");
 
   // start reading
   uv_read_start((uv_stream_t *)(&mqtt->tcp), mqttclient_alloc_buffer,
@@ -263,22 +259,22 @@ int proton_mqttclient_connect(proton_private_value_t *value, zval *options,
   }
 
   // THIRD: wait for mqtt CONNACK response
-  rc = proton_coroutine_waitfor(mqtt->runtime, &mqtt->wq_connack, NULL);
-  if (rc == 0) {
-    if (mqtt->client.error != MQTT_OK) { // connect failed
-      PLOG_WARN("mqtt connect failed with %d", mqtt->client.error);
-      return RC_ERROR_MQTT_CONNECT;
-    }
+  RC_EXPECT_SUCCESS(
+      proton_coroutine_waitfor(mqtt->runtime, &mqtt->wq_connack, NULL));
 
-    uv_timer_start(&mqtt->timer, mqttclient_on_tick, 1000, 1000);
-
-    mqtt->status_channel = channel;
-    if (channel != NULL) { // add ref
-      Z_TRY_ADDREF(channel->myself);
-    }
+  if (mqtt->client.error != MQTT_OK) { // connect failed
+    PLOG_WARN("mqtt connect failed with %d", mqtt->client.error);
+    return RC_ERROR_MQTT_CONNECT;
   }
 
-  return rc;
+  uv_timer_start(&mqtt->timer, mqttclient_on_tick, 1000, 1000);
+
+  mqtt->status_channel = channel;
+  if (channel != NULL) { // add ref
+    Z_TRY_ADDREF(channel->myself);
+  }
+
+  return 0;
 }
 
 int proton_mqttclient_close(proton_private_value_t *value) {
@@ -364,15 +360,6 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   mqtt->tcp.data = mqtt;
   mqtt->timer.data = mqtt;
 
-  mqtt->notify.data = mqtt;
-
-  /*rc = uv_async_init(RUNTIME_UV_LOOP(mqtt->runtime), &mqtt->notify,
-                     mqtt_notify_to_php);
-  if (rc != 0) {
-    PLOG_WARN("mqtt(%p) uv_async_init failed with %d", mqtt, rc);
-    return -1;
-  }*/
-
   return 0;
 }
 
@@ -382,7 +369,6 @@ int proton_mqttclient_uninit(proton_private_value_t *value) {
   MAKESURE_PTR_NOT_NULL(value);
 
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
-  uv_close((uv_handle_t *)&mqtt->notify, NULL);
 
   if (IS_COROUTINE_WAITFOR(mqtt->wq_connack)) {
     proton_coroutine_cancel(mqtt->runtime, &mqtt->wq_connack, NULL);

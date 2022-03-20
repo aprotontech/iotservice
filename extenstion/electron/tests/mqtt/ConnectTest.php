@@ -22,7 +22,7 @@ class ConnectTest extends ProtonTestCase
             ], $channel);
             $test->assertEquals(0, $ret);
 
-            \Proton\sleep(50000);
+            \Proton\sleep(500);
 
             $ret = $client->close();
             $test->assertEquals(0, $ret);
@@ -31,7 +31,7 @@ class ConnectTest extends ProtonTestCase
         Proton\go(function ($test, $channel) {
             // wait for closed
             $status = $channel->pop();
-            $test->assertEquals(0, $status);
+            $test->assertEquals(0, $status['status']);
 
             Proton\Runtime::stop();
         }, $this, $channel);
