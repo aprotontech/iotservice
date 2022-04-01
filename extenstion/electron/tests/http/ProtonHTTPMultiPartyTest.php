@@ -2,7 +2,7 @@
 
 require_once dirname(__DIR__) . '/proton_test.php';
 
-class ProtonHTTPMultiParty extends ProtonTestCase
+class ProtonHTTPMultiPartyTest extends ProtonTestCase
 {
 
     public function __construct()

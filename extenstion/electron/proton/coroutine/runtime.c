@@ -163,7 +163,7 @@ int proton_coroutine_waitfor(proton_coroutine_runtime *runtime,
       *out_task = task;
     }
 
-    if (value->is_canceled) { // waiting queue is caceled
+    if (value->is_canceled) { // waiting queue is canceled
       return RC_ERROR_COROUTINUE_CANCELED;
     }
   } else { // swap failed, so remove waiting link

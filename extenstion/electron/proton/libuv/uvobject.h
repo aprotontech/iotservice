@@ -128,4 +128,13 @@ int proton_tcpclient_close(proton_private_value_t *value);
 
 int proton_tcpclient_uninit(proton_private_value_t *value);
 
+#define CHECK_UV_RESULT(expr, errcode)                                         \
+  {                                                                            \
+    int r = expr;                                                              \
+    if (r != 0) {                                                              \
+      PLOG_WARN("%s error %d, %s\n", #expr, r, uv_err_name(r));                \
+      return errcode;                                                          \
+    }                                                                          \
+  }
+
 #endif

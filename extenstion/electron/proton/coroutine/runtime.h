@@ -30,7 +30,7 @@
 #define MAKESURE_ON_COROTINUE(runtime)                                         \
   if (RUNTIME_CURRENT_COROUTINE(runtime) == RUNTIME_MAIN_COROUTINE(runtime)) { \
     PLOG_WARN("%s only can run on coroutine", __FUNCTION__);                   \
-    return -1;                                                                 \
+    return RC_ERROR_NOT_REAL_COROUTINUE;                                       \
   }
 
 typedef struct _proton_coroutine_runtime_t {

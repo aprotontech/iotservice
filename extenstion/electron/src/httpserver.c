@@ -12,6 +12,7 @@
  */
 
 #include "common.h"
+#include "proton/http/http_server.h"
 
 void php_new_httpserver_request(proton_private_value_t *server,
                                 proton_private_value_t *request) {
@@ -135,8 +136,23 @@ PHP_METHOD(httpserver, __toString) {
 /** {{{
  */
 PHP_METHOD(httpserver, start) {
-  ZEND_PARSE_PARAMETERS_NONE();
-  RETURN_LONG(proton_httpserver_start(proton_object_get(getThis())));
+  zval *process_group = NULL;
+
+  ZEND_PARSE_PARAMETERS_START(0, 1)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ZVAL(process_group)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  if (Z_TYPE_P(process_group) != IS_OBJECT ||
+      Z_OBJCE_P(process_group) != _processgroup_ce) {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                     "input params is not process group");
+    return;
+  }
+
+  RETURN_LONG(proton_httpserver_start(
+      proton_object_get(getThis()),
+      process_group == NULL ? NULL : proton_object_get(process_group)));
 }
 /* }}} */
 

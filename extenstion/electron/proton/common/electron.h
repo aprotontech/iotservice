@@ -49,9 +49,9 @@
     struct timezone tz;                                                        \
     gettimeofday(&tv, &tz);                                                    \
     struct tm *p = localtime(&tv.tv_sec);                                      \
-    printf("%02d-%02d-%02d %02d:%02d:%02d.%03d [C] [%s] [%s:%d] ",             \
+    printf("%02d-%02d-%02d %02d:%02d:%02d.%03d [C] [%d] [%s] [%s:%d] ",        \
            p->tm_year + 1900, p->tm_mon + 1, p->tm_mday, p->tm_hour,           \
-           p->tm_min, p->tm_sec, (int)(tv.tv_usec / 1000),                     \
+           p->tm_min, p->tm_sec, (int)(tv.tv_usec / 1000), getpid(),           \
            __proton_logger_level_string(level), __FUNCTION__, __LINE__);       \
     printf(args);                                                              \
     printf("\n");                                                              \
