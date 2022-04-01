@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Log;
 use Proton;
+use Proton\Framework\Command\Daemon;
 
 class ProtonHttpServerCommand extends Command
 {
@@ -40,6 +41,11 @@ class ProtonHttpServerCommand extends Command
      */
     public function handle()
     {
+        if ($this->option('daemon')) {
+            $daemon = new Daemon(-1, -1, $this);
+            $daemon->start();
+        }
+
         proton_set_logger_level(3);
         \Proton\Runtime::setErrorHandler(function ($coroutine, $error) {
             Log::error("coroutinue($coroutine) throw error($error)");
@@ -65,6 +71,7 @@ class ProtonHttpServerCommand extends Command
             $server->app = app();
             $server->start();
         }, $this);
+
 
         \Proton\runtime::start();
         return 0;

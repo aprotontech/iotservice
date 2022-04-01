@@ -49,13 +49,20 @@ class GaodeService
         ]);
 
         if ($cs !== true) {
-            rclog_warning("gaode response($response) is not match format. error(%cs)");
+            rclog_warning("gaode response($response) is not match format. error($cs)");
             return null;
         }
 
-        return (object)[
-            'latitude' => 0,
-            'longitude' => 0,
+        list($lng, $lat) = explode(',', $r->result->location);
+
+        return [
+            'latitude' => floatval($lat),
+            'longitude' => floatval($lng),
+            'city' => $r->result->city,
+            'address' => $r->result->desc,
+            'province' => $r->result->province,
+            'country' => $r->result->country,
+            'radius' => floatval($r->result->radius),
         ];
     }
 
