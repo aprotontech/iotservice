@@ -19,6 +19,11 @@ composer install -vvv
 cp -rf $PROJECT_ROOT/backend $TMP/iotservice
 rm -rf $TMP/iotservice/.env
 rm -rf $TMP/iotservice/.git*
+rm -rf $TMP/iotservice/storage/logs/*
+rm -rf $TMP/iotservice/storage/framework/cache/data/*
+rm -rf $TMP/iotservice/storage/framework/sessions/*
+rm -rf $TMP/iotservice/storage/framework/views/*
+rm -rf $TMP/iotservice/storage/app/*
 
 # build website
 cd $PROJECT_ROOT/website

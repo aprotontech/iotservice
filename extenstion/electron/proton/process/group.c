@@ -298,7 +298,7 @@ int proton_process_new_tcpclient(proton_private_value_t *value,
   req->buf = uv_buf_init("a", 1);
   req->write.data = client;
 
-  PLOG_INFO("[PG] assign connect(%d) to worker[%d](%d)", client->accepted_fd,
+  PLOG_INFO("[PG] assign connect(%d) to worker[%d](%d)", client->tcp.accepted_fd,
             idx, worker->pid);
   if ((rc = uv_write2(&req->write, (uv_stream_t *)&worker->pipe, &req->buf, 1,
                       (uv_stream_t *)client, on_pg_master_write)) != 0) {
