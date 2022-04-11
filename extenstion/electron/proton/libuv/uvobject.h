@@ -71,6 +71,11 @@ typedef struct _proton_write_t {
   proton_wait_object_t wq_write;
 } proton_write_t;
 
+typedef struct _proton_once_write_t {
+  uv_write_t write;
+  uv_buf_t buf;
+} proton_once_write_t;
+
 typedef struct _proton_connect_t {
   uv_connect_t connect;
   proton_wait_object_t wq_connect;
@@ -122,5 +127,14 @@ int proton_tcpclient_read(proton_private_value_t *value, char *data, int len);
 int proton_tcpclient_close(proton_private_value_t *value);
 
 int proton_tcpclient_uninit(proton_private_value_t *value);
+
+#define CHECK_UV_RESULT(expr, errcode)                                         \
+  {                                                                            \
+    int r = expr;                                                              \
+    if (r != 0) {                                                              \
+      PLOG_WARN("%s error %d, %s\n", #expr, r, uv_err_name(r));                \
+      return errcode;                                                          \
+    }                                                                          \
+  }
 
 #endif

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 use Proton\Framework\Response\ApiResponse;
+use Proton\Framework\Exception\ApiException;
 
 require_once __DIR__ . '/func.php';
 

@@ -27,15 +27,15 @@
 
 #define STRING_ARRAY_PARAM(s) s, sizeof(s) - 1
 
-typedef void (*on_new_http_request)(proton_private_value_t *server,
-                                    proton_private_value_t *request);
-
 typedef struct _proton_http_connect_t proton_http_connect_t;
 typedef struct _proton_http_message_t proton_http_message_t;
 
 typedef int (*connect_handle_request_function)(
     proton_private_value_t *self, proton_http_connect_t *connection,
     proton_http_message_t *message);
+
+typedef void (*on_new_http_request)(proton_private_value_t *server,
+                                    proton_private_value_t *request);
 
 typedef struct _http_connect_callbacks_t {
   connect_handle_request_function request_handler;
@@ -49,16 +49,6 @@ typedef struct _proton_http_server_config_t {
   int auto_save_post_file;
   char tmp_folder[100];
 } proton_http_server_config_t;
-
-typedef struct _proton_http_server_t {
-  proton_private_value_t value;
-  proton_coroutine_runtime *runtime;
-  uv_tcp_t tcp;
-  list_link_t clients;
-  proton_wait_object_t wq_close;
-  proton_http_server_config_t config;
-  http_connect_callbacks_t callbacks;
-} proton_http_server_t;
 
 typedef struct _proton_http_connect_t {
   proton_private_value_t value;
@@ -99,7 +89,8 @@ proton_private_value_t *
 proton_httpserver_create(proton_coroutine_runtime *runtime,
                          proton_http_server_config_t *config);
 
-int proton_httpserver_start(proton_private_value_t *server);
+int proton_httpserver_start(proton_private_value_t *server,
+                            proton_private_value_t *process_group);
 
 int proton_httpserver_stop(proton_private_value_t *server);
 
@@ -139,6 +130,7 @@ int proton_httpconnect_write_response(proton_private_value_t *connect,
                                       int body_len);
 
 ////
+
 int httpconnect_start_read(proton_http_connect_t *connect);
 int httpconnect_start_message(proton_http_connect_t *connect);
 int httpconnect_finish_message(proton_http_connect_t *connect);

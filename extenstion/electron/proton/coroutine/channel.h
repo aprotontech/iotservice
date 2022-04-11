@@ -41,6 +41,10 @@ int proton_channel_push(proton_private_value_t *channel, zval *item);
 
 int proton_channel_pop(proton_private_value_t *channel, zval *item);
 
+int proton_channel_try_push(proton_private_value_t *channel, zval *item);
+
+int proton_channel_is_full(proton_private_value_t *channel);
+
 int proton_channel_close(proton_private_value_t *channel);
 
 #endif
