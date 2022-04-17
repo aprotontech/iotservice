@@ -53,7 +53,7 @@ class Handler extends ExceptionHandler
         });
 
         $this->renderable(function (ApiException $e, $request) {
-            return response($e->getApiError(), 200);
+            return response($e->getApiError(), 500);
         });
     }
 }

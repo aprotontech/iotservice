@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Exception;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ProtonSystemSeeder extends Seeder
 {
@@ -19,6 +20,7 @@ class ProtonSystemSeeder extends Seeder
         $this->newAdminRole();
         $this->newMenus();
         $this->newTestApp();
+        $this->newSnTask();
     }
 
     private function newSystem()
@@ -169,7 +171,7 @@ class ProtonSystemSeeder extends Seeder
             $ur->user_id = $adminUser->id;
             $ur->role_id = $adminRole->id;
             $ur->system = 'aproton';
-            $ur->data_rule = '[]';
+            $ur->data_rule = '*';
             $ur->save();
         } catch (Exception $e) {
             if (!$this->isDuplicate($e)) {
@@ -204,6 +206,63 @@ class ProtonSystemSeeder extends Seeder
             $app->creator = $adminUser->id;
             $app->description = "Test Application";
             $app->save();
+        } catch (Exception $e) {
+            if (!$this->isDuplicate($e)) {
+                echo $e->getMessage() . "\n";
+                rclog_exception($e);
+            }
+        }
+
+        try {
+            $m = json_decode(file_get_contents(__DIR__ . '/test-app-keys.json'), false);
+            DB::table('app_keys')
+                ->insert([
+                    'app_id' => 'test',
+                    'salt' => '',
+                    'public_key' => $m->pubKey,
+                    'private_key' => $m->priKey,
+                    'secret' => '7045298f456cea6d7a4737c62dd3b89e'
+                ]);
+        } catch (Exception $e) {
+            if (!$this->isDuplicate($e)) {
+                echo $e->getMessage() . "\n";
+                rclog_exception($e);
+            }
+        }
+    }
+
+    private function newSnTask()
+    {
+        $adminUser = \App\Models\User::where('name', 'admin')->first();
+        try {
+            if (DB::table('sn_tasks')->count() > 0) {
+                return;
+            }
+
+            $taskTemplte = [
+                'app_id' => 'test',
+                'name' => 'Example-Test-SN-Task',
+                'prefix' => 'F1010F1F',
+                'start' => 'F1010F1F000000',
+                'end' => 'F1010F1F000009',
+                'count' => 10,
+                'status' => 1, // accepted
+                'type' => 1, // auto-regist
+                'creator' => $adminUser->name,
+                'description' => 'Example Sn Task',
+                'acker' => $adminUser->name,
+                'acked_at' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'assign_mac' => 0
+            ];
+
+            $autoRegistTask = $taskTemplte;
+            DB::table('sn_tasks')
+                ->insert($autoRegistTask);
+
+            $job = new \App\Jobs\SnTask();
+            $job->handle(); // $autoRegistTask
         } catch (Exception $e) {
             if (!$this->isDuplicate($e)) {
                 echo $e->getMessage() . "\n";

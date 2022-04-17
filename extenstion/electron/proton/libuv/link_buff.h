@@ -1,14 +1,14 @@
 /*
  * **************************************************************************
- * 
+ *
  *  Copyright (c) 2022 aproton.tech, Inc. All Rights Reserved
- * 
+ *
  * **************************************************************************
- * 
+ *
  *  @file     link_buff.h
  *  @author   kuper - <kuper@aproton.tech>
  *  @data     2022-01-31 07:04:44
- * 
+ *
  */
 
 #ifndef _PROTON_LINK_BUFF_H_
@@ -18,11 +18,11 @@
 
 #include <uv.h>
 
-
 typedef struct _proton_buffer_t {
   list_link_t link;
   uv_buf_t buff;
   int used;
+  int need_free;
 } proton_buffer_t;
 
 typedef struct _proton_link_buffer_t {
@@ -51,7 +51,12 @@ char *proton_link_buffer_append_string(proton_link_buffer_t *lbf,
 proton_buffer_t *proton_link_buffer_new_slice(proton_link_buffer_t *lbf,
                                               size_t length);
 
+int proton_link_buffer_append_slice(proton_link_buffer_t *lbf,
+                                    proton_buffer_t *buffer);
+
 char *proton_link_buffer_get_ptr(proton_link_buffer_t *lbf, size_t offset);
+
+zend_string *proton_link_to_string(proton_link_buffer_t *lbf);
 
 int proton_link_buffer_uninit(proton_link_buffer_t *lbf);
 

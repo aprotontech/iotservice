@@ -91,11 +91,7 @@ int proton_httpconnect_write_response(proton_private_value_t *value,
   http_message_build_response_headers(&lbf, connect->current, status_code,
                                       headers, header_count, body_len);
 
-  uv_buf_t rbufs[2] = {
-      {.base = proton_link_buffer_get_ptr(&lbf, 0), .len = lbf.total_used_size},
-      {.base = (char *)body, .len = body_len}};
-
-  int rc = httpconnect_write(connect, rbufs, 2);
+  int rc = httpconnect_write_raw_message(connect, &lbf, body, body_len);
   if (rc != 0) {
     PLOG_WARN("write data failed, with %d", rc);
   }

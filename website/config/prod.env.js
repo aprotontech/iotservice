@@ -1,5 +1,5 @@
 module.exports = {
   NODE_ENV: '"production"',
-  ROOT_URL: '"http://console.aproton.tech"',
+  ROOT_URL: '"/#/"',
   ENABLE_AUTH: 'true'
 }

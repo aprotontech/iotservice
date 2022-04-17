@@ -2,31 +2,30 @@
 
 namespace App\Jobs;
 
-use DB;
-use LRedis as Redis;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
-use App\Device;
+use App\Models\Device;
 
 class DeviceAlive implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $clientId;
-    private $active;
+    private $online;
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($clientId, $active = false)
+    public function __construct($clientId, $online = false)
     {
         $this->clientId = $clientId;
-        $this->active = $active;
+        $this->online = $online;
     }
 
     /**
@@ -37,8 +36,34 @@ class DeviceAlive implements ShouldQueue
     public function handle()
     {
         rclog_notice(__CLASS__ . '::' . __FUNCTION__);
-        $aliveKey = '/device/day-alive';
 
+        $device = Device::where('client_id', $this->clientId)->first();
+        if ($device) {
+            $this->updateStatus($device);
+        }
+    }
+
+    private function updateStatus($device)
+    {
+        $now = date("Y-m-d H:i:s", time());
+        if ($this->online) {
+            $device->is_online = 1;
+            $device->online_time = $now;
+        } else {
+            $device->is_online = 0;
+            $device->offline_time = $now;
+        }
+
+        if (!$device->active_time) {
+            $device->active_time = $now;
+        }
+
+        $device->save();
+    }
+
+    private function recordActive($device)
+    {
+        $aliveKey = '/device/day-alive';
         try {
             $today = date('Y-m-d');
             $redis = Redis::connection();
@@ -53,7 +78,7 @@ class DeviceAlive implements ShouldQueue
                         'app_id' => $device->app_id,
                         'client_id' => $device->client_id,
                         'day' => $today,
-                        'ative' => $r || $this->active ? 1:0,
+                        'ative' => $r || $this->active ? 1 : 0,
                         'created_at' => rc_datetime(),
                         'updated_at' => rc_datetime(),
                     ]);
@@ -63,11 +88,25 @@ class DeviceAlive implements ShouldQueue
 
             $redis->hset($aliveKey, $this->clientId, $today);
             $redis->expireAt($aliveKey, strtotime(date('Y-m-d')) + 24 * 3600 - 1);
-
         } catch (\Exception $e) {
             rclog_exception($e, true);
         }
     }
 
-
+    private function setDeviceActiveRecord($device, $request)
+    {
+        DB::table('device_active_records')
+            ->insert([
+                'app_id' => $device->app_id,
+                'client_id' => $device->client_id,
+                'active_day' => date('Y-m-d'),
+                'ip' => $request->getClientIp(),
+                'country' => '',
+                'city' => '',
+                'address' => '',
+                'wifi' => '',
+                'created_at' => rc_datetime(),
+                'updated_at' => rc_datetime()
+            ]);
+    }
 }

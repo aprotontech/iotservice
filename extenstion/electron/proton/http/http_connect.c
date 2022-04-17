@@ -15,6 +15,7 @@
 #include "php_request.h"
 
 #define PRINT_READ_WRITE 0
+#define MIN_READ_BUF_SIZE 256
 
 PROTON_TYPE_WHOAMI_DEFINE(_http_connect_get_type, "httpconnect")
 
@@ -37,12 +38,9 @@ static int _httpconnect_init_read_buffer(proton_http_connect_t *connect,
 
   connect->read_buffer = buffer;
   if (connect->read_buffer == NULL) {
+    // alloc first buffer to recv data
     connect->read_buffer = proton_link_buffer_new_slice(
-        &connect->current->buffers,
-        HTTPCLIENT_DEFAULT_ALLOC_SIZE); // alloc first buffer to recv data
-
-    // mark all buffer had used
-    connect->read_buffer->used = connect->read_buffer->buff.len;
+        &connect->current->buffers, HTTPCLIENT_DEFAULT_ALLOC_SIZE);
   }
   return 0;
 }
@@ -93,15 +91,22 @@ void httpconnect_on_closed(uv_handle_t *handle) {
 void httpconnect_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
                               uv_buf_t *buf) {
   proton_http_connect_t *connect = (proton_http_connect_t *)handle->data;
+  proton_buffer_t *read_buffer = connect->read_buffer;
 
-  if (connect->read_buffer == NULL) {
+  if (read_buffer == NULL) {
     *buf = uv_buf_init(NULL, 0);
     PLOG_WARN("[HTTP] read buffer is null");
-    // uv_close((uv_handle_t *)&connect->tcp, httpconnect_on_closed);
     return;
   }
 
-  *buf = connect->read_buffer->buff;
+  // if left size is too small, alloc a new buffer
+  if (read_buffer->buff.len - read_buffer->used < MIN_READ_BUF_SIZE) {
+    connect->read_buffer = proton_link_buffer_new_slice(
+        &connect->current->buffers, HTTPCLIENT_DEFAULT_ALLOC_SIZE);
+  }
+
+  *buf = uv_buf_init(read_buffer->buff.base + read_buffer->used,
+                     read_buffer->buff.len - read_buffer->used);
 }
 
 void httpconnect_on_read(uv_stream_t *handle, ssize_t nread,
@@ -111,14 +116,15 @@ void httpconnect_on_read(uv_stream_t *handle, ssize_t nread,
   PLOG_DEBUG("httpconnect(%p) read(%d), content(%s)", handle, (int)nread,
              buf->base);
 #else
-  PLOG_DEBUG("httpconnect(%p) read(%d), content(%p)", handle, (int)nread,
-             buf->base);
+  PLOG_DEBUG("httpconnect(%p) read(%d)", handle, (int)nread);
 #endif
   if (nread < 0) { // error
     PLOG_WARN("[HTTPCONNECT] read failed with %d", (int)nread);
     uv_close((uv_handle_t *)handle, httpconnect_on_closed);
     return;
   }
+
+  connect->read_buffer->used += nread;
 
   int r = http_message_parse_content(connect->current, buf->base, nread);
 
@@ -184,6 +190,7 @@ int proton_http_connection_init(proton_http_connect_t *connect,
   connect->current = NULL;
   connect->read_buffer = NULL;
   connect->tcp_is_connected = 0;
+  connect->auto_save_post_file = 0;
 
   return 0;
 }
@@ -234,6 +241,44 @@ int httpconnect_write(proton_http_connect_t *connect, uv_buf_t rbufs[],
   }
 
   return rc;
+}
+
+int httpconnect_write_raw_message(proton_http_connect_t *connect,
+                                  proton_link_buffer_t *lbf, const char *body,
+                                  int body_len) {
+  if (LL_isspin(&lbf->link)) {
+    if (body != NULL) {
+      uv_buf_t rbuf = {.base = (char *)body, .len = body_len};
+      return httpconnect_write(connect, &rbuf, 1);
+    }
+  } else if (lbf->link.next == lbf->link.prev) { // only one slice
+    uv_buf_t rbufs[2] = {{.base = proton_link_buffer_get_ptr(lbf, 0),
+                          .len = lbf->total_used_size},
+                         {.base = (char *)body, .len = body_len}};
+
+    return httpconnect_write(connect, rbufs, body == NULL ? 1 : 2);
+  } else { // a lot of slice to write
+    int i = 0;
+    int n = LL_size(&lbf->link) - 1;
+    if (body != NULL) {
+      ++n;
+    }
+    uv_buf_t *rbufs = (uv_buf_t *)qmalloc(n * sizeof(uv_buf_t));
+    list_link_t *p = lbf->link.next;
+    while (p != &lbf->link) {
+      proton_buffer_t *pbt = container_of(p, proton_buffer_t, link);
+      p = p->next;
+      rbufs[i].base = pbt->buff.base;
+      rbufs[i].len = pbt->used;
+      ++i;
+    }
+
+    int rc = httpconnect_write(connect, rbufs, n);
+    qfree(rbufs);
+    return rc;
+  }
+
+  return 0;
 }
 
 int proton_httpconnect_close(proton_private_value_t *value) {

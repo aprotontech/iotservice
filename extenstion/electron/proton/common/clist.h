@@ -20,17 +20,16 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef struct _rc_list_link_t
-{
-    struct _rc_list_link_t* prev;
-    struct _rc_list_link_t* next;
+typedef struct _rc_list_link_t {
+  struct _rc_list_link_t *prev;
+  struct _rc_list_link_t *next;
 } list_link_t;
 
-list_link_t* LL_init(list_link_t* node);
-list_link_t* LL_insert(list_link_t* insert_node, list_link_t* after_node);
-list_link_t* LL_remove(list_link_t* node);
-list_link_t* LL_swap(list_link_t* n1, list_link_t* n2);
-int LL_isspin(list_link_t* node);
-
+list_link_t *LL_init(list_link_t *node);
+list_link_t *LL_insert(list_link_t *insert_node, list_link_t *after_node);
+list_link_t *LL_remove(list_link_t *node);
+list_link_t *LL_swap(list_link_t *n1, list_link_t *n2);
+int LL_isspin(list_link_t *node);
+int LL_size(list_link_t *node);
 
 #endif

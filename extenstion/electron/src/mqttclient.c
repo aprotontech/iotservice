@@ -12,18 +12,17 @@
  */
 
 #include "common.h"
-#include "proton/mqtt/mqtt.h"
+#include "proton/mqtt/mqtt_client.h"
 
 /** {{{
  */
 PHP_METHOD(mqttclient, __construct) {
 
   long port;
-  char *host = NULL, *client_id = NULL;
-  size_t host_len, client_id_len;
+  char *host = NULL;
+  size_t host_len;
 
-  ZEND_PARSE_PARAMETERS_START(3, 3)
-    Z_PARAM_STRING(client_id, client_id_len)
+  ZEND_PARSE_PARAMETERS_START(2, 2)
     Z_PARAM_STRING(host, host_len)
     Z_PARAM_LONG(port)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
@@ -32,7 +31,7 @@ PHP_METHOD(mqttclient, __construct) {
 
   proton_mqtt_client_t *client =
       (proton_mqtt_client_t *)qmalloc(sizeof(proton_mqtt_client_t));
-  if (proton_mqttclient_init(runtime, client, client_id, host, port) != 0) {
+  if (proton_mqttclient_init(runtime, client, host, port) != 0) {
     php_error_docref(NULL TSRMLS_CC, E_WARNING, "init mqtt client failed");
     qfree(client);
     return;
@@ -109,7 +108,8 @@ PHP_METHOD(mqttclient, subscribe) {
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
   RETURN_LONG(proton_mqttclient_subscribe(proton_object_get(getThis()), topic,
-                                          topic_len, qos, channel));
+                                          topic_len, qos,
+                                          proton_object_get(channel)));
 }
 /* }}} */
 

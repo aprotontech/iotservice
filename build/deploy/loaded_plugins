@@ -5,3 +5,4 @@ emqx_retainer.
 emqx_telemetry.
 emqx_rule_engine.
 {emqx_auth_http,true}.
+{emqx_web_hook,true}.

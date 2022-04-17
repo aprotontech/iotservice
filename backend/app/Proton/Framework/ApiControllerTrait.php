@@ -5,6 +5,9 @@ namespace Proton\Framework;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
+use Proton\Framework\Response\ApiResponse;
+use Proton\Framework\Exception\ApiException;
+
 require_once __DIR__ . '/func.php';
 
 trait ApiControllerTrait
@@ -32,11 +35,16 @@ trait ApiControllerTrait
         $tmFinish = microtime(true);
         $rc->time->finish = $tmFinish;
         try {
-            $tmStart = defined('LARAVEL_START') ? LARAVEL_START : $tmRoute;
+            $tmStart = $tmRoute;
+            if ($request->server('REQUEST_TIME_FLOAT')) {
+                $tmStart = $request->server('REQUEST_TIME_FLOAT');
+            } else if (defined('LARAVEL_START')) {
+                $tmStart = LARAVEL_START;
+            }
             $rc->start = $tmStart;
             $responseStr = "";
             $code = 200;
-            if ($r instanceof Error) { // date('Y-m-d H:i:s', $tmRoute), floor(1000 * ($tmRoute - floor($tmRoute)))
+            if ($r instanceof ApiResponse) { // date('Y-m-d H:i:s', $tmRoute), floor(1000 * ($tmRoute - floor($tmRoute)))
                 $responseStr = "$r";
                 $code = 200;
             } else if ($r instanceof Response) {
@@ -154,11 +162,11 @@ trait ApiControllerTrait
 
     public function success($data = false)
     {
-        return (new Error())->success($data);
+        return (new ApiResponse())->success($data);
     }
 
     public function error($rc, $msg)
     {
-        return new Error($rc, $msg);
+        return new ApiResponse($rc, $msg);
     }
 }

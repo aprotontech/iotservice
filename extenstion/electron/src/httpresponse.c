@@ -31,13 +31,19 @@ PHP_METHOD(httpresponse, __toString) {
 
   proton_http_connect_t *client = request->connect;
 
+  char path[256] = {0};
   char host[1024] = {0};
   struct sockaddr_in addr;
   int len = sizeof(addr);
   uv_tcp_getpeername(&client->tcp, (struct sockaddr *)&addr, &len);
+
+  if (client->current->path.base != NULL) {
+    memcpy(path, client->current->path.base,
+           min(sizeof(path), client->current->path.len));
+  }
   snprintf(host, sizeof(host), "{httpresponse.%s(%s:%d%s)}",
            http_method_str(client->current->method), inet_ntoa(addr.sin_addr),
-           ntohs(addr.sin_port), client->current->path);
+           ntohs(addr.sin_port), path);
   RETURN_STRING(host);
 }
 /* }}} */
@@ -78,8 +84,7 @@ PHP_METHOD(httpresponse, getBody) {
 
   if (php_request_wait_parse_finish(request) == 0) {
     // get all bodys
-    proton_link_buffer_t *lbf = &request->message.response_body;
-    RETURN_STRINGL(proton_link_buffer_get_ptr(lbf, 0), lbf->total_used_size);
+    RETURN_STR_COPY(http_message_get_raw_body(&request->message));
   }
 
   RETURN_FALSE;
@@ -103,15 +108,14 @@ PHP_METHOD(httpresponse, getHeaders) {
     zval headers;
     ZVAL_NEW_ARR(&headers);
     zend_hash_init(Z_ARRVAL(headers), 10, NULL, ZVAL_PTR_DTOR, 0);
-    list_link_t *p = request->message.response_headers.next;
-    while (p != &request->message.response_headers) {
+    list_link_t *p = request->message.headers.next;
+    while (p != &request->message.headers) {
       proton_header_t *header = container_of(p, proton_header_t, link);
       p = p->next;
 
       zval value;
-      ZVAL_STR(&value,
-               zend_string_init(header->value, strlen(header->value), 0));
-      zend_string *key = zend_string_init(header->key, strlen(header->key), 0);
+      ZVAL_STRINGL(&value, header->value.base, header->value.len);
+      zend_string *key = zend_string_init(header->key.base, header->key.len, 0);
       if (skip_same) {
         zend_hash_add(Z_ARRVAL(headers), key, &value);
       } else {

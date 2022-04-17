@@ -93,7 +93,7 @@ if test "$PHP_ELECTRON" != "no"; then
   dnl In case of no dependencies
   AC_DEFINE(HAVE_ELECTRON, 1, [ Have electron support ])
 
-  PHP_NEW_EXTENSION(electron, electron.c src/*.c proton/*/*.c , $ext_shared)
+  PHP_NEW_EXTENSION(electron, electron.c src/*.c proton/*/*.c proton/*mqtt/third/*.c, $ext_shared)
   PHP_ADD_INCLUDE([proton/include])
   PHP_ADD_INCLUDE([/usr/local/include])
   dnl PHP_ADD_INCLUDE([/usr/local/paho.mqtt.c/include])

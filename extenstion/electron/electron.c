@@ -36,6 +36,8 @@ extern zend_class_entry *regist_httpclient_class();
 extern zend_class_entry *regist_httprequest_class();
 extern zend_class_entry *regist_httpresponse_class();
 extern zend_class_entry *regist_mqttclient_class();
+extern zend_class_entry *regist_fsevent_class();
+extern zend_class_entry *regist_processgroup_class();
 PHP_MINIT_FUNCTION(electron) {
 
   pc_private_resource_handle = zend_register_list_destructors_ex(
@@ -61,6 +63,8 @@ PHP_MINIT_FUNCTION(electron) {
   regist_httprequest_class();
   regist_httpresponse_class();
   regist_mqttclient_class();
+  regist_fsevent_class();
+  regist_processgroup_class();
 }
 
 /* {{{ PHP_MSHUTDOWN
