@@ -38,14 +38,13 @@ Proton-IotService 是一款开源的Iot平台，集成了设备管理后台，�
 # 开源共享
 ### 分支规划
 
-项目计划采用 五类分支模式；
+项目计划采用 四类分支模式；
 + master/main 分支： 核心开发分支，所有新代码何入到这里
 + release分支： 如果有稳定版本发布，会单独拉出来一个发布分支，比如 release/v1.0； 分支上的BUG修复需要同时合并到release分支和master分支
 + feature分支： 如果有新功能开发，从master单独拉一个分支，开发并合入master
 + bug分支： 如果需要修复bug，可以从master(or feature)分支单独拉一个分支，开发并合入。
-+ 大版本分支（未来移除）： 如果需要开发的功能比较大，比如目前状态以dev1.0作为分支，未来合入master后，将废弃该模式，采用前4种分支。
 
-### 共享代码
+### 贡献代码
 + 先从master分支checkout一个新分支，格式： feature/username_description；基于新分支开发并提交PR，CR通过后可以合入  
 
 # 开源协议
