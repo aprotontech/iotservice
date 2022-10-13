@@ -69,14 +69,14 @@ router.beforeEach((to, from, next) => {
                         iView.LoadingBar.finish();
                     }
                     sessionStorage.removeItem('userAccount')
-                    next({path: '/login'})
+                    next({ path: '/login' })
                 }
             }, function () {
                 if (process.env.NODE_ENV != 'development') {
                     iView.LoadingBar.finish();
                 }
                 sessionStorage.removeItem('userAccount')
-                next({path: '/login'})
+                next({ path: '/login' })
             });
         } else {
             next()
@@ -86,11 +86,11 @@ router.beforeEach((to, from, next) => {
     }
 
     if (to.matched.some(record => record.meta.mainMenuId)) {
-	var menu = to.matched.find(record => record.meta.mainMenuId)
-	Bus.mainMenuId = menu.meta.mainMenuId
-	Bus.$emit('menu-update', menu.meta.mainMenuId)
+        var menu = to.matched.find(record => record.meta.mainMenuId)
+        Bus.mainMenuId = menu.meta.mainMenuId
+        Bus.$emit('menu-update', menu.meta.mainMenuId)
     } else {
-	next()
+        next()
     }
 });
 
@@ -101,9 +101,9 @@ router.afterEach(to => {
 
 /* eslint-disable no-new */
 new Vue({
-  el: '#app',
-  router,
-  store: store,
-  template: '<App/>',
-  components: { App }
+    el: '#app',
+    router,
+    store: store,
+    template: '<App/>',
+    components: { App }
 })

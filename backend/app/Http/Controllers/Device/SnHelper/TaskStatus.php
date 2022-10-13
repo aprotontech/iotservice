@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Device\Web\SnHelper;
+namespace App\Http\Controllers\Device\SnHelper;
 
 class TaskStatus
 {

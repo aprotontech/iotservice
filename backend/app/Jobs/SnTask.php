@@ -9,9 +9,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
-use App\Http\Controllers\Device\Web\SnHelper\Creator;
-use App\Http\Controllers\Device\Web\SnHelper\Register;
-use App\Http\Controllers\Device\Web\SnHelper\TaskStatus;
+use App\Http\Controllers\Device\SnHelper\Creator;
+use App\Http\Controllers\Device\SnHelper\Register;
+use App\Http\Controllers\Device\SnHelper\TaskStatus;
 
 class SnTask implements ShouldQueue
 {

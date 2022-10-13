@@ -247,7 +247,7 @@ class ProtonSystemSeeder extends Seeder
                 'end' => 'F1010F1F000009',
                 'count' => 10,
                 'status' => 1, // accepted
-                'type' => 1, // auto-regist
+                'type' => 0, // auto-regist
                 'creator' => $adminUser->name,
                 'description' => 'Example Sn Task',
                 'acker' => $adminUser->name,
@@ -258,11 +258,17 @@ class ProtonSystemSeeder extends Seeder
             ];
 
             $autoRegistTask = $taskTemplte;
+            $releaseTask = $taskTemplte;
+            $releaseTask['start'] = 'F1010F1F000010';
+            $releaseTask['end'] = 'F1010F1F000019';
+            $releaseTask['type'] = 1;
+
             DB::table('sn_tasks')
-                ->insert($autoRegistTask);
+                ->insert([$autoRegistTask, $releaseTask]);
 
             $job = new \App\Jobs\SnTask();
             $job->handle(); // $autoRegistTask
+            $job->handle(); // $releaseTask
         } catch (Exception $e) {
             if (!$this->isDuplicate($e)) {
                 echo $e->getMessage() . "\n";

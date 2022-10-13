@@ -53,7 +53,8 @@ trait ApiControllerTrait
             }
 
             rclog_notice(
-                "[CLIENT-REQUEST] start(%d), route(%d), use(%dms), total(%dms), url(%s), request(%s), response(%s), code(%d)",
+                "[CLIENT-REQUEST] client(%s), start(%d), route(%d), use(%dms), total(%dms), url(%s), request(%s), response(%s), code(%d)",
+                $request->ip(),
                 floor(1000 * $tmStart),
                 floor(1000 * $tmRoute),
                 floor(($tmFinish - $tmRoute) * 1000),

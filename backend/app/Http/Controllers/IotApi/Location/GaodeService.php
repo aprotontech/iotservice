@@ -12,7 +12,7 @@ class GaodeService
     {
     }
 
-    public function getLocation($wifiList)
+    public function getLocation($mac, $wifiList)
     {
         // remove too many wifis
         $wifi = [];
@@ -32,7 +32,7 @@ class GaodeService
         $macs = join("%7C", $wifi);
         $url = 'http://apilocate.amap.com/position?' .
             "key=$gaodeKey&" .
-            "imei=356823030198134&smac=E0:DB:55:E4:C7:49&" .
+            "imei=$mac&smac=$mac&" .
             "output=json&accesstype=1&" .
             "macs=$macs";
         $http = new HttpClient("GAODE", 3);

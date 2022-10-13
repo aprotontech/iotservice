@@ -76,7 +76,7 @@ class NewSessionController extends \App\Http\Controllers\Controller
         // alloc new session
         DeviceUtils::newSession($device);
 
-        //\App\Jobs\DeviceAlive::dispatch($device->client_id, true);
+        \App\Jobs\DeviceAlive::dispatch($device->client_id, true);
 
         return $this->success()
             ->set('appId', $device->app_id)

@@ -13,11 +13,12 @@ class ReportController extends \App\Http\Controllers\Controller
     public function getFilter()
     {
         return [
+            'mac' => 'is_string',
             'wifiList' => is_array_of([
                 'mac' => 'is_string',
                 'signal' => 'is_int',
                 'ssid' => 'is_string'
-            ])
+            ], 1)
         ];
     }
 
@@ -30,7 +31,7 @@ class ReportController extends \App\Http\Controllers\Controller
 
 
         $service = new GaodeService();
-        $m = $service->getLocation($info->wifiList);
+        $m = $service->getLocation($info->mac, $info->wifiList);
         if (!$m) {
             return $this->error("1530", "get location failed! please config LOG_GEO_DETAIL to see more info in logger");
         }

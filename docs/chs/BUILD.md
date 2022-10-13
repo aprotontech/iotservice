@@ -11,8 +11,21 @@
 # 注意将PROJECT_ROOT调整为实际项目根目录
 PROJECT_ROOT=$PWD
 docker run --name=iotservice -v $PROJECT_ROOT:/root/iotservice \
-    -w /root/iotservice -p 8080:8080 -it aproton/iotservice-dev:v1.0 /bin/bash
+    -w /root/iotservice -p 8080:8080 -it aproton/iotservice-dev:latest /bin/bash
 ```
+
+### 更新开发镜像
+开发镜像使用的Dockerfile 参考 [这里](../../build/dev/Dockerfile)
+如果有更新，请执行
+```bash
+cd ../../build/dev
+export TAG=v$(date "+%Y%m%d%H%M%S")
+docker build --rm -t aproton/iotservice-dev:$TAG .
+docker tag aproton/iotservice-dev:$TAG aproton/iotservice-dev:latest
+docker push aproton/iotservice-dev:$TAG 
+docker push aproton/iotservice-dev:latest
+```
+
 
 ## 前端页面
 ### 编译

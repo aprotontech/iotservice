@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Device\Web;
 
 use DB;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Device\Web\SnHelper\TaskStatus;
+use App\Http\Controllers\Device\SnHelper\TaskStatus;
 
 class SnTaskCreateController extends \App\Http\Controllers\WebController
 {

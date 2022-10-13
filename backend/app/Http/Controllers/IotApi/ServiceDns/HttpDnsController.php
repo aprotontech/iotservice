@@ -23,7 +23,9 @@ class HttpDnsController extends \App\Http\Controllers\ApiController
 
         $services = array_unique(array_merge($input->services, ['default']));
 
-        $rs = $this->success();
+        $rs = $this->success([
+            'now' => microtime(true)
+        ]);
         foreach ($services as $service) {
             $m = $this->getConfig($service);
             if (!$m) {

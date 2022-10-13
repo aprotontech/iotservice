@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  namespace: aproton
+spec:
+  selector:
+    matchLabels:
+      app: api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: backend
+        image: aproton/iotservice:v1.0-alpha
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: aproton
+spec:
+  selector:
+    app: api
+  ports:
+  - name: api-port
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
