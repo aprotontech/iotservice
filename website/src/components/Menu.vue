@@ -68,19 +68,22 @@
                     }
                 }
 
-                this.$http.post(this.$API.ROLE_MEUN, {
-                    mainMenuId: menuId,
-                    system: 'aproton'
-                })
-                    .then((resp) => {
-                        let m = resp.data
-                        if(m.rc == 0) {
-                            this.subMenu = m.menus
-                        }
+                const userName = sessionStorage.getItem('userName');
+                if (userName) {
+                    this.$http.post(this.$API.ROLE_MEUN, {
+                        mainMenuId: menuId,
+                        system: 'aproton'
                     })
-                    .catch((error) => {
-                        Commons.handleApiError(this, error);
-                    });
+                        .then((resp) => {
+                            let m = resp.data
+                            if(m.rc == 0) {
+                                this.subMenu = m.menus
+                            }
+                        })
+                        .catch((error) => {
+                            Commons.handleApiError(this, error);
+                        });
+                }
             }
         }
     }

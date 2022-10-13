@@ -12,6 +12,15 @@ Proton-IotService 是一款开源的Iot平台，集成了设备管理后台，�
 
 当然你也可以从头开始编译项目并部署，参考 [编译手册](./docs/chs/BUILD.md)
 
+## 开发模式
+如果要快速进入开发阶段，可以执行如下的命令
+
+```bash
+docker run --name=aproton-dev-$(whoami) -p8080:8080 -p3306:3306 -p9301:9301 \
+    -v $PWD:/root/iotservice -w /root/iotservice -it \
+    aproton/iotservice-dev:latest /bin/bash
+```
+
 # 核心能力
 
 ## 设备管理后台

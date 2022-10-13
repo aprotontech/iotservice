@@ -59,6 +59,10 @@
                          </el-select>
                      </el-form-item>
 
+                     <el-form-item label="包含未分配：">
+                        <el-switch v-model="formPrecise.showNotAssigned"></el-switch>
+                     </el-form-item>
+
                      <el-form-item label="设备激活时间：">
                       <el-date-picker v-model="formPrecise.activeTime" type="datetimerange" placeholder="选择时间范围">
                           </el-date-picker>
@@ -164,6 +168,7 @@ export default {
                 activeStatus: '',
                 onlineStatus: '',
                 enableStatus: '',
+                showNotAssigned: false,
                 lastOnlineTime: '',
                 lastOfflineTime: '',
                 activeTime: '',
@@ -228,7 +233,8 @@ export default {
             let params = {
                 app_id : this.formPrecise.app_id,
                 size: this.queryParams.pageSize,
-                page: this.queryParams.page
+                page: this.queryParams.page,
+                show_not_assign: this.formPrecise.showNotAssigned,
             }
 
             if (this.formPrecise.client_id) {

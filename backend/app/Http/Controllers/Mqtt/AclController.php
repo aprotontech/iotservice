@@ -13,8 +13,7 @@ class AclController extends \App\Http\Controllers\ApiController
         return [
             'clientid' => 'is_string',
             'username' => 'is_string',
-            'password' => 'is_string',
-            'clientip' => 'is_string'
+            'topic' => 'is_string'
         ];
     }
 

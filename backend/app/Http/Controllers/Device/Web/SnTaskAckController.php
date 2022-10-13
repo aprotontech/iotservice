@@ -6,7 +6,7 @@ use DB;
 use App\Jobs\SnTask;
 use Illuminate\Http\Request;
 
-use App\Http\Controllers\Device\Web\SnHelper\TaskStatus;
+use App\Http\Controllers\Device\SnHelper\TaskStatus;
 
 class SnTaskAckController extends \App\Http\Controllers\WebController
 {

@@ -19,6 +19,7 @@ class ListController extends \App\Http\Controllers\WebController
             'uuid' => 'optional | is_string',
             'status' => 'optional | is_int',
             'is_online' => 'optional | is_int',
+            'show_not_assign' => 'optional | is_bool',
             'page' => 'optional | is_numeric',
             'size' => 'optional | is_numeric',
             'draw' => 'optional | is_numeric',
@@ -36,10 +37,11 @@ class ListController extends \App\Http\Controllers\WebController
     private function getList($request, $filter)
     {
         $query = DB::table('devices')
-            ->where('status', '>=', 1)
+            ->where('status', '>=', $filter['show_not_assign'] ? 0 : 1)
             ->leftJoin('device_locations', 'devices.client_id', '=', 'device_locations.client_id');
+  
         $queryCnt = DB::table('devices')
-            ->where('status', '>=', 1);
+            ->where('status', '>=', $filter['show_not_assign'] ? 0 : 1);
 
         if (!empty($filter['app_id'])) {
             $arr = [];
@@ -84,8 +86,6 @@ class ListController extends \App\Http\Controllers\WebController
             $query->where('status', $filter['status']);
             $queryCnt->where('status', $filter['status']);
         }
-        //$query->whereNull('deleted_at');
-        //$queryCnt->whereNull('deleted_at');
 
         if (isset($filter['is_online'])) {
             switch ($filter['is_online']) {
