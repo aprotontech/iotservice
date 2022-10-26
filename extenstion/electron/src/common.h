@@ -34,6 +34,7 @@
 
 #define PROTON_OBJECT_PRIVATE_VALUE "_proton_private"
 #define PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE "_default_router"
+#define PROTON_MQTTCLIENT_DEFAULT_STATUS_CALLBACK "_status_callback"
 
 extern int pc_private_resource_handle;
 extern proton_uv_scheduler *__uv_scheduler;
