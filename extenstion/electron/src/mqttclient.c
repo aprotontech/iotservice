@@ -14,9 +14,8 @@
 #include "common.h"
 #include "proton/mqtt/mqtt_client.h"
 
-int on_mqttclient_status_changed(proton_mqtt_client_t *mqtt,
-                                 proton_mqtt_client_status status,
-                                 zval *message) {
+int on_mqttclient_recv_publish_message(proton_mqtt_client_t *mqtt,
+                                       zval *message, zval *callback) {
 
   proton_private_value_t *obj = &mqtt->value;
   if (Z_TYPE_P(&obj->myself) != IS_OBJECT) {
@@ -26,16 +25,13 @@ int on_mqttclient_status_changed(proton_mqtt_client_t *mqtt,
 
   zval rv;
   zval *self = &obj->myself;
-  zval *callback = zend_read_property(
-      Z_OBJCE_P(self), self,
-      ZEND_STRL(PROTON_MQTTCLIENT_DEFAULT_STATUS_CALLBACK), 0 TSRMLS_CC, &rv);
 
   if (callback != NULL &&
       zend_is_callable(callback, IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
     zval params[2];
 
     ZVAL_COPY(&params[0], self);
-    ZVAL_LONG(&params[1], status);
+    ZVAL_COPY(&params[1], message);
 
     proton_coroutine_entry entry = {
         .argc = 2,
@@ -109,12 +105,6 @@ PHP_METHOD(mqttclient, __construct) {
     return;
   }
 
-  zval handler;
-  ZVAL_NULL(&handler);
-  zend_update_property(Z_OBJCE_P(getThis()), getThis(),
-                       ZEND_STRL(PROTON_MQTTCLIENT_DEFAULT_STATUS_CALLBACK),
-                       &handler TSRMLS_CC);
-
   proton_object_construct(getThis(), &client->value);
 }
 /* }}} */
@@ -135,10 +125,8 @@ PHP_METHOD(mqttclient, connect) {
   zval *options = NULL;
   zval *handler = NULL;
 
-  ZEND_PARSE_PARAMETERS_START(1, 2)
+  ZEND_PARSE_PARAMETERS_START(1, 1)
     Z_PARAM_ARRAY(options)
-    Z_PARAM_OPTIONAL
-    Z_PARAM_ZVAL(handler)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
   proton_mqttclient_connect_options_t conn_options;
@@ -148,13 +136,7 @@ PHP_METHOD(mqttclient, connect) {
   }
 
   int ret =
-      proton_mqttclient_connect(proton_object_get(getThis()), &conn_options,
-                                on_mqttclient_status_changed);
-  if (ret == 0) {
-    zend_update_property(Z_OBJCE_P(getThis()), getThis(),
-                         ZEND_STRL(PROTON_MQTTCLIENT_DEFAULT_STATUS_CALLBACK),
-                         handler TSRMLS_CC);
-  }
+      proton_mqttclient_connect(proton_object_get(getThis()), &conn_options);
 
   RETURN_LONG(ret);
 }
@@ -190,18 +172,22 @@ PHP_METHOD(mqttclient, subscribe) {
   char *topic = NULL;
   size_t topic_len;
   long qos = 0;
-  zval *channel = NULL;
+  zval *callback = NULL;
 
   ZEND_PARSE_PARAMETERS_START(2, 3)
     Z_PARAM_STRING(topic, topic_len)
-    Z_PARAM_OBJECT_OF_CLASS(channel, _channel_ce)
+    Z_PARAM_ZVAL(callback)
     Z_PARAM_OPTIONAL
     Z_PARAM_LONG(qos)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
+  if (callback == NULL ||
+      !zend_is_callable(callback, IS_CALLABLE_CHECK_NO_ACCESS, NULL)) {
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "input handle must callable");
+  }
+
   RETURN_LONG(proton_mqttclient_subscribe(proton_object_get(getThis()), topic,
-                                          topic_len, qos,
-                                          proton_object_get(channel)));
+                                          topic_len, qos, callback));
 }
 /* }}} */
 
@@ -222,6 +208,15 @@ PHP_METHOD(mqttclient, isConnected) {
 }
 /* }}} */
 
+/** {{{
+ */
+PHP_METHOD(mqttclient, loop) {
+  ZEND_PARSE_PARAMETERS_NONE();
+  RETURN_LONG(proton_mqttclient_loop(proton_object_get(getThis()),
+                                     on_mqttclient_recv_publish_message));
+}
+/* }}} */
+
 /* {{{ martin_functions[]
  *
  * Every user visible function must have an entry in mqttclient_functions[].
@@ -234,7 +229,8 @@ const zend_function_entry mqttclient_functions[] = {
     PHP_ME(mqttclient, __toString, NULL,
            ZEND_ACC_PUBLIC) // mqttclient::__toString
     PHP_ME(mqttclient, isConnected, NULL,
-           ZEND_ACC_PUBLIC) // mqttclient::isConnected
+           ZEND_ACC_PUBLIC)                         // mqttclient::isConnected
+    PHP_ME(mqttclient, loop, NULL, ZEND_ACC_PUBLIC) // mqttclient::loop
     PHP_ME(mqttclient, connect, NULL, ZEND_ACC_PUBLIC) // mqttclient::connect
     PHP_ME(mqttclient, publish, NULL, ZEND_ACC_PUBLIC) // mqttclient::publish
     PHP_ME(mqttclient, subscribe, NULL,

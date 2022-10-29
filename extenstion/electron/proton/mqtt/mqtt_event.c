@@ -50,17 +50,7 @@ void mqttclient_on_once_write(uv_write_t *req, int status) { free(req->data); }
 ssize_t mqtt_pal_sendall(mqtt_pal_socket_handle fd, const void *buf, size_t len,
                          int flags) {
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)fd;
-  if (RUNTIME_CURRENT_COROUTINE(mqtt->runtime) ==
-      RUNTIME_MAIN_COROUTINE(mqtt->runtime)) {
-    proton_once_write_t *ptr =
-        (proton_once_write_t *)malloc(sizeof(proton_once_write_t) + len);
-    ptr->write.data = ptr;
-    ptr->buf.base = (char *)&ptr[1];
-    ptr->buf.len = len;
-    memcpy(ptr->buf.base, buf, len);
-    uv_write(&ptr->write, (uv_stream_t *)&mqtt->tcp, &ptr->buf, 1,
-             mqttclient_on_once_write);
-  } else {
+  if (IS_REAL_COROUTINE(RUNTIME_CURRENT_COROUTINE(mqtt->runtime))) {
     proton_write_t write;
     write.writer.data = &write;
     PROTON_WAIT_OBJECT_INIT(write.wq_write);
@@ -69,7 +59,20 @@ ssize_t mqtt_pal_sendall(mqtt_pal_socket_handle fd, const void *buf, size_t len,
                       mqttclient_on_write);
     if (rc == 0) {
       proton_coroutine_waitfor(mqtt->runtime, &write.wq_write, NULL);
+    } else { // write failed
+      PLOG_WARN("[MQTT] send data failed with %d, err=%s", rc, uv_err_name(rc));
+      _mqttclient_close_all(mqtt);
+      return 0;
     }
+  } else { // on main coroution, can't wait send result
+    proton_once_write_t *ptr =
+        (proton_once_write_t *)malloc(sizeof(proton_once_write_t) + len);
+    ptr->write.data = ptr;
+    ptr->buf.base = (char *)&ptr[1];
+    ptr->buf.len = len;
+    memcpy(ptr->buf.base, buf, len);
+    uv_write(&ptr->write, (uv_stream_t *)&mqtt->tcp, &ptr->buf, 1,
+             mqttclient_on_once_write);
   }
 
   return len;
@@ -93,7 +96,7 @@ void mqttclient_on_closed(uv_handle_t *handle) {
   mqtt->status = MQTT_CLIENT_DISCONNECTED;
 
   // cancel wait msg queue
-  proton_coroutine_cancel(mqtt->runtime, &mqtt->wq_callback);
+  proton_coroutine_cancel(mqtt->runtime, &mqtt->wq_callback, NULL);
 }
 
 void mqttclient_on_connected(uv_connect_t *req, int status) {
@@ -148,8 +151,9 @@ void mqttclient_on_tick(uv_timer_t *timer) {
 
 void publish_callback(void **ctx, struct mqtt_response_publish *published) {
   // send message to queue
-  proton_mqtt_client_t *mqtt = container_of(*ctx, proton_mqtt_client_t, client);
+  proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)*ctx;
   if (mqtt->is_looping) {
+
     proton_mqttclient_callback_t *cbmsg =
         (proton_mqttclient_callback_t *)qmalloc(
             sizeof(proton_mqttclient_callback_t));
@@ -174,6 +178,7 @@ void publish_callback(void **ctx, struct mqtt_response_publish *published) {
     LL_insert(&cbmsg->link, mqtt->msg_head.prev);
 
     proton_coroutine_wakeup(mqtt->runtime, &mqtt->wq_callback, NULL);
+
   } else {
     PLOG_WARN("mqtt(%p) is not loop, so skip the message", mqtt);
   }

@@ -20,30 +20,17 @@ static proton_value_type_t __proton_mqttclient_type = {
     .destruct = proton_mqttclient_uninit,
     .whoami = _mqtt_client_get_type};
 
-void _update_mqttclient_status(proton_mqtt_client_t *mqtt, int status,
-                               const char *msg) {
-  PLOG_DEBUG("mqtt(%p) update status to %d, msg(%s)", mqtt, status, msg);
+inline void _update_mqttclient_status(proton_mqtt_client_t *mqtt, int status) {
+  PLOG_DEBUG("mqtt(%p) update status to %d", mqtt, status);
   mqtt->status = status;
-  if (mqtt->is_looping) {
-    proton_mqttclient_callback_t *cbmsg =
-        (proton_mqttclient_callback_t *)qmalloc(
-            sizeof(proton_mqttclient_callback_t));
-    cbmsg->type = 0;
-    msg = (msg != NULL) ? msg : "";
-    ZVAL_STRINGL(&cbmsg->message, msg, strlen(msg));
-
-    LL_insert(&cbmsg->link, mqtt->msg_head.prev);
-
-    proton_coroutine_wakeup(mqtt->runtime, &mqtt->wq_callback, NULL);
-  }
 }
 
 int proton_mqttclient_subscribe(proton_private_value_t *value,
                                 const char *topic, int topic_len, int qos,
-                                proton_private_value_t *channel) {
+                                zval *callback) {
   MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(topic);
-  MAKESURE_PTR_NOT_NULL(channel);
+  MAKESURE_PTR_NOT_NULL(callback);
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
   MAKESURE_ON_COROTINUE(mqtt->runtime);
 
@@ -78,7 +65,7 @@ int proton_mqttclient_subscribe(proton_private_value_t *value,
   st->topic = (char *)(&st[1]);
   st->topic_len = topic_len;
   strcpy(st->topic, topic);
-  Z_TRY_ADDREF(channel->myself);
+  ZVAL_COPY(&st->callback, callback);
 
   hashmap_put(mqtt->subscribe_topics, st->topic, (any_t)st);
 
@@ -267,8 +254,7 @@ int _mqttclient_connect_to_remote(
 }
 
 int proton_mqttclient_connect(proton_private_value_t *value,
-                              proton_mqttclient_connect_options_t *options,
-                              mqtt_client_status_changed callback) {
+                              proton_mqttclient_connect_options_t *options) {
   MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(options);
 
@@ -292,21 +278,50 @@ int proton_mqttclient_connect(proton_private_value_t *value,
     return -1;
   }
 
-  mqtt->status_callback = callback;
-  _update_mqttclient_status(mqtt, MQTT_CLIENT_CONNECTING, "connecting");
+  _update_mqttclient_status(mqtt, MQTT_CLIENT_CONNECTING);
 
   if (_mqttclient_connect_to_remote(mqtt, options) != 0) {
-    _update_mqttclient_status(mqtt, MQTT_CLIENT_CONNECT_ERROR, "error");
-    mqtt->status_callback = NULL;
+    _update_mqttclient_status(mqtt, MQTT_CLIENT_CONNECT_ERROR);
     return -1;
   } else {
-    _update_mqttclient_status(mqtt, MQTT_CLIENT_CONNECTED, "connected");
+    _update_mqttclient_status(mqtt, MQTT_CLIENT_CONNECTED);
   }
 
   return 0;
 }
 
-int proton_mqttclient_loop(proton_private_value_t *value) {
+struct topic_find_ctx_t {
+  const char *topic;
+  int topic_length;
+  proton_mqtt_subscribe_topic_t *found;
+};
+
+int _find_matched_topic(any_t ptr, const char *key, any_t data) {
+  struct topic_find_ctx_t *ctx = (struct topic_find_ctx_t *)ptr;
+  if (strncasecmp(ctx->topic, key, ctx->topic_length) == 0) {
+    ctx->found = (proton_mqtt_subscribe_topic_t *)data;
+    return 3; // found
+  }
+  return MAP_OK;
+}
+
+proton_mqtt_subscribe_topic_t *
+mqttclient_get_subscribe_topic(proton_mqtt_client_t *mqtt, zval *message) {
+  zval *topic =
+      zend_hash_str_find(Z_ARRVAL_P(message), "topic", strlen("topic"));
+  struct topic_find_ctx_t ctx = {.topic = Z_STRVAL_P(topic),
+                                 .topic_length = Z_STRLEN_P(topic),
+                                 .found = NULL};
+  hashmap_iterate(mqtt->subscribe_topics, _find_matched_topic, &ctx);
+  if (ctx.found != NULL) {
+    PLOG_INFO("[MQTT] input topic match with topic(%s)", ctx.found->topic);
+  }
+
+  return ctx.found;
+}
+
+int proton_mqttclient_loop(proton_private_value_t *value,
+                           mqtt_client_subscribe_callback callback) {
   MAKESURE_PTR_NOT_NULL(value);
 
   proton_mqtt_client_t *mqtt = (proton_mqtt_client_t *)value;
@@ -323,6 +338,7 @@ int proton_mqttclient_loop(proton_private_value_t *value) {
   }
 
   mqtt->is_looping = 1;
+  mqtt->subscribe_callback = callback;
   // resume read data
   uv_read_start((uv_stream_t *)(&mqtt->tcp), mqttclient_alloc_buffer,
                 mqttclient_on_read);
@@ -331,25 +347,22 @@ int proton_mqttclient_loop(proton_private_value_t *value) {
   do { // check has msg callback
     list_link_t *p = mqtt->msg_head.next;
     while (p != &mqtt->msg_head) {
+      PLOG_INFO("[MQTT] mqtt(%p) recv message(%p)", mqtt, p);
       proton_mqttclient_callback_t *msg =
           container_of(p, proton_mqttclient_callback_t, link);
       p = p->next;
       switch (msg->type) {
-      case -1:
-        break;
-      case 0:
-        // status callback
-        if (mqtt->status_callback != NULL) {
-          mqtt->status_callback(mqtt, mqtt->status, &msg->message);
-        }
-        break;
-      case 1:
-      default:
-        // subscribe callback
+      case 1: // subscribe callback
         if (mqtt->subscribe_callback != NULL) {
-          zval callback;
-          mqtt->subscribe_callback(mqtt, &msg->message, &callback);
+          proton_mqtt_subscribe_topic_t *subtopic =
+              mqttclient_get_subscribe_topic(mqtt, &msg->message);
+          if (subtopic != NULL) {
+            PLOG_INFO("found topic callback");
+            mqtt->subscribe_callback(mqtt, &msg->message, &subtopic->callback);
+          }
         }
+        break;
+      default:
         break;
       }
 
@@ -357,6 +370,8 @@ int proton_mqttclient_loop(proton_private_value_t *value) {
     }
   } while (proton_coroutine_waitfor(mqtt->runtime, &mqtt->wq_callback, NULL) ==
            0);
+
+  return 0;
 }
 
 proton_mqtt_client_status
@@ -410,6 +425,7 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   ZVAL_UNDEF(&mqtt->value.myself);
 
   PROTON_WAIT_OBJECT_INIT(mqtt->wq_connack);
+  PROTON_WAIT_OBJECT_INIT(mqtt->wq_callback);
 
   PLOG_DEBUG("mqtt adress(%s:%d)", host, port);
   int rc = uv_ip4_addr(host, port, &mqtt->server_addr);
@@ -422,6 +438,7 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   char *recvbuf = (char *)qmalloc(default_buf_len);
   char *sendbuf = (char *)qmalloc(default_buf_len);
 
+  mqtt->client.publish_response_callback_state = mqtt;
   if (mqtt_init(&mqtt->client, mqtt, sendbuf, default_buf_len, recvbuf,
                 default_buf_len, publish_callback) != MQTT_OK) {
     PLOG_WARN("init mqtt client failed");
@@ -429,8 +446,6 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   }
 
   pthread_mutex_init(&mqtt->mwatcher, NULL);
-
-  mqtt->status_callback = NULL;
 
   mqtt->subscribe_topics = hashmap_new();
   mqtt->publish_watchers = hashmap_new();
@@ -441,6 +456,7 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
   mqtt->timer.data = mqtt;
 
   mqtt->is_looping = 0;
+  LL_init(&mqtt->msg_head);
 
   return 0;
 }
@@ -470,7 +486,7 @@ int proton_mqttclient_uninit(proton_private_value_t *value) {
 }
 
 static int _free_stopic_item(any_t item, const char *key, any_t data) {
-  proton_mqtt_subscribe_topic_t *topic = (proton_mqtt_subscribe_topic_t *)item;
+  proton_mqtt_subscribe_topic_t *topic = (proton_mqtt_subscribe_topic_t *)data;
 
   qfree(topic);
   return MAP_OK;

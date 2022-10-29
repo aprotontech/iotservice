@@ -1,3 +1,4 @@
 <?php
 
-//proton_set_logger_level(0);
+
+define('PROTON_PRINT_CORE_LOGGER', 1);

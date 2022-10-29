@@ -29,37 +29,6 @@
 #define qmalloc emalloc
 #define qfree efree
 
-#define PROTON_LOG_DEBUG_LEVEL 0
-#define PROTON_LOG_INFO_LEVEL 1
-#define PROTON_LOG_WARN_LEVEL 2
-#define PROTON_LOG_ERROR_LEVEL 3
-#define PROTON_LOG_NOTICE_LEVEL 4
-#define PROTON_LOG_FAULT_LEVEL 5
-
-#define PLOG_DEBUG(args...) PROTON_LOGGER(PROTON_LOG_DEBUG_LEVEL, args)
-#define PLOG_INFO(args...) PROTON_LOGGER(PROTON_LOG_INFO_LEVEL, args)
-#define PLOG_WARN(args...) PROTON_LOGGER(PROTON_LOG_WARN_LEVEL, args)
-#define PLOG_ERROR(args...) PROTON_LOGGER(PROTON_LOG_ERROR_LEVEL, args)
-#define PLOG_NOTICE(args...) PROTON_LOGGER(PROTON_LOG_NOTICE_LEVEL, args)
-#define PLOG_FAULT(args...) PROTON_LOGGER(PROTON_LOG_FAULT_LEVEL, args)
-
-#define PROTON_LOGGER(level, args...)                                          \
-  if (level >= __proton_logger_level) {                                        \
-    struct timeval tv;                                                         \
-    struct timezone tz;                                                        \
-    gettimeofday(&tv, &tz);                                                    \
-    struct tm *p = localtime(&tv.tv_sec);                                      \
-    printf("%02d-%02d-%02d %02d:%02d:%02d.%03d [C] [%d] [%s] [%s:%d] ",        \
-           p->tm_year + 1900, p->tm_mon + 1, p->tm_mday, p->tm_hour,           \
-           p->tm_min, p->tm_sec, (int)(tv.tv_usec / 1000), getpid(),           \
-           __proton_logger_level_string(level), __FUNCTION__, __LINE__);       \
-    printf(args);                                                              \
-    printf("\n");                                                              \
-  }
-
-extern int __proton_logger_level;
-extern const char *__proton_logger_level_string(int level);
-
 #ifndef container_of
 #define container_of(ptr, type, member)                                        \
   ({                                                                           \
@@ -86,6 +55,38 @@ extern const char *__proton_logger_level_string(int level);
   }
 
 #define RC_EXPECT_SUCCESS(expr) RC_EXPECT_SUCCESS_WITH_EMSG(expr, #expr)
+
+////////////////////////////////////////////
+// Logger
+#define PROTON_LOG_DEBUG_LEVEL 0
+#define PROTON_LOG_INFO_LEVEL 1
+#define PROTON_LOG_WARN_LEVEL 2
+#define PROTON_LOG_ERROR_LEVEL 3
+#define PROTON_LOG_NOTICE_LEVEL 4
+#define PROTON_LOG_FAULT_LEVEL 5
+
+#define PLOG_DEBUG(fmt, args...)                                               \
+  proton_write_core_logger(PROTON_LOG_DEBUG_LEVEL, __FILE__, __LINE__,         \
+                           __FUNCTION__, fmt, ##args)
+#define PLOG_INFO(fmt, args...)                                                \
+  proton_write_core_logger(PROTON_LOG_INFO_LEVEL, __FILE__, __LINE__,          \
+                           __FUNCTION__, fmt, ##args)
+#define PLOG_WARN(fmt, args...)                                                \
+  proton_write_core_logger(PROTON_LOG_WARN_LEVEL, __FILE__, __LINE__,          \
+                           __FUNCTION__, fmt, ##args)
+#define PLOG_ERROR(fmt, args...)                                               \
+  proton_write_core_logger(PROTON_LOG_ERROR_LEVEL, __FILE__, __LINE__,         \
+                           __FUNCTION__, fmt, ##args)
+#define PLOG_NOTICE(fmt, args...)                                              \
+  proton_write_core_logger(PROTON_LOG_NOTICE_LEVEL, __FILE__, __LINE__,        \
+                           __FUNCTION__, fmt, ##args)
+#define PLOG_FAULT(fmt, args...)                                               \
+  proton_write_core_logger(PROTON_LOG_FAULT_LEVEL, __FILE__, __LINE__,         \
+                           __FUNCTION__, fmt, ##args)
+
+int proton_write_core_logger(int level, const char *file, int line,
+                             const char *func, const char *fmt, ...);
+////////////////////////////////////////////
 
 typedef struct _proton_private_value_t proton_private_value_t;
 typedef int (*proton_value_new)(proton_private_value_t *value);

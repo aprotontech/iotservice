@@ -20,9 +20,7 @@ class ConnectTest extends ProtonTestCase
         Proton\go(function ($test, $options) {
             $connect_test = function ($test, $options, $connRet) {
                 $client = new \Proton\MqttClient("127.0.0.1", "1883");
-                $ret = $client->connect($options, function ($client, $state) {
-                    echo "$client,$state\n";
-                });
+                $ret = $client->connect($options);
                 $test->assertEquals($connRet, $ret);
 
                 \Proton\sleep(500);

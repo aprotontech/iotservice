@@ -46,9 +46,6 @@ typedef enum _proton_mqtt_client_status {
 } proton_mqtt_client_status;
 
 typedef struct _proton_mqtt_client_t proton_mqtt_client_t;
-typedef int (*mqtt_client_status_changed)(proton_mqtt_client_t *mqtt,
-                                          proton_mqtt_client_status status,
-                                          zval *msg);
 typedef int (*mqtt_client_subscribe_callback)(proton_mqtt_client_t *mqtt,
                                               zval *msg, zval *callback);
 
@@ -67,7 +64,6 @@ typedef struct _proton_mqtt_client_t {
 
   proton_wait_object_t wq_connack;
 
-  mqtt_client_status_changed status_callback;
   mqtt_client_subscribe_callback subscribe_callback;
 
   // subscribe topics(item: proton_mqtt_subscribe_topic_t)
@@ -112,7 +108,7 @@ typedef struct _proton_mqttclient_connect_options_t {
 
 typedef struct _proton_mqttclient_callback_t {
   list_link_t link;
-  char type; // 0-status,1-subscribe
+  char type; // 0-disconn,1-subscribe
   zval message;
 } proton_mqttclient_callback_t;
 
@@ -123,8 +119,7 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
 int proton_mqttclient_uninit(proton_private_value_t *client);
 
 int proton_mqttclient_connect(proton_private_value_t *value,
-                              proton_mqttclient_connect_options_t *option,
-                              mqtt_client_status_changed callback);
+                              proton_mqttclient_connect_options_t *option);
 
 int proton_mqttclient_close(proton_private_value_t *client);
 
@@ -133,10 +128,10 @@ int proton_mqttclient_publish(proton_private_value_t *mqtt, const char *topic,
                               int qos, int retained, int *dt);
 
 int proton_mqttclient_subscribe(proton_private_value_t *mqtt, const char *topic,
-                                int topic_len, int qos,
-                                proton_private_value_t *channel);
+                                int topic_len, int qos, zval *callback);
 
-int proton_mqttclient_loop(proton_private_value_t *mqtt);
+int proton_mqttclient_loop(proton_private_value_t *mqtt,
+                           mqtt_client_subscribe_callback callback);
 
 proton_mqtt_client_status
 proton_mqttclient_get_status(proton_private_value_t *client);
