@@ -121,6 +121,9 @@ int proton_logger_write(proton_private_value_t *value, int level, int is_core,
 int proton_logger_open(proton_private_value_t *value) {
   proton_logger_config_t *config = (proton_logger_config_t *)value;
   config->writen_size = 0;
+
+  config->value.type = &__proton_logger_type;
+  ZVAL_UNDEF(&config->value.myself);
   return 0;
 }
 
@@ -129,7 +132,6 @@ int proton_logger_close(proton_private_value_t *value) {
     _default_core_logger = NULL;
   }
 
-  free(value);
   return 0;
 }
 

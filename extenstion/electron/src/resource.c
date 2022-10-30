@@ -25,7 +25,7 @@ void destruct_proton_private_value(zend_resource *rsrc) {
   // PLOG_DEBUG("[ELECTRON] private_value free");
   if (rsrc != NULL && rsrc->ptr != NULL) {
     proton_private_value_t *value = (proton_private_value_t *)rsrc->ptr;
-    if (value->type != NULL && value->type->destruct) {
+    if (value->type != NULL && value->type->destruct != NULL) {
       PLOG_INFO("[ELECTRON] private_value(%s) free(%p)", value->type->whoami(),
                 value);
       if (value->type->destruct(value) == 0) {

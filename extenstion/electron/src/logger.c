@@ -21,7 +21,7 @@
 proton_private_value_t *_default_logger = NULL;
 
 proton_logger_config_t *new_logger_config(int bufsize) {
-  proton_logger_config_t *lg = (proton_logger_config_t *)malloc(
+  proton_logger_config_t *lg = (proton_logger_config_t *)qmalloc(
       sizeof(proton_logger_config_t) + bufsize);
 
   lg->buffer_size = bufsize;
@@ -136,12 +136,15 @@ PHP_METHOD(logger, write) {
   long level;
   char *message = NULL;
   size_t message_len;
+  zval *ctx;
   proton_logger_config_t *lg =
       (proton_logger_config_t *)proton_object_get(getThis());
 
   ZEND_PARSE_PARAMETERS_START(2, 2)
     Z_PARAM_LONG(level)
     Z_PARAM_STRING(message, message_len)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ZVAL(ctx)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
   int recall_depth = lg->stack_depth;
