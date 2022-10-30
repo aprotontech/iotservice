@@ -72,44 +72,9 @@ int proton_mqttclient_subscribe(proton_private_value_t *value,
   return 0;
 }
 
-// publish
-static void mqtt_publish_task(uv_work_t *req) {
-  proton_mqtt_publish_watcher_t *pw =
-      (proton_mqtt_publish_watcher_t *)req->data;
-
-  int token;
-  // MQTTClient_deliveryToken token;
-  int rc = 0;
-  // MQTTClient_publishMessage(pw->mqtt->client, pw->topic,
-  // &pw->message,&token);
-  if (rc == 0) {
-    snprintf(pw->dtid, sizeof(pw->dtid), "%d", (int)token);
-    pthread_mutex_lock(&pw->mqtt->mwatcher);
-
-    hashmap_put(pw->mqtt->publish_watchers, pw->dtid, pw);
-
-    pthread_mutex_unlock(&pw->mqtt->mwatcher);
-
-    if (pw->pw_publish.result != NULL) {
-      *((int *)pw->pw_publish.result) = (int)token;
-    }
-  }
-
-  PLOG_INFO("mqtt(%p) publish(%s), ret(%d)", pw->mqtt, pw->topic, rc);
-}
-
-static void mqtt_publish_result_callback(uv_work_t *req, int status) {
-
-  proton_mqtt_publish_watcher_t *pw =
-      (proton_mqtt_publish_watcher_t *)req->data;
-  pw->pw_publish.status = status;
-
-  // do nothing. wait for dt callback
-}
-
 int proton_mqttclient_publish(proton_private_value_t *value, const char *topic,
                               int topic_len, const char *msg, int msg_len,
-                              int qos, int retained, int *dt) {
+                              int qos, int retained) {
   MAKESURE_PTR_NOT_NULL(value);
   MAKESURE_PTR_NOT_NULL(topic);
   MAKESURE_PTR_NOT_NULL(msg);
@@ -118,49 +83,31 @@ int proton_mqttclient_publish(proton_private_value_t *value, const char *topic,
 
   if (mqtt->status != MQTT_CLIENT_CONNECTED || !mqtt->is_looping) {
     PLOG_WARN("[MQTT] mqtt client must connected and loop before publish");
-    return -1;
+    return RC_ERROR_MQTT_PUBLISH;
   }
 
-  proton_mqtt_publish_watcher_t pwmsg;
-  proton_mqtt_publish_watcher_t *pw = &pwmsg;
-  memset(pw, 0, sizeof(proton_mqtt_publish_watcher_t));
+  int flags = 0;
+  if (retained)
+    flags |= MQTT_PUBLISH_RETAIN;
+  if (qos == 0)
+    flags |= MQTT_PUBLISH_QOS_0;
+  else if (qos == 1)
+    flags |= MQTT_PUBLISH_QOS_1;
+  else if (qos == 2)
+    flags |= MQTT_PUBLISH_QOS_2;
 
-  /*
-    pw->message.dup = 0;
-    pw->message.qos = qos;
-    pw->message.retained = retained;
-    pw->message.payload = (void *)msg;
-    pw->message.payloadlen = msg_len;*/
-  pw->topic = (char *)topic;
+  mqtt_publish(&mqtt->client, topic, msg, msg_len, flags);
+  // int msgid = mqtt->client.pid_lfsr;
 
-  pw->mqtt = mqtt;
-
-  pw->pw_publish.work.data = pw;
-  pw->pw_publish.status = 0;
-  pw->pw_publish.result = dt;
-  PROTON_WAIT_OBJECT_INIT(pw->pw_publish.wq_work);
-
-  int rc = uv_queue_work(RUNTIME_UV_LOOP(mqtt->runtime), &pw->pw_publish.work,
-                         mqtt_publish_task, mqtt_publish_result_callback);
-  if (0 != rc) {
-    PLOG_WARN("mqtt connect uv_queue_work failed with %d", rc);
-    return rc;
+  if (mqtt->client.error != MQTT_OK) {
+    PLOG_WARN("package mqtt publish message failed");
+    return RC_ERROR_MQTT_PUBLISH;
   }
 
-  if ((rc = proton_coroutine_waitfor(mqtt->runtime, &pw->pw_publish.wq_work,
-                                     NULL)) != 0) {
-    // make sure watcher is in map
-    if (strlen(pw->dtid) != 0) {
-      pthread_mutex_lock(&mqtt->mwatcher);
-      hashmap_remove(mqtt->publish_watchers, pw->dtid);
-      pthread_mutex_unlock(&mqtt->mwatcher);
-    }
-
-    return rc;
-  }
-
-  if (pw->pw_publish.status != 0) {
-    return -1;
+  __mqtt_send(&mqtt->client);
+  if (mqtt->client.error != MQTT_OK) {
+    PLOG_WARN("send mqtt publish message failed");
+    return RC_ERROR_MQTT_PUBLISH;
   }
 
   return 0;
@@ -300,7 +247,7 @@ int _find_matched_topic(any_t ptr, const char *key, any_t data) {
   struct topic_find_ctx_t *ctx = (struct topic_find_ctx_t *)ptr;
   if (strncasecmp(ctx->topic, key, ctx->topic_length) == 0) {
     ctx->found = (proton_mqtt_subscribe_topic_t *)data;
-    return 3; // found
+    return 1; // found
   }
   return MAP_OK;
 }

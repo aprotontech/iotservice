@@ -157,12 +157,9 @@ PHP_METHOD(mqttclient, publish) {
     Z_PARAM_LONG(retained)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  int dt = 0;
-  int rc =
-      proton_mqttclient_publish(proton_object_get(getThis()), topic, topic_len,
-                                message, message_len, qos, retained, &dt);
-
-  RETURN_LONG(rc);
+  RETURN_LONG(proton_mqttclient_publish(proton_object_get(getThis()), topic,
+                                        topic_len, message, message_len, qos,
+                                        retained));
 }
 /* }}} */
 

@@ -87,15 +87,6 @@ typedef struct _proton_mqtt_subscribe_topic_t {
   zval callback;
 } proton_mqtt_subscribe_topic_t;
 
-typedef struct _proton_mqtt_publish_watcher_t {
-  int dt;
-  char *topic;
-  // MQTTClient_message message;
-  proton_work_t pw_publish;
-  proton_mqtt_client_t *mqtt;
-  char dtid[20];
-} proton_mqtt_publish_watcher_t;
-
 typedef struct _proton_mqttclient_connect_options_t {
   char *client_id;
   char *user_name;
@@ -125,7 +116,7 @@ int proton_mqttclient_close(proton_private_value_t *client);
 
 int proton_mqttclient_publish(proton_private_value_t *mqtt, const char *topic,
                               int topic_len, const char *msg, int msg_len,
-                              int qos, int retained, int *dt);
+                              int qos, int retained);
 
 int proton_mqttclient_subscribe(proton_private_value_t *mqtt, const char *topic,
                                 int topic_len, int qos, zval *callback);

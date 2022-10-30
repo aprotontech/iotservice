@@ -46,8 +46,15 @@ class SubscribeTest extends ProtonTestCase
                 }
             });
 
+            Proton\go(function ($test, $client) {
+                Proton\sleep(300);
+                $ret = $client->publish("/test/topic", "stop", 0);
+            }, $test, $client);
+
             $ret = $channel->pop();
             $test->assertEquals($ret, "loop=0");
+
+            $client->close();
 
             Proton\Runtime::stop();
         }, $this, $options);

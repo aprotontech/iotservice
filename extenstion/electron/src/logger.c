@@ -145,7 +145,8 @@ PHP_METHOD(logger, write) {
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
   int recall_depth = lg->stack_depth;
-  const char *filename;
+  const char *filename = NULL;
+  const char *funcname = NULL;
   long code_line = 0;
   zend_execute_data *ptr = EG(current_execute_data);
 
@@ -162,6 +163,7 @@ PHP_METHOD(logger, write) {
   if (ptr != NULL && ptr->func != NULL && ZEND_USER_CODE(ptr->func->type)) {
     filename = ZSTR_VAL(ptr->func->op_array.filename);
     code_line = ptr->opline->lineno;
+    funcname = ZSTR_VAL(ptr->func->op_array.function_name);
   }
 
   RETURN_LONG(proton_logger_write(proton_object_get(getThis()), level, 0,
