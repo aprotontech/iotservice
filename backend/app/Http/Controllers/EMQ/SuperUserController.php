@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Mqtt;
+namespace App\Http\Controllers\EMQ;
 
 use Illuminate\Http\Request;
 
@@ -27,6 +27,5 @@ class SuperUserController extends \App\Http\Controllers\ApiController
         }
 
         return response(rc_error(400, "input client($info->clientid) is not super"), 400);
-        
     }
 }

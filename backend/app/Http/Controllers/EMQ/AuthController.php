@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Mqtt;
+namespace App\Http\Controllers\EMQ;
 
 use App\Http\Controllers\IotApi\DeviceUtils;
 use Illuminate\Http\Request;
 
-use function PHPUnit\Framework\stringStartsWith;
 
 class AuthController extends \App\Http\Controllers\ApiController
 {
