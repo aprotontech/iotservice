@@ -50,4 +50,6 @@ int proton_logger_write(proton_private_value_t *config, int level, int is_core,
 
 int proton_logger_set_core(proton_private_value_t *config);
 
+int proton_logger_global_cleanup();
+
 #endif

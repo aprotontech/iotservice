@@ -39,7 +39,7 @@ const char *__proton_logger_level_string(int level) {
   }
 }
 
-inline const char *_get_log_tag(proton_logger_config_t *config, int is_core) {
+const char *_get_log_tag(proton_logger_config_t *config, int is_core) {
   if (config->skip_core_logger) {
     return "";
   }
@@ -129,14 +129,38 @@ int proton_logger_open(proton_private_value_t *value) {
 
 int proton_logger_close(proton_private_value_t *value) {
   if ((proton_logger_config_t *)value == _default_core_logger) {
-    _default_core_logger = NULL;
+    PLOG_INFO("current logger(%p) is using as core logger, so skip close it",
+              value);
+    // need more loggers, so don't free it
+    // _default_core_logger = NULL;
+    Z_TRY_DELREF(_default_core_logger->value.myself);
+    ZVAL_UNDEF(&_default_core_logger->value.myself);
+    return -1;
   }
 
   return 0;
 }
 
 int proton_logger_set_core(proton_private_value_t *config) {
-  _default_core_logger = (proton_logger_config_t *)config;
-  _default_core_logger->skip_core_logger = 0;
+  if (&_default_core_logger->value != config) {
+    if (_default_core_logger != NULL) {
+      RELEASE_VALUE_MYSELF(_default_core_logger->value);
+      _default_core_logger = NULL;
+    }
+    _default_core_logger = (proton_logger_config_t *)config;
+    _default_core_logger->skip_core_logger = 0;
+    _default_core_logger->print_to |= 0x01;
+
+    Z_TRY_ADDREF(_default_core_logger->value.myself);
+  }
+
+  return 0;
+}
+
+int proton_logger_global_cleanup() {
+  if (_default_core_logger != NULL) { // do real cleanup
+    PLOG_NOTICE("close core logger");
+  }
+
   return 0;
 }

@@ -19,6 +19,7 @@ extern zend_class_entry *regist_httpresponse_class();
 extern zend_class_entry *regist_mqttclient_class();
 extern zend_class_entry *regist_fsevent_class();
 extern zend_class_entry *regist_processgroup_class();
+extern int proton_logger_global_cleanup();
 
 // module init
 PHP_MINIT_FUNCTION(electron) {
@@ -75,6 +76,8 @@ PHP_MSHUTDOWN_FUNCTION(electron) {
     }
     __uv_scheduler = NULL;
   }
+
+  proton_logger_global_cleanup();
 }
 /* }}} */
 

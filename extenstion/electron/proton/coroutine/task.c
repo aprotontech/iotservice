@@ -38,23 +38,7 @@ static uint64_t __next_coroutine_id = 0;
 
 zend_vm_stack vm_stack_init(uint32_t size);
 zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap);
-
-static void _quark_task_runner(task_context_wrap_t *wrap) {
-  void run_proton_coroutine_task(proton_coroutine_task * task,
-                                 zend_function * func);
-
-  run_proton_coroutine_task(&wrap->task, wrap->func);
-
-  /*
-    // release call
-    for (int i = 0; i < wrap->entry.argc; ++i) {
-      zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
-      ZVAL_PTR_DTOR(param); // release argv, no need now
-    }
-  */
-
-  ZVAL_PTR_DTOR(&wrap->entry.func);
-}
+static void _quark_task_runner(task_context_wrap_t *wrap);
 
 proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
                                                 proton_coroutine_entry *entry,
@@ -198,10 +182,18 @@ zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
   save_vm_stack(task->parent);
   restore_vm_stack(task);
 
-  call = zend_vm_stack_push_call_frame(
-      ZEND_CALL_TOP_FUNCTION | ZEND_CALL_ALLOCATED, func, entry->argc,
-      fci_cache.object != NULL ? (void *)fci_cache.object
-                               : (void *)fci_cache.called_scope);
+  uint32_t call_info = ZEND_CALL_TOP_FUNCTION | ZEND_CALL_ALLOCATED;
+  if (fci_cache.object != NULL) {
+    call_info |= ZEND_CALL_HAS_THIS;
+  }
+
+  void *obj_or_scope = fci_cache.object;
+  if (obj_or_scope == NULL) {
+    obj_or_scope = fci_cache.called_scope;
+  }
+
+  call =
+      zend_vm_stack_push_call_frame(call_info, func, entry->argc, obj_or_scope);
 
   call->symbol_table = NULL;
   EG(current_execute_data) = call;
@@ -354,4 +346,20 @@ void print_coroutine_exception_stack() {
     ZEND_HASH_FOREACH_VAL(ht, val) { print_stack_frame(val); }
     ZEND_HASH_FOREACH_END();
   }
+}
+
+static void _quark_task_runner(task_context_wrap_t *wrap) {
+
+  restore_vm_stack(&wrap->task);
+  run_proton_coroutine_task(&wrap->task, wrap->func);
+
+  /*
+    // release call
+    for (int i = 0; i < wrap->entry.argc; ++i) {
+      zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
+      ZVAL_PTR_DTOR(param); // release argv, no need now
+    }
+  */
+
+  ZVAL_PTR_DTOR(&wrap->entry.func);
 }
