@@ -133,8 +133,8 @@ int proton_logger_close(proton_private_value_t *value) {
               value);
     // need more loggers, so don't free it
     // _default_core_logger = NULL;
-    Z_TRY_DELREF(_default_core_logger->value.myself);
-    ZVAL_UNDEF(&_default_core_logger->value.myself);
+    // Z_TRY_DELREF(_default_core_logger->value.myself);
+    // ZVAL_UNDEF(&_default_core_logger->value.myself);
     return -1;
   }
 

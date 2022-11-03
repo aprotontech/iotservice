@@ -184,6 +184,7 @@ zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
 
   uint32_t call_info = ZEND_CALL_TOP_FUNCTION | ZEND_CALL_ALLOCATED;
   if (fci_cache.object != NULL) {
+    PLOG_DEBUG("[COROUTINE] task(%lu) has this", task->cid);
     call_info |= ZEND_CALL_HAS_THIS;
   }
 
@@ -229,7 +230,13 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
     zend_execute_ex(EG(current_execute_data));
   }
 
-  if (EG(exception) != NULL) { // exception is error
+  if (EG(exception) != NULL) {                          // exception is error
+    if (Z_TYPE(task->runtime->last_error) != IS_NULL) { // clean-org-error
+      ZVAL_PTR_DTOR(&task->runtime->last_error);
+    }
+    ZVAL_OBJ(&task->runtime->last_error, EG(exception));
+    Z_TRY_ADDREF(task->runtime->last_error);
+
     print_coroutine_exception_stack();
 
     if (task->ehandler != NULL) {

@@ -88,7 +88,18 @@ class ProtonCoroutineGoTest extends ProtonTestCase
             }, $values);
         });
 
-        $this->log()->info("values", $values);
+        utlog("values=" . json_encode($values));
         $this->assertEquals(1, count($values));
+    }
+
+    private $mTest;
+    public function testThis()
+    {
+        $this->mTest = 2;
+        Proton\go(function () {
+            $this->mTest = 1;
+        });
+
+        $this->assertEquals(1, $this->mTest);
     }
 }

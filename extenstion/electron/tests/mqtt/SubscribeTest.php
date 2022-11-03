@@ -17,12 +17,12 @@ class SubscribeTest extends ProtonTestCase
             'password' => '_mqtt_admin_password'
         ];
 
-        Proton\go(function ($test, $options) {
+        Proton\go(function ($options) {
 
             $client = new \Proton\MqttClient("127.0.0.1", "1883");
 
             $ret = $client->connect($options);
-            $test->assertEquals(0, $ret);
+            $this->assertEquals(0, $ret);
 
             $channel = new \Proton\Channel(1);
 
@@ -33,6 +33,7 @@ class SubscribeTest extends ProtonTestCase
 
             \Proton\sleep(100);
 
+            $test = $this;
             $client->subscribe("/test/topic", function ($client, $msg) use ($test) {
                 $test->assertNotEquals(null, $client);
                 $test->assertNotEquals(null, $msg);
@@ -46,18 +47,17 @@ class SubscribeTest extends ProtonTestCase
                 }
             });
 
-            Proton\go(function ($test, $client) {
+            Proton\go(function ($client) {
                 Proton\sleep(300);
                 $ret = $client->publish("/test/topic", "stop", 0);
-            }, $test, $client);
+                $this->assertEquals(0, $ret);
+            }, $client);
 
             $ret = $channel->pop();
-            $test->assertEquals($ret, "loop=0");
-
-            $client->close();
+            $this->assertEquals($ret, "loop=0");
 
             Proton\Runtime::stop();
-        }, $this, $options);
+        }, $options);
 
         Proton\Runtime::start();
     }

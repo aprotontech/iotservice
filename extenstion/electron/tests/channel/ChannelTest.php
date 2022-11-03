@@ -9,7 +9,7 @@ class ChannelTest extends ProtonTestCase
         $this->expectException(\PHPUnit\Framework\Error\Warning::class);
 
         $channel = new \Proton\Channel(0);
-        $this->log()->info("$channel");
+        utlog("$channel");
     }
 
     public function testQueueOne()
@@ -17,12 +17,12 @@ class ChannelTest extends ProtonTestCase
         $channel = new \Proton\Channel(1);
 
         $values = [];
-        \Proton\go(function ($channel, $test) use (&$values) {
+        \Proton\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
-                $test->assertEquals(0, $channel->push($i));
+                $this->assertEquals(0, $channel->push($i));
                 array_push($values, "push:$i");
             }
-        }, $channel, $this);
+        }, $channel);
 
 
         \Proton\go(function ($channel) use (&$values) {
@@ -46,22 +46,22 @@ class ChannelTest extends ProtonTestCase
         $channel = new \Proton\Channel(5);
 
         $values = [];
-        \Proton\go(function ($channel, $test) use (&$values) {
+        \Proton\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
-                $test->assertEquals(0, $channel->push($i));
+                $this->assertEquals(0, $channel->push($i));
                 array_push($values, "push:$i");
             }
-        }, $channel, $this);
+        }, $channel);
 
 
-        \Proton\go(function ($channel, $test) use (&$values) {
+        \Proton\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
                 $x = $channel->pop();
                 array_push($values, "pop:$x");
-                $test->assertEquals($i, $x);
+                $this->assertEquals($i, $x);
             }
             \Proton\Runtime::stop();
-        }, $channel, $this);
+        }, $channel);
 
         \Proton\Runtime::start();
         $this->assertEquals(20, count($values));

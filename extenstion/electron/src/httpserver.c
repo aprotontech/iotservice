@@ -143,8 +143,8 @@ PHP_METHOD(httpserver, start) {
     Z_PARAM_ZVAL(process_group)
   ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
 
-  if (Z_TYPE_P(process_group) != IS_OBJECT ||
-      Z_OBJCE_P(process_group) != _processgroup_ce) {
+  if (process_group != NULL && (Z_TYPE_P(process_group) != IS_OBJECT ||
+                                Z_OBJCE_P(process_group) != _processgroup_ce)) {
     php_error_docref(NULL TSRMLS_CC, E_WARNING,
                      "input params is not process group");
     return;

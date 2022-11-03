@@ -7,51 +7,53 @@ class ProtonHTTPClientTest extends ProtonTestCase
 
     public function testCurlAprotonTech()
     {
-        Proton\go(function ($test) {
+        Proton\go(function () {
             $http = new Proton\HttpClient("82.157.138.167", 80);
             $response = $http->get("http://api.aproton.tech/not-exists");
 
-            $test->assertNotNull($response);
-            $test->assertNotNull($response->getConnect());
+            $this->assertNotNull($response);
+            $this->assertNotNull($response->getConnect());
 
             $s = $response->getBody();
-            $test->log()->info($s);
-            $test->assertNotEmpty($s);
+            utlog($s);
+            $this->assertNotEmpty($s);
 
-            $test->assertEquals($response->StatusCode, 404);
+            $this->assertEquals($response->StatusCode, 404);
 
-            $test->log()->info("headers", $response->getHeaders());
-            $test->assertNotEmpty($response->getHeaders());
+            utlog("headers %s", json_encode($response->getHeaders()));
+            $this->assertNotEmpty($response->getHeaders());
 
             $response->getConnect()->close();
 
 
             Proton\sleep(500);
             Proton\Runtime::stop();
-        }, $this);
+        });
 
         Proton\Runtime::start();
+
+        $this->assertNull(Proton\Runtime::getLastError());
     }
 
     public function testCurlMultiTimes()
     {
-        Proton\go(function ($test) {
+        Proton\go(function () {
             $http = new Proton\HttpClient("82.157.138.167", 80);
 
             for ($i = 0; $i < 2; ++$i) {
                 $response = $http->get("http://api.aproton.tech/not-exists");
 
-                $test->assertNotNull($response);
-                $test->assertNotNull($response->getConnect());
+                $this->assertNotNull($response);
+                $this->assertNotNull($response->getConnect());
 
                 $s = $response->getBody();
-                $test->log()->info($s);
-                $test->assertNotEmpty($s);
+                utlog($s);
+                $this->assertNotEmpty($s);
 
-                $test->assertEquals($response->StatusCode, 404);
+                $this->assertEquals($response->StatusCode, 404);
 
-                $test->log()->info("headers", $response->getHeaders());
-                $test->assertNotEmpty($response->getHeaders());
+                utlog("headers %s", json_encode($response->getHeaders()));
+                $this->assertNotEmpty($response->getHeaders());
 
                 Proton\sleep(100);
             }
@@ -61,8 +63,10 @@ class ProtonHTTPClientTest extends ProtonTestCase
 
             Proton\sleep(500);
             Proton\Runtime::stop();
-        }, $this);
+        });
 
         Proton\Runtime::start();
+
+        $this->assertNull(Proton\Runtime::getLastError());
     }
 }
