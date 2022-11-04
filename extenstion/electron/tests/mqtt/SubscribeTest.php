@@ -17,9 +17,40 @@ class SubscribeTest extends ProtonTestCase
             'password' => '_mqtt_admin_password'
         ];
 
+        Proton\go(function () {
+            $server = new Proton\TcpServer();
+            $this->assertEquals(0, $server->listen("127.0.0.1", 18180));
+
+            $c = $server->accept();
+            $this->assertNotNull($c);
+
+            // recv connect package
+            $s = $c->read(1024);
+            $this->assertTrue(strlen($s) > 0);
+            // connect success
+            $r = $c->write(pack("cccc", 0x20, 0x02, 0x00, 0x00));
+            $this->assertEquals(0, $r);
+
+            // recv subscribe package
+            $s = $c->read(1024);
+            $this->assertTrue(strpos($s, "/test/topic") !== false);
+            $c->write(pack('cc', 0x90, 0x03) . substr($s, 2, 2) . pack('c', 0x00));
+
+            Proton\sleep(100);
+
+            // write publish message
+            $n = strlen("/test/topic");
+            $c->write(pack("cccc", 0x30, $n + 2 + 4, 0x00, $n) . "/test/topic" . 'stop');
+
+            Proton\sleep(100);
+
+            $this->assertEquals(0, $c->close());
+            $this->assertEquals(0, $server->close());
+        });
+
         Proton\go(function ($options) {
 
-            $client = new \Proton\MqttClient("127.0.0.1", "1883");
+            $client = new \Proton\MqttClient("127.0.0.1", "18180");
 
             $ret = $client->connect($options);
             $this->assertEquals(0, $ret);
@@ -42,16 +73,11 @@ class SubscribeTest extends ProtonTestCase
                 $test->assertTrue(isset($msg['content']));
                 utlog("%s", json_encode($msg));
                 if ($msg['content'] == 'stop') {
+                    utlog("recv stop command");
                     $ret = $client->close();
                     $test->assertEquals(0, $ret);
                 }
             });
-
-            Proton\go(function ($client) {
-                Proton\sleep(300);
-                $ret = $client->publish("/test/topic", "stop", 0);
-                $this->assertEquals(0, $ret);
-            }, $client);
 
             $ret = $channel->pop();
             $this->assertEquals($ret, "loop=0");

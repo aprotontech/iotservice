@@ -20,7 +20,7 @@ static proton_value_type_t __proton_mqttclient_type = {
     .destruct = proton_mqttclient_uninit,
     .whoami = _mqtt_client_get_type};
 
-inline void _update_mqttclient_status(proton_mqtt_client_t *mqtt, int status) {
+void _update_mqttclient_status(proton_mqtt_client_t *mqtt, int status) {
   PLOG_DEBUG("mqtt(%p) update status to %d", mqtt, status);
   mqtt->status = status;
 }
@@ -348,7 +348,7 @@ int proton_mqttclient_close(proton_private_value_t *value) {
       return -1;
     }
 
-    mqtt->status = MQTT_CLIENT_DISCONNECTED;
+    mqtt->status = MQTT_CLIENT_DISCONNECTING;
   }
 
   _mqttclient_close_all(mqtt);
@@ -427,6 +427,12 @@ int proton_mqttclient_uninit(proton_private_value_t *value) {
   if (mqtt->publish_watchers != NULL) {
     hashmap_iterate(mqtt->publish_watchers, _free_pwatcher_item, NULL);
     hashmap_free(mqtt->publish_watchers);
+  }
+
+  if (mqtt->status != MQTT_CLIENT_DISCONNECTED) {
+    PLOG_ERROR("[MQTT] mqttclient(%p) current status is not disconnected",
+               mqtt);
+    return -1;
   }
 
   return 0;

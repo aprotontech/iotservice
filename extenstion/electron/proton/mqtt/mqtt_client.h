@@ -41,8 +41,10 @@ typedef enum _proton_mqtt_client_status {
   MQTT_CLIENT_INITED = 1,
   MQTT_CLIENT_CONNECTING,
   MQTT_CLIENT_CONNECTED,
+  MQTT_CLIENT_DISCONNECTING,
   MQTT_CLIENT_DISCONNECTED,
   MQTT_CLIENT_CONNECT_ERROR,
+  MQTT_CLIENT_DESTORYED,
 } proton_mqtt_client_status;
 
 typedef struct _proton_mqtt_client_t proton_mqtt_client_t;

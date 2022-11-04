@@ -17,9 +17,33 @@ class ConnectTest extends ProtonTestCase
             'password' => '_mqtt_admin_password'
         ];
 
+        Proton\go(function () {
+            $server = new Proton\TcpServer();
+            $this->assertEquals(0, $server->listen("127.0.0.1", 18180));
+
+            for ($i = 0; $i < 2; ++$i) {
+                $c = $server->accept();
+                $this->assertNotNull($c);
+                $s = $c->read(1024); // recv connect package
+
+                // connect success
+                if (strpos($s, "_proton_admin_1") !== false) {
+                    $r = $c->write(pack("cccc", 0x20, 0x02, 0x00, 0x00));
+                } else {
+                    $r = $c->write(pack("cccc", 0x20, 0x02, 0x00, 0x04));
+                }
+                $this->assertEquals(0, $r);
+
+                Proton\sleep(100);
+
+                $this->assertEquals(0, $c->close());
+            }
+            $this->assertEquals(0, $server->close());
+        });
+
         Proton\go(function ($options) {
             $connect_test = function ($test, $options, $connRet) {
-                $client = new \Proton\MqttClient("127.0.0.1", "1883");
+                $client = new \Proton\MqttClient("127.0.0.1", "18180");
                 $ret = $client->connect($options);
                 $test->assertEquals($connRet, $ret);
 
