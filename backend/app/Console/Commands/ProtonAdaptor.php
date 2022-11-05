@@ -7,7 +7,7 @@ use Illuminate\Http\Request as imRequest;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-use Proton\HttpRequest;
+use Proton\Eletron\HttpRequest;
 
 class ProtonAdaptor
 {
