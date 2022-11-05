@@ -8,13 +8,13 @@ class ProtonCoroutineLoopTest extends ProtonTestCase
     public function testLoopStartStop()
     {
         $values = [];
-        Proton\go(function () use (&$values) {
+        Proton\Electron\go(function () use (&$values) {
             $values[] = "test-1";
-            Proton\Runtime::stop();
+            Proton\Electron\Runtime::stop();
             $values[] = "test-2";
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
         $this->assertEquals(2, count($values));
         $this->assertEquals("test-1", $values[0]);
@@ -24,17 +24,17 @@ class ProtonCoroutineLoopTest extends ProtonTestCase
     public function testLoopStartStopCompare()
     {
         $values = [];
-        Proton\go(function () use (&$values) {
+        Proton\Electron\go(function () use (&$values) {
             $values[] = "test-1";
-            Proton\context()->pause();
+            Proton\Electron\context()->pause();
             $values[] = "test-2";
-            Proton\Runtime::stop();
+            Proton\Electron\Runtime::stop();
         });
 
         $this->assertEquals(1, count($values));
         $this->assertEquals("test-1", $values[0]);
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
         $this->assertEquals(2, count($values));
         $this->assertEquals("test-1", $values[0]);

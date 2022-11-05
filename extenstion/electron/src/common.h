@@ -28,7 +28,7 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define PROTON_NAMESPACE "Proton"
+#define PROTON_NAMESPACE "Proton\\Electron"
 
 #define PHP_PRIVATE_VALUE_RESOURCE_NAME "proton_private_value"
 

@@ -17,8 +17,8 @@ class SubscribeTest extends ProtonTestCase
             'password' => '_mqtt_admin_password'
         ];
 
-        Proton\go(function () {
-            $server = new Proton\TcpServer();
+        Proton\Electron\go(function () {
+            $server = new Proton\Electron\TcpServer();
             $this->assertEquals(0, $server->listen("127.0.0.1", 18180));
 
             $c = $server->accept();
@@ -36,33 +36,33 @@ class SubscribeTest extends ProtonTestCase
             $this->assertTrue(strpos($s, "/test/topic") !== false);
             $c->write(pack('cc', 0x90, 0x03) . substr($s, 2, 2) . pack('c', 0x00));
 
-            Proton\sleep(100);
+            Proton\Electron\sleep(100);
 
             // write publish message
             $n = strlen("/test/topic");
             $c->write(pack("cccc", 0x30, $n + 2 + 4, 0x00, $n) . "/test/topic" . 'stop');
 
-            Proton\sleep(100);
+            Proton\Electron\sleep(100);
 
             $this->assertEquals(0, $c->close());
             $this->assertEquals(0, $server->close());
         });
 
-        Proton\go(function ($options) {
+        Proton\Electron\go(function ($options) {
 
-            $client = new \Proton\MqttClient("127.0.0.1", "18180");
+            $client = new \Proton\Electron\MqttClient("127.0.0.1", "18180");
 
             $ret = $client->connect($options);
             $this->assertEquals(0, $ret);
 
-            $channel = new \Proton\Channel(1);
+            $channel = new \Proton\Electron\Channel(1);
 
-            \Proton\go(function ($client, $channel) {
+            \Proton\Electron\go(function ($client, $channel) {
                 $ret = $client->loop();
                 $channel->push("loop=$ret");
             }, $client, $channel);
 
-            \Proton\sleep(100);
+            \Proton\Electron\sleep(100);
 
             $test = $this;
             $client->subscribe("/test/topic", function ($client, $msg) use ($test) {
@@ -82,9 +82,9 @@ class SubscribeTest extends ProtonTestCase
             $ret = $channel->pop();
             $this->assertEquals($ret, "loop=0");
 
-            Proton\Runtime::stop();
+            Proton\Electron\Runtime::stop();
         }, $options);
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
     }
 }

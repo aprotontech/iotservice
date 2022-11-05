@@ -8,7 +8,7 @@ class ProtonHTTPMultiPartyTest extends ProtonTestCase
     public function __construct()
     {
         parent::__construct();
-        Proton\Runtime::setErrorHandler(function ($coroutine, $error) {
+        Proton\Electron\Runtime::setErrorHandler(function ($coroutine, $error) {
             utlog("Coroutinue[$coroutine]");
             utlog("Error=" . $error->getMessage());
             $lines = explode("\n", var_export($error, true));
@@ -20,10 +20,10 @@ class ProtonHTTPMultiPartyTest extends ProtonTestCase
 
     public function testPost()
     {
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
             $test = $this;
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
                 utlog("[testHttpServer] server($server) new request($request)");
 
                 $request->end(200, "testHttpServer");
@@ -40,14 +40,14 @@ class ProtonHTTPMultiPartyTest extends ProtonTestCase
             });
             $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
         });
 
 
-        Proton\go(function () {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
             $headers = [
                 "Content-Type:multipart/form-data; boundary=ZnGpDtePMx0KrHh"
             ];
@@ -83,22 +83,22 @@ class ProtonHTTPMultiPartyTest extends ProtonTestCase
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
 
     public function testFiles()
     {
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
             $test = $this;
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
                 utlog("[testHttpServer] server($server) new request($request)");
 
                 $request->end(200, "testHttpServer");
@@ -129,14 +129,14 @@ class ProtonHTTPMultiPartyTest extends ProtonTestCase
             });
             $test->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
         });
 
 
-        Proton\go(function () {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
             $headers = [
                 "Content-Type:multipart/form-data; boundary=ZnGpDtePMx0KrHh"
             ];
@@ -172,12 +172,12 @@ class ProtonHTTPMultiPartyTest extends ProtonTestCase
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         }, $this);
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 }

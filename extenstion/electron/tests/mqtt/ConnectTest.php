@@ -17,8 +17,8 @@ class ConnectTest extends ProtonTestCase
             'password' => '_mqtt_admin_password'
         ];
 
-        Proton\go(function () {
-            $server = new Proton\TcpServer();
+        Proton\Electron\go(function () {
+            $server = new Proton\Electron\TcpServer();
             $this->assertEquals(0, $server->listen("127.0.0.1", 18180));
 
             for ($i = 0; $i < 2; ++$i) {
@@ -34,20 +34,20 @@ class ConnectTest extends ProtonTestCase
                 }
                 $this->assertEquals(0, $r);
 
-                Proton\sleep(100);
+                Proton\Electron\sleep(100);
 
                 $this->assertEquals(0, $c->close());
             }
             $this->assertEquals(0, $server->close());
         });
 
-        Proton\go(function ($options) {
+        Proton\Electron\go(function ($options) {
             $connect_test = function ($test, $options, $connRet) {
-                $client = new \Proton\MqttClient("127.0.0.1", "18180");
+                $client = new \Proton\Electron\MqttClient("127.0.0.1", "18180");
                 $ret = $client->connect($options);
                 $test->assertEquals($connRet, $ret);
 
-                \Proton\sleep(500);
+                \Proton\Electron\sleep(500);
 
                 $ret = $client->close();
                 $test->assertEquals(0, $ret);
@@ -59,9 +59,9 @@ class ConnectTest extends ProtonTestCase
             $options['userName'] = '_proton_admin_1';
             $connect_test($this, $options, 0);
 
-            Proton\Runtime::stop();
+            Proton\Electron\Runtime::stop();
         }, $options);
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
     }
 }

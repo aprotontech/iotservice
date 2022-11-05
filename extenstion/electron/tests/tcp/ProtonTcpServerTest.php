@@ -8,15 +8,15 @@ class ProtonTcpServerTest extends ProtonTestCase
     public function testServer()
     {
         $this->testResult = 0;
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
-            $server = new Proton\TcpServer();
+            $server = new Proton\Electron\TcpServer();
             $this->assertEquals(0, $server->listen("127.0.0.1", 18180));
             $c = $server->accept();
             $this->assertNotNull($c);
 
             for ($i = 0; $i < 1; ++$i) {
-                Proton\sleep(100);
+                Proton\Electron\sleep(100);
                 $r = $c->write("hello test\n");
                 $this->assertEquals(0, $r);
             }
@@ -27,16 +27,16 @@ class ProtonTcpServerTest extends ProtonTestCase
             $this->testResult = 1;
         });
 
-        Proton\go(function () {
-            Proton\sleep(1000);
-            Proton\Runtime::stop();
+        Proton\Electron\go(function () {
+            Proton\Electron\sleep(1000);
+            Proton\Electron\Runtime::stop();
         });
 
         utlog("system command");
         system("echo abc | telnet 127.0.0.1 18180 &");
 
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
         $this->assertEquals(1, $this->testResult);
     }
@@ -44,8 +44,8 @@ class ProtonTcpServerTest extends ProtonTestCase
     public function testClient()
     {
         $this->testResult = 0;
-        Proton\go(function () {
-            $c = new Proton\TcpClient();
+        Proton\Electron\go(function () {
+            $c = new Proton\Electron\TcpClient();
             $this->assertEquals(0, $c->connect("39.156.66.18", 80));
 
             $r = $c->write(implode("\r\n", [
@@ -66,19 +66,19 @@ class ProtonTcpServerTest extends ProtonTestCase
 
             $this->assertEquals(0, $c->close());
 
-            Proton\Runtime::stop();
+            Proton\Electron\Runtime::stop();
             $this->testResult = 1;
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
         $this->assertEquals(1, $this->testResult);
     }
 
     public function testServerClient()
     {
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
-            $server = new Proton\TcpServer();
+            $server = new Proton\Electron\TcpServer();
             $this->assertEquals(0, $server->listen("127.0.0.1", 18180));
             $c = $server->accept();
             $this->assertNotNull($c);
@@ -91,20 +91,20 @@ class ProtonTcpServerTest extends ProtonTestCase
             $this->assertEquals(0, $server->close());
         });
 
-        Proton\go(function () {
-            Proton\sleep(100);
-            $c = new Proton\TcpClient();
+        Proton\Electron\go(function () {
+            Proton\Electron\sleep(100);
+            $c = new Proton\Electron\TcpClient();
             $this->assertEquals(0, $c->connect("127.0.0.1", 18180));
             $this->assertEquals(0, $c->write("client"));
             $this->assertEquals("hello client", $c->read(1024));
             $this->assertEquals(0, $c->close());
         });
 
-        Proton\go(function () {
-            Proton\sleep(1000);
-            Proton\Runtime::stop();
+        Proton\Electron\go(function () {
+            Proton\Electron\sleep(1000);
+            Proton\Electron\Runtime::stop();
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
     }
 }

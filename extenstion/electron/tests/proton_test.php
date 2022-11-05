@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Proton\Logger;
+use Proton\Electron\Logger;
 
 use PHPUnit\Framework\TestCase;
 

@@ -7,8 +7,8 @@ class ProtonHTTPClientTest extends ProtonTestCase
 
     public function testCurlAprotonTech()
     {
-        Proton\go(function () {
-            $http = new Proton\HttpClient("82.157.138.167", 80);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("82.157.138.167", 80);
             $response = $http->get("http://api.aproton.tech/not-exists");
 
             $this->assertNotNull($response);
@@ -26,19 +26,19 @@ class ProtonHTTPClientTest extends ProtonTestCase
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
     public function testCurlMultiTimes()
     {
-        Proton\go(function () {
-            $http = new Proton\HttpClient("82.157.138.167", 80);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("82.157.138.167", 80);
 
             for ($i = 0; $i < 2; ++$i) {
                 $response = $http->get("http://api.aproton.tech/not-exists");
@@ -55,18 +55,18 @@ class ProtonHTTPClientTest extends ProtonTestCase
                 utlog("headers %s", json_encode($response->getHeaders()));
                 $this->assertNotEmpty($response->getHeaders());
 
-                Proton\sleep(100);
+                Proton\Electron\sleep(100);
             }
 
             $http->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 }

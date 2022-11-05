@@ -7,22 +7,22 @@ class ProtonHTTPBothTest extends ProtonTestCase
 
     public function testCurlMySelf()
     {
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) {
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) {
                 utlog("[testHttpServer] server($server) new request($request)");
                 $request->end(200, "testHttpServer");
             });
             $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
         });
 
 
-        Proton\go(function () {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
             $response = $http->get("http://127.0.0.1:18180/hello");
 
             $this->assertNotNull($response);
@@ -40,21 +40,21 @@ class ProtonHTTPBothTest extends ProtonTestCase
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
     public function testPost()
     {
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
             $test = $this;
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
                 utlog("[testHttpServer] server($server) new request($request)");
 
 
@@ -71,14 +71,14 @@ class ProtonHTTPBothTest extends ProtonTestCase
             });
             $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
         });
 
 
-        Proton\go(function () {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
             $response = $http->post("http://127.0.0.1:18180/hello", "post-content", ["TEST-HEADER: xyz"]);
 
             $this->assertNotNull($response);
@@ -95,36 +95,36 @@ class ProtonHTTPBothTest extends ProtonTestCase
 
             $response->getConnect()->close();
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
 
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
 
     public function testCurlMySelfMulittTimes()
     {
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             utlog("startup");
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) {
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) {
                 utlog("[testHttpServer] server($server) new request($request)");
                 $request->end(200, "testHttpServer");
             });
             $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
         }, $this);
 
 
         $times = 0;
-        Proton\go(function () use (&$times) {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () use (&$times) {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
 
             for ($i = 0; $i < 10; ++$i) {
                 $response = $http->get("http://127.0.0.1:18180/hello");
@@ -147,13 +147,13 @@ class ProtonHTTPBothTest extends ProtonTestCase
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         }, $this);
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
         $this->assertEquals(10, $times);
-        $this->assertNull(Proton\Runtime::getLastError());
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 }
