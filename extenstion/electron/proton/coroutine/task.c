@@ -38,23 +38,7 @@ static uint64_t __next_coroutine_id = 0;
 
 zend_vm_stack vm_stack_init(uint32_t size);
 zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap);
-
-static void _quark_task_runner(task_context_wrap_t *wrap) {
-  void run_proton_coroutine_task(proton_coroutine_task * task,
-                                 zend_function * func);
-
-  run_proton_coroutine_task(&wrap->task, wrap->func);
-
-  /*
-    // release call
-    for (int i = 0; i < wrap->entry.argc; ++i) {
-      zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
-      ZVAL_PTR_DTOR(param); // release argv, no need now
-    }
-  */
-
-  ZVAL_PTR_DTOR(&wrap->entry.func);
-}
+static void _quark_task_runner(task_context_wrap_t *wrap);
 
 proton_coroutine_task *_proton_coroutine_create(proton_coroutine_task *current,
                                                 proton_coroutine_entry *entry,
@@ -198,10 +182,19 @@ zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
   save_vm_stack(task->parent);
   restore_vm_stack(task);
 
-  call = zend_vm_stack_push_call_frame(
-      ZEND_CALL_TOP_FUNCTION | ZEND_CALL_ALLOCATED, func, entry->argc,
-      fci_cache.object != NULL ? (void *)fci_cache.object
-                               : (void *)fci_cache.called_scope);
+  uint32_t call_info = ZEND_CALL_TOP_FUNCTION | ZEND_CALL_ALLOCATED;
+  if (fci_cache.object != NULL) {
+    PLOG_DEBUG("[COROUTINE] task(%lu) has this", task->cid);
+    call_info |= ZEND_CALL_HAS_THIS;
+  }
+
+  void *obj_or_scope = fci_cache.object;
+  if (obj_or_scope == NULL) {
+    obj_or_scope = fci_cache.called_scope;
+  }
+
+  call =
+      zend_vm_stack_push_call_frame(call_info, func, entry->argc, obj_or_scope);
 
   call->symbol_table = NULL;
   EG(current_execute_data) = call;
@@ -220,6 +213,7 @@ zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
   return func;
 }
 
+void print_coroutine_exception_stack();
 void run_proton_coroutine_task(proton_coroutine_task *task,
                                zend_function *func) {
 
@@ -236,18 +230,14 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
     zend_execute_ex(EG(current_execute_data));
   }
 
-  if (EG(exception) != NULL) { // exception is error
-    const char *class_name = "";
-    if (EG(exception_class) != NULL) {
-      class_name = ZSTR_VAL(EG(exception_class)->name);
+  if (EG(exception) != NULL) {                          // exception is error
+    if (Z_TYPE(task->runtime->last_error) != IS_NULL) { // clean-org-error
+      ZVAL_PTR_DTOR(&task->runtime->last_error);
     }
-    zval tmp;
-    ZVAL_OBJ(&tmp, EG(exception));
+    ZVAL_OBJ(&task->runtime->last_error, EG(exception));
+    Z_TRY_ADDREF(task->runtime->last_error);
 
-    zend_string *msg = zend_print_zval_r_to_str(&tmp, 0);
-    PLOG_ERROR("exception class(%s), message(%s)", class_name, ZSTR_VAL(msg));
-
-    zend_string_free(msg);
+    print_coroutine_exception_stack();
 
     if (task->ehandler != NULL) {
       task->ehandler(task); // fire the exception
@@ -286,4 +276,97 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
   restore_vm_stack(RUNTIME_MAIN_COROUTINE(runtime));
 
   proton_coroutine_notify_reschedule(runtime);
+}
+
+void print_stack_frame(zval *exception) {
+  zval *file = NULL, *line = NULL;
+  if (Z_TYPE_P(exception) == IS_OBJECT) {
+    file = zend_read_property(Z_OBJ_P(exception)->ce, exception,
+                              ZEND_STRL("file"), 0 TSRMLS_CC, NULL);
+    line = zend_read_property(Z_OBJ_P(exception)->ce, exception,
+                              ZEND_STRL("line"), 0 TSRMLS_CC, NULL);
+  } else if (Z_TYPE_P(exception) == IS_ARRAY) {
+    file = zend_hash_str_find(Z_ARRVAL_P(exception), "file", strlen("file"));
+    line = zend_hash_str_find(Z_ARRVAL_P(exception), "line", strlen("line"));
+  }
+
+  if (file != NULL && line != NULL) {
+    PLOG_ERROR("[STACK-TRACE] %s:%d", Z_STRVAL_P(file), Z_LVAL_P(line));
+  }
+}
+
+void print_coroutine_exception_stack() {
+  const char *class_name = "";
+  zend_class_entry *ece = EG(exception_class);
+  if (ece == NULL) {
+    ece = EG(exception)->ce;
+  }
+  if (ece != NULL) {
+    class_name = ZSTR_VAL(ece->name);
+  }
+
+  zval exception;
+  ZVAL_OBJ(&exception, EG(exception));
+  zval *trace = zend_read_property(ece, &exception, ZEND_STRL("trace"),
+                                   0 TSRMLS_CC, NULL);
+  zval *msg = zend_read_property(ece, &exception, ZEND_STRL("message"),
+                                 0 TSRMLS_CC, NULL);
+
+  PLOG_ERROR("exception class(%s), message(%s)", class_name, Z_STRVAL_P(msg));
+
+  print_stack_frame(&exception);
+
+  PLOG_DEBUG("trace=%p, type=%d", trace, Z_TYPE_P(trace));
+  if (trace == NULL || Z_TYPE_P(trace) != IS_ARRAY) { // try by debug
+    if (Z_OBJ(exception)->handlers != NULL &&
+        Z_OBJ(exception)->handlers->get_properties != NULL) {
+      HashTable *ht =
+          zend_get_properties_for(&exception, ZEND_PROP_PURPOSE_DEBUG);
+      if (ht != NULL) {
+        zend_string *string_key;
+        zend_ulong num_key;
+        zval *item = NULL;
+        ZEND_HASH_FOREACH_KEY_VAL_IND(ht, num_key, string_key, item) {
+          if (string_key != NULL) {
+            const char *prop_name, *class_name;
+            size_t prop_len;
+            int mangled = zend_unmangle_property_name_ex(
+                string_key, &class_name, &prop_name, &prop_len);
+            if (prop_len == strlen("trace") &&
+                strncasecmp(prop_name, "trace", strlen("trace")) == 0) {
+              trace = item;
+              break;
+            }
+          }
+        }
+        ZEND_HASH_FOREACH_END();
+
+        PLOG_DEBUG("trace=%p, type=%d", trace,
+                   trace != NULL ? Z_TYPE_P(trace) : 0);
+      }
+    }
+  }
+
+  if (trace != NULL && Z_TYPE_P(trace) == IS_ARRAY) {
+    zval *val;
+    HashTable *ht = Z_ARRVAL_P(trace);
+    ZEND_HASH_FOREACH_VAL(ht, val) { print_stack_frame(val); }
+    ZEND_HASH_FOREACH_END();
+  }
+}
+
+static void _quark_task_runner(task_context_wrap_t *wrap) {
+
+  restore_vm_stack(&wrap->task);
+  run_proton_coroutine_task(&wrap->task, wrap->func);
+
+  /*
+    // release call
+    for (int i = 0; i < wrap->entry.argc; ++i) {
+      zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
+      ZVAL_PTR_DTOR(param); // release argv, no need now
+    }
+  */
+
+  ZVAL_PTR_DTOR(&wrap->entry.func);
 }

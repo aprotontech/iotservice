@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Mqtt;
+namespace App\Http\Controllers\EMQ;
 
 use App\Http\Controllers\IotApi\DeviceUtils;
 use Illuminate\Http\Request;
+
 
 class AuthController extends \App\Http\Controllers\ApiController
 {
@@ -23,8 +24,13 @@ class AuthController extends \App\Http\Controllers\ApiController
     {
         $info = $this->reqToObject($request);
         $admin_password = env('PROTON_MQTT_ADMIN_PASSWORD', '');
+        $admin_user_prefix = env('PROTON_MQTT_ADMIN_USERNAME_PREFIX', '');
 
-        if ($admin_password && $info->password == $admin_password) {
+        if (
+            $admin_password && $admin_user_prefix &&
+            $info->password == $admin_password &&
+            str_starts_with($info->username, $admin_user_prefix)
+        ) {
             return $this->success();
         }
 

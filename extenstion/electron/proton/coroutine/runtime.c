@@ -37,6 +37,7 @@ proton_runtime_init(proton_coroutine_runtime *runtime) {
     LL_init(&runtime->releaseables);
 
     ZVAL_NULL(&runtime->error_handler);
+    ZVAL_NULL(&runtime->last_error);
 
     // init main coroutine
     LL_init(&runtime->main.link);

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Device\Web;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-use Proton\Media\Storage;
+use Proton\Framework\Media\Storage;
 
 class ExportController extends \App\Http\Controllers\WebController
 {

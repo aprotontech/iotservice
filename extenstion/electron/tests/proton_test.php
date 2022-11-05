@@ -2,23 +2,22 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
+use Proton\Electron\Logger;
 
 use PHPUnit\Framework\TestCase;
 
 class ProtonTestCase extends TestCase
 {
-    private $logger;
+}
 
-    public function log()
-    {
-        if (!$this->logger) {
-            $log = new Logger('Tester');
-            $log->pushHandler((new StreamHandler('php://stdout', Logger::DEBUG, true)));
-            $this->logger = $log;
-        }
+function utlog($format, ...$args)
+{
+    $msg = vsprintf($format, $args);
+    $logger = Logger::getDefaultLogger();
+    $logger->write(PROTON_LOG_NOTICE, $msg);
+}
 
-        return $this->logger;
-    }
+if (defined('PROTON_PRINT_CORE_LOGGER') && PROTON_PRINT_CORE_LOGGER) {
+    Logger::getDefaultLogger()->setLevel(0);
+    Logger::setCoreLogger(Logger::getDefaultLogger());
 }

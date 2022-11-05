@@ -3,11 +3,9 @@
     <div class="breadcrumb-bar">
       <el-breadcrumb separator="/">
         <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-        <el-breadcrumb-item :to="{ name: 'devicelist' }"
-          >设备列表</el-breadcrumb-item
-        >
+        <el-breadcrumb-item :to="{ name: 'devicelist' }">设备列表</el-breadcrumb-item>
         <el-breadcrumb-item>{{
-          this.$route.query.clientId
+            this.$route.query.clientId
         }}</el-breadcrumb-item>
       </el-breadcrumb>
     </div>
@@ -16,12 +14,7 @@
         <h3 class="mode-title">基本信息</h3>
         <div class="mode-content">
           <el-table :data="deviceInfo" style="width: 100%">
-            <el-table-column
-              prop="client_id"
-              label="序列号"
-              width="180"
-              align="center"
-            >
+            <el-table-column prop="client_id" label="序列号" width="180" align="center">
             </el-table-column>
             <el-table-column prop="uuid" label="UUID" align="center">
             </el-table-column>
@@ -37,26 +30,12 @@
         <h3 class="mode-title">连接状态</h3>
         <div class="mode-content">
           <el-table :data="deviceOnline" style="width: 100%">
-            <el-table-column
-              prop="isOnline"
-              label="在线状态"
-              width="200"
-              align="center"
-            >
+            <el-table-column prop="isOnline" label="在线状态" width="200" align="center">
             </el-table-column>
-            <el-table-column
-              prop="onlineTime"
-              label="最近在线时间"
-              width="300"
-              align="center"
-            >
+            <el-table-column prop="onlineTime" label="最近在线时间" width="300" align="center">
             </el-table-column>
 
-            <el-table-column
-              prop="offlineTime"
-              label="最近离线时间"
-              align="center"
-            >
+            <el-table-column prop="offlineTime" label="最近离线时间" align="center">
             </el-table-column>
           </el-table>
         </div>
@@ -68,27 +47,12 @@
           <el-table :data="deviceLocation" border style="width: 100%">
             <el-table-column prop="ip" label="IP" width="200" align="center">
             </el-table-column>
-            <el-table-column
-              prop="longitude"
-              label="经度"
-              width="120"
-              align="center"
-            >
+            <el-table-column prop="longitude" label="经度" width="120" align="center">
             </el-table-column>
-            <el-table-column
-              prop="latitude"
-              label="纬度"
-              width="120"
-              align="center"
-            >
+            <el-table-column prop="latitude" label="纬度" width="120" align="center">
             </el-table-column>
 
-            <el-table-column
-              prop="updateTime"
-              label="更新时间"
-              width="180"
-              align="center"
-            >
+            <el-table-column prop="updateTime" label="更新时间" width="180" align="center">
             </el-table-column>
             <el-table-column prop="address" label="详细地址" align="center">
             </el-table-column>
@@ -117,44 +81,17 @@
         <h3 class="mode-title">版本信息</h3>
         <div class="mode-content">
           <el-table :data="versionData" border style="width: 100%">
-            <el-table-column
-              prop="scope"
-              label="类型"
-              width="180"
-              align="center"
-            >
+            <el-table-column prop="scope" label="类型" width="180" align="center">
             </el-table-column>
-            <el-table-column
-              prop="name"
-              label="升级包"
-              width="180"
-              align="center"
-            >
+            <el-table-column prop="name" label="升级包" width="180" align="center">
             </el-table-column>
-            <el-table-column
-              prop="vname"
-              label="版本名"
-              width="180"
-              align="center"
-            >
+            <el-table-column prop="vname" label="版本名" width="180" align="center">
             </el-table-column>
 
-            <el-table-column
-              prop="created_at"
-              label="更新时间"
-              show-overflow-tooltip
-              align="center"
-              min-width="140"
-            >
+            <el-table-column prop="created_at" label="更新时间" show-overflow-tooltip align="center" min-width="140">
             </el-table-column>
 
-            <el-table-column
-              prop="updated_at"
-              label="最近上报时间"
-              show-overflow-tooltip
-              align="center"
-              min-width="140"
-            >
+            <el-table-column prop="updated_at" label="最近上报时间" show-overflow-tooltip align="center" min-width="140">
             </el-table-column>
           </el-table>
         </div>
@@ -166,26 +103,11 @@
           <el-table :data="deviceAttrs" border style="width: 100%">
             <el-table-column prop="attr" label="ID" width="180" align="center">
             </el-table-column>
-            <el-table-column
-              prop="attr"
-              label="名称"
-              min-width="180"
-              align="center"
-            >
+            <el-table-column prop="attr" label="名称" min-width="180" align="center">
             </el-table-column>
-            <el-table-column
-              prop="value"
-              label="值"
-              min-width="180"
-              align="center"
-            >
+            <el-table-column prop="value" label="值" min-width="180" align="center">
             </el-table-column>
-            <el-table-column
-              prop="report_time"
-              label="修改时间"
-              min-width="180"
-              align="center"
-            >
+            <el-table-column prop="report_time" label="修改时间" min-width="180" align="center">
             </el-table-column>
           </el-table>
         </div>
@@ -282,7 +204,7 @@ export default {
     this.fetchDeviceVersionInfo();
   },
   computed: {},
-  mounted() {},
+  mounted() { },
   watch: {},
   filters: {
     formatDate2(d) {
@@ -295,8 +217,7 @@ export default {
         app_id: this.$route.query.appId,
         client_id: this.$route.query.clientId,
       };
-      this.$http
-        .post(this.$API.DEVICE_DETAIL, params)
+      this.$axios.post(this.$API.DEVICE_DETAIL, params)
         .then((response) => {
           let m = response.data;
           if (m.rc == 0) {
@@ -352,22 +273,6 @@ export default {
         });
     },
     fetchDeviceVersionInfo() {
-      return;
-      let params = {
-        app_id: this.$route.query.appId,
-        client_id: this.$route.query.clientId,
-      };
-      this.$http
-        .post(this.$API.OTA_GET_VERSION, params)
-        .then((response) => {
-          let m = response.data;
-          if (m.rc == 0) {
-            this.versionData = m.versions;
-          }
-        })
-        .catch((error) => {
-          ApiMessage(this, error.toString(), "error");
-        });
     },
   },
 };
@@ -383,8 +288,10 @@ export default {
 
   .el-form-item {
     width: 48%;
+
     &.form-item-lg {
       width: 100%;
+
       audio,
       .el-button {
         vertical-align: middle;
@@ -407,6 +314,7 @@ export default {
 
 .mode-content {
   margin-bottom: 30px;
+
   dl {
     float: left;
     display: block;
@@ -414,13 +322,16 @@ export default {
     font-size: 14px;
     line-height: 32px;
     padding: 5px 0;
+
     &.mode-item {
       width: 50%;
     }
   }
+
   dt {
     float: left;
   }
+
   dd {
     overflow: hidden;
     zoom: 1;

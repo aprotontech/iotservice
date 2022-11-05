@@ -1,7 +1,8 @@
 "use strict";
 
-import Vue from 'vue';
+
 import axios from "axios";
+import router from './router'
 
 // Full config:  https://github.com/axios/axios#request-config
 // axios.defaults.baseURL = process.env.baseURL || process.env.apiUrl || '';
@@ -16,50 +17,36 @@ let config = {
 
 const _axios = axios.create(config);
 
-_axios.interceptors.request.use(
-  function(config) {
+axios.interceptors.request.use(
+  function (config) {
     // Do something before request is sent
     return config;
   },
-  function(error) {
+  function (error) {
     // Do something with request error
     return Promise.reject(error);
   }
 );
 
 // Add a response interceptor
-_axios.interceptors.response.use(
-  function(response) {
+axios.interceptors.response.use(
+  function (response) {
     // Do something with response data
-    console.log('interceptors:::');
-    console.log(response.status);
+    //console.log('interceptor', response);
+    if (response && response.data && response.data.rc == "401") { // user is not login
+      if (window.location.href.indexOf('/login') == -1) {
+        console.log('User is not login, url: ' + window.location.href)
+        router.push({ path: '/login', query: { 'redirect_to': window.location.href } })
+        return;
+      }
+    }
     return response;
   },
-  function(error) {
+  function (error) {
     // Do something with response error
-    console.log('error:');
-    //console.log(response);
+
     return Promise.reject(error);
   }
 );
 
-Plugin.install = function(Vue, options) {
-  Vue.axios = _axios;
-  window.axios = _axios;
-  Object.defineProperties(Vue.prototype, {
-    axios: {
-      get() {
-        return _axios;
-      }
-    },
-    $axios: {
-      get() {
-        return _axios;
-      }
-    },
-  });
-};
-
-Vue.use(Plugin)
-
-export default Plugin;
+export default axios;

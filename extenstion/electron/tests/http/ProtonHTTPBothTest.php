@@ -7,57 +7,58 @@ class ProtonHTTPBothTest extends ProtonTestCase
 
     public function testCurlMySelf()
     {
-        Proton\go(function ($test) {
-            $test->log()->info("startup");
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
-                $test->log()->info("[testHttpServer] server($server) new request($request)");
+        Proton\Electron\go(function () {
+            utlog("startup");
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) {
+                utlog("[testHttpServer] server($server) new request($request)");
                 $request->end(200, "testHttpServer");
             });
-            $test->assertEquals(0, $server->start());
+            $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
-        }, $this);
+        });
 
 
-        Proton\go(function ($test) {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
             $response = $http->get("http://127.0.0.1:18180/hello");
 
-            $test->assertNotNull($response);
-            $test->assertNotNull($response->getConnect());
+            $this->assertNotNull($response);
+            $this->assertNotNull($response->getConnect());
 
             $s = $response->getBody();
-            $test->log()->info($s);
-            $test->assertEquals("testHttpServer", $s);
+            utlog($s);
+            $this->assertEquals("testHttpServer", $s);
 
-            $test->assertEquals($response->StatusCode, 200);
+            $this->assertEquals($response->StatusCode, 200);
 
-            $test->log()->info("headers", $response->getHeaders());
-            $test->assertNotEmpty($response->getHeaders());
+            utlog("headers %s", json_encode($response->getHeaders()));
+            $this->assertNotEmpty($response->getHeaders());
 
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
-        }, $this);
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
+        });
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
+
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
     public function testPost()
     {
-        Proton\go(function ($test) {
-            $test->log()->info("startup");
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
-                $test->log()->info("[testHttpServer] server($server) new request($request)");
+        Proton\Electron\go(function () {
+            utlog("startup");
+            $test = $this;
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
+                utlog("[testHttpServer] server($server) new request($request)");
 
 
                 $request->end(200, "testHttpServer");
-
-
 
                 $test->assertEquals($request->Method, "POST");
                 $test->assertEquals($request->getBody(), "post-content");
@@ -66,77 +67,79 @@ class ProtonHTTPBothTest extends ProtonTestCase
                 $test->assertTrue(isset($request->getHeaders()['TEST-HEADER']));
                 $test->assertEquals($request->getHeaders()['TEST-HEADER'], "xyz");
 
-                $test->log()->info("request headers", $request->getHeaders());
+                utlog("request headers", $request->getHeaders());
             });
-            $test->assertEquals(0, $server->start());
+            $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
-        }, $this);
+        });
 
 
-        Proton\go(function ($test) {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
             $response = $http->post("http://127.0.0.1:18180/hello", "post-content", ["TEST-HEADER: xyz"]);
 
-            $test->assertNotNull($response);
-            $test->assertNotNull($response->getConnect());
+            $this->assertNotNull($response);
+            $this->assertNotNull($response->getConnect());
 
             $s = $response->getBody();
-            $test->log()->info($s);
-            $test->assertEquals("testHttpServer", $s);
+            utlog($s);
+            $this->assertEquals("testHttpServer", $s);
 
-            $test->assertEquals($response->StatusCode, 200);
+            $this->assertEquals($response->StatusCode, 200);
 
-            $test->log()->info("headers", $response->getHeaders());
-            $test->assertNotEmpty($response->getHeaders());
+            utlog("headers %s", json_encode($response->getHeaders()));
+            $this->assertNotEmpty($response->getHeaders());
 
             $response->getConnect()->close();
 
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
+        });
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
-        }, $this);
+        Proton\Electron\Runtime::start();
 
-        Proton\Runtime::start();
+
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
 
     public function testCurlMySelfMulittTimes()
     {
-        Proton\go(function ($test) {
-            $test->log()->info("startup");
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
-                $test->log()->info("[testHttpServer] server($server) new request($request)");
+        Proton\Electron\go(function () {
+            utlog("startup");
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) {
+                utlog("[testHttpServer] server($server) new request($request)");
                 $request->end(200, "testHttpServer");
             });
-            $test->assertEquals(0, $server->start());
+            $this->assertEquals(0, $server->start());
 
-            Proton\sleep(200);
+            Proton\Electron\sleep(200);
 
             $server->stop();
         }, $this);
 
 
         $times = 0;
-        Proton\go(function ($test) use (&$times) {
-            $http = new Proton\HttpClient("127.0.0.1", 18180);
+        Proton\Electron\go(function () use (&$times) {
+            $http = new Proton\Electron\HttpClient("127.0.0.1", 18180);
 
             for ($i = 0; $i < 10; ++$i) {
                 $response = $http->get("http://127.0.0.1:18180/hello");
 
-                $test->assertNotNull($response);
-                $test->assertNotNull($response->getConnect());
+                $this->assertNotNull($response);
+                $this->assertNotNull($response->getConnect());
 
                 $s = $response->getBody();
-                $test->log()->info($s);
-                $test->assertEquals("testHttpServer", $s);
+                utlog($s);
+                $this->assertEquals("testHttpServer", $s);
 
-                $test->assertEquals($response->StatusCode, 200);
+                $this->assertEquals($response->StatusCode, 200);
 
-                $test->log()->info("headers", $response->getHeaders());
-                $test->assertNotEmpty($response->getHeaders());
+                utlog("headers %s", json_encode($response->getHeaders()));
+                $this->assertNotEmpty($response->getHeaders());
 
                 ++$times;
             }
@@ -144,12 +147,13 @@ class ProtonHTTPBothTest extends ProtonTestCase
             $response->getConnect()->close();
 
 
-            Proton\sleep(500);
-            Proton\Runtime::stop();
+            Proton\Electron\sleep(500);
+            Proton\Electron\Runtime::stop();
         }, $this);
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
         $this->assertEquals(10, $times);
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 }

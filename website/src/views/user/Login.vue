@@ -5,31 +5,21 @@
         <Breadcrumb :style="{ margin: '100px 0' }"> </Breadcrumb>
         <Row type="flex" justify="center" class="code-row-bg">
           <Col span="8">
-            <Card>
-              <p slot="title">管理后台登陆</p>
-              <Form
-                ref="formCustom"
-                :model="formCustom"
-                :rules="ruleCustom"
-                :label-width="80"
-              >
-                <FormItem label="账号" prop="account">
-                  <Input type="text" v-model="formCustom.account"></Input>
-                </FormItem>
-                <FormItem label="密码" prop="passwd">
-                  <Input
-                    type="password"
-                    v-model="formCustom.passwd"
-                    @keyup.enter.native="handleSubmit('formCustom')"
-                  ></Input>
-                </FormItem>
-                <FormItem>
-                  <Button type="primary" @click="handleSubmit('formCustom')"
-                    >登陆</Button
-                  >
-                </FormItem>
-              </Form>
-            </Card>
+          <Card>
+            <p slot="title">管理后台登陆</p>
+            <Form ref="formCustom" :model="formCustom" :rules="ruleCustom" :label-width="80">
+              <FormItem label="账号" prop="account">
+                <Input type="text" v-model="formCustom.account"></Input>
+              </FormItem>
+              <FormItem label="密码" prop="passwd">
+                <Input type="password" v-model="formCustom.passwd"
+                  @keyup.enter.native="handleSubmit('formCustom')"></Input>
+              </FormItem>
+              <FormItem>
+                <Button type="primary" @click="handleSubmit('formCustom')">登陆</Button>
+              </FormItem>
+            </Form>
+          </Card>
           </Col>
         </Row>
       </Content>
@@ -82,7 +72,11 @@ export default {
             if (!response.data || response.data.rc != "0") {
               alert("登陆失败，请检查用户名密码");
             } else {
-              this.$router.push("/dashboard");
+              if (this.$route.query && this.$route.query.redirect_to) {
+                window.location.href = this.$route.query.redirect_to
+              } else {
+                this.$router.push("/dashboard");
+              }
             }
           });
         } else {
@@ -103,6 +97,7 @@ export default {
   border-radius: 4px;
   overflow: hidden;
 }
+
 .layout-logo {
   width: 100px;
   height: 30px;
@@ -113,11 +108,13 @@ export default {
   top: 15px;
   left: 20px;
 }
+
 .layout-nav {
   width: 420px;
   margin: 0 auto;
   margin-right: 20px;
 }
+
 .layout-footer-center {
   text-align: center;
 }

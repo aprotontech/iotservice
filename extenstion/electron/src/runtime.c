@@ -29,6 +29,15 @@ PHP_METHOD(runtime, stop) {
 }
 /* }}} */
 
+/* {{{ $exception Runtime::getLastError()
+ */
+PHP_METHOD(runtime, getLastError) {
+  proton_coroutine_runtime *runtime = proton_get_runtime();
+
+  RETURN_ZVAL(&runtime->last_error, 0, 0);
+}
+/* }}} */
+
 /* {{{ $orgHandler Runtime::setErrorHandler(function $handler)
  */
 PHP_METHOD(runtime, setErrorHandler) {
@@ -46,6 +55,7 @@ PHP_METHOD(runtime, setErrorHandler) {
 
   zval orgHandler;
   ZVAL_COPY(&orgHandler, &runtime->error_handler);
+  // ZVAL_PTR_DTOR(&runtime->error_handler);
   ZVAL_COPY(&runtime->error_handler, func);
 
   RETURN_ZVAL(&orgHandler, 0, 0);
@@ -67,6 +77,8 @@ const zend_function_entry runtime_functions[] = {
            ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // runtime::start
     PHP_ME(runtime, setErrorHandler, NULL,
            ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // runtime::setErrorHandler
+    PHP_ME(runtime, getLastError, NULL,
+           ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // runtime::getLastError
     PHP_ME(runtime, stop, NULL,
            ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // runtime::stop
     {NULL, NULL, NULL} /* Must be the last line in runtime_functions[] */

@@ -18,7 +18,7 @@ class ProtonCoroutineGoTest extends ProtonTestCase
     {
         ProtonCoroutineGoTest::$testValues = [];
 
-        Proton\go('test1');
+        Proton\Electron\go('test1');
 
         $this->assertEquals(ProtonCoroutineGoTest::COUNT, count(ProtonCoroutineGoTest::$testValues));
         for ($i = 0; $i < count(ProtonCoroutineGoTest::$testValues); ++$i) {
@@ -29,11 +29,11 @@ class ProtonCoroutineGoTest extends ProtonTestCase
     public function testRunTwoCoroutines()
     {
         ProtonCoroutineGoTest::$testValues = [];
-        Proton\go(function () {
+        Proton\Electron\go(function () {
             for ($i = 0; $i < ProtonCoroutineGoTest::COUNT; ++$i) {
                 ProtonCoroutineGoTest::$testValues[] = "xyz-$i";
                 if ($i == 1) {
-                    Proton\go('test1');
+                    Proton\Electron\go('test1');
                 }
             }
         });
@@ -55,7 +55,7 @@ class ProtonCoroutineGoTest extends ProtonTestCase
         $v3 = &$v1;
 
 
-        Proton\go(function ($v1, $v3) use (&$v2) {
+        Proton\Electron\go(function ($v1, $v3) use (&$v2) {
             for ($i = 0; $i < 3; ++$i) {
                 ++$v1;
                 ++$v3;
@@ -71,7 +71,7 @@ class ProtonCoroutineGoTest extends ProtonTestCase
     public function testArgRef()
     {
         $values = [];
-        Proton\go(function () use (&$values) {
+        Proton\Electron\go(function () use (&$values) {
             $values[] = 1;
         });
 
@@ -81,14 +81,25 @@ class ProtonCoroutineGoTest extends ProtonTestCase
     public function testComplexArgs()
     {
         $values = [];
-        Proton\go(function () use (&$values) {
+        Proton\Electron\go(function () use (&$values) {
             $values[] = 1;
-            Proton\go(function (&$values) {
+            Proton\Electron\go(function (&$values) {
                 $values[] = 2;
             }, $values);
         });
 
-        $this->log()->info("values", $values);
+        utlog("values=" . json_encode($values));
         $this->assertEquals(1, count($values));
+    }
+
+    private $mTest;
+    public function testThis()
+    {
+        $this->mTest = 2;
+        Proton\Electron\go(function () {
+            $this->mTest = 1;
+        });
+
+        $this->assertEquals(1, $this->mTest);
     }
 }

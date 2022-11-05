@@ -41,8 +41,15 @@ typedef enum _proton_mqtt_client_status {
   MQTT_CLIENT_INITED = 1,
   MQTT_CLIENT_CONNECTING,
   MQTT_CLIENT_CONNECTED,
+  MQTT_CLIENT_DISCONNECTING,
   MQTT_CLIENT_DISCONNECTED,
+  MQTT_CLIENT_CONNECT_ERROR,
+  MQTT_CLIENT_DESTORYED,
 } proton_mqtt_client_status;
+
+typedef struct _proton_mqtt_client_t proton_mqtt_client_t;
+typedef int (*mqtt_client_subscribe_callback)(proton_mqtt_client_t *mqtt,
+                                              zval *msg, zval *callback);
 
 typedef struct _proton_mqtt_client_t {
   proton_private_value_t value;
@@ -51,9 +58,7 @@ typedef struct _proton_mqtt_client_t {
   uv_tcp_t tcp;
   uv_timer_t timer;
 
-  // connection address
-  char *host;
-  int port;
+  struct sockaddr_in server_addr;
 
   struct mqtt_client client;
 
@@ -61,7 +66,7 @@ typedef struct _proton_mqtt_client_t {
 
   proton_wait_object_t wq_connack;
 
-  proton_private_value_t *status_channel;
+  mqtt_client_subscribe_callback subscribe_callback;
 
   // subscribe topics(item: proton_mqtt_subscribe_topic_t)
   map_t subscribe_topics;
@@ -70,29 +75,35 @@ typedef struct _proton_mqtt_client_t {
   map_t publish_watchers;
   pthread_mutex_t mwatcher;
 
-  pthread_mutex_t mevent;
+  int is_looping;
+  proton_wait_object_t wq_callback;
   list_link_t msg_head;
 
-  proton_link_buffer_t buffers;
-
-  proton_buffer_t *read_buffer;
+  int cur_recved_size;
 
 } proton_mqtt_client_t;
 
 typedef struct _proton_mqtt_subscribe_topic_t {
   char *topic;
   int topic_len;
-  proton_private_value_t *channel;
+  zval callback;
 } proton_mqtt_subscribe_topic_t;
 
-typedef struct _proton_mqtt_publish_watcher_t {
-  int dt;
-  char *topic;
-  // MQTTClient_message message;
-  proton_work_t pw_publish;
-  proton_mqtt_client_t *mqtt;
-  char dtid[20];
-} proton_mqtt_publish_watcher_t;
+typedef struct _proton_mqttclient_connect_options_t {
+  char *client_id;
+  char *user_name;
+  char *password;
+  char *will_topic;
+  short keep_alive_interval;
+  short clean_session;
+  short reliable;
+} proton_mqttclient_connect_options_t;
+
+typedef struct _proton_mqttclient_callback_t {
+  list_link_t link;
+  char type; // 0-disconn,1-subscribe
+  zval message;
+} proton_mqttclient_callback_t;
 
 int proton_mqttclient_init(proton_coroutine_runtime *runtime,
                            proton_mqtt_client_t *client, const char *host,
@@ -100,19 +111,34 @@ int proton_mqttclient_init(proton_coroutine_runtime *runtime,
 
 int proton_mqttclient_uninit(proton_private_value_t *client);
 
-int proton_mqttclient_connect(proton_private_value_t *value, zval *options,
-                              proton_private_value_t *channel);
+int proton_mqttclient_connect(proton_private_value_t *value,
+                              proton_mqttclient_connect_options_t *option);
 
 int proton_mqttclient_close(proton_private_value_t *client);
 
 int proton_mqttclient_publish(proton_private_value_t *mqtt, const char *topic,
                               int topic_len, const char *msg, int msg_len,
-                              int qos, int retained, int *dt);
+                              int qos, int retained);
 
 int proton_mqttclient_subscribe(proton_private_value_t *mqtt, const char *topic,
-                                int topic_len, int qos,
-                                proton_private_value_t *channel);
+                                int topic_len, int qos, zval *callback);
+
+int proton_mqttclient_loop(proton_private_value_t *mqtt,
+                           mqtt_client_subscribe_callback callback);
+
+proton_mqtt_client_status
+proton_mqttclient_get_status(proton_private_value_t *client);
 
 //// internal functions
 int _mqttclient_close_all(proton_mqtt_client_t *mqtt);
+int parse_mqttclient_options(zval *options,
+                             proton_mqttclient_connect_options_t *output);
+int reset_mqtt_read_buffer(proton_mqtt_client_t *mqtt, int new_length);
+void mqttclient_on_tick(uv_timer_t *timer);
+void publish_callback(void **unused, struct mqtt_response_publish *published);
+void mqttclient_alloc_buffer(uv_handle_t *handle, size_t suggested_size,
+                             uv_buf_t *buf);
+void mqttclient_on_read(uv_stream_t *handle, ssize_t nread,
+                        const uv_buf_t *buf);
+void mqttclient_on_connected(uv_connect_t *req, int status);
 #endif

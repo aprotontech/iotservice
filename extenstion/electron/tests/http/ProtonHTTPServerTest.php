@@ -7,24 +7,24 @@ class ProtonHTTPServerTest extends ProtonTestCase
 
     public function testHttpServer()
     {
-        Proton\go(function ($test) {
-            $test->log()->info("startup");
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test) {
-                $test->log()->info("[testHttpServer] server($server) new request($request)");
+        Proton\Electron\go(function () {
+            utlog("startup");
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) {
+                utlog("[testHttpServer] server($server) new request($request)");
                 $request->end(200, "testHttpServer");
             });
-            $test->assertEquals(0, $server->start());
+            $this->assertEquals(0, $server->start());
 
-            Proton\sleep(500);
+            Proton\Electron\sleep(500);
 
             $server->stop();
 
-            Proton\Runtime::stop();
-        }, $this);
+            Proton\Electron\Runtime::stop();
+        });
 
-        Proton\go(function ($test) {
-            $c = new Proton\TcpClient();
-            $test->assertEquals(0, $c->connect("127.0.0.1", 18180));
+        Proton\Electron\go(function () {
+            $c = new Proton\Electron\TcpClient();
+            $this->assertEquals(0, $c->connect("127.0.0.1", 18180));
 
             $r = $c->write(implode("\r\n", [
                 "GET /version HTTP/1.1",
@@ -34,49 +34,52 @@ class ProtonHTTPServerTest extends ProtonTestCase
                 ""
             ]));
 
-            $test->assertEquals(0, $r);
+            $this->assertEquals(0, $r);
 
             $s = $c->read(1024);
-            $test->log()->info($s);
+            utlog($s);
 
             $v = explode("\r\n", $s);
-            $test->assertTrue(count($v) > 0);
-            $test->assertEquals("testHttpServer", $v[count($v) - 1]);
+            $this->assertTrue(count($v) > 0);
+            $this->assertEquals("testHttpServer", $v[count($v) - 1]);
 
-            $test->assertTrue(strlen($s) > 0);
+            $this->assertTrue(strlen($s) > 0);
 
-            $test->assertEquals(0, $c->close());
-        }, $this);
+            $this->assertEquals(0, $c->close());
+        });
 
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
+
+
+        $this->assertNull(Proton\Electron\Runtime::getLastError());
     }
 
     public function testCurlHttpServer()
     {
         $count = 0;
-        Proton\go(function ($test) use (&$count) {
-            $test->log()->info("startup");
+        Proton\Electron\go(function () use (&$count) {
+            utlog("startup");
 
-            $server = new Proton\HttpServer("127.0.0.1", 18180, function ($server, $request) use ($test, &$count) {
-                $test->log()->info("[testCurlHttpServer] server($server) new request($request)");
+            $server = new Proton\Electron\HttpServer("127.0.0.1", 18180, function ($server, $request) use (&$count) {
+                utlog("[testCurlHttpServer] server($server) new request($request)");
                 $request->end(200, "testCurlHttpServer");
-                $test->log()->info("client=" . strval($request->getConnect()));
+                utlog("client=" . strval($request->getConnect()));
                 $request->getConnect()->close();
 
                 ++$count;
             });
-            $test->assertEquals(0, $server->start());
+            $this->assertEquals(0, $server->start());
 
-            Proton\sleep(500);
+            Proton\Electron\sleep(500);
 
             $server->stop();
-            Proton\Runtime::stop();
-        }, $this);
+            Proton\Electron\Runtime::stop();
+        });
 
         system("curl -v http://127.0.0.1:18180/version >/dev/null 2>&1 &");
 
-        Proton\Runtime::start();
+        Proton\Electron\Runtime::start();
 
         $this->assertEquals(1, $count);
     }

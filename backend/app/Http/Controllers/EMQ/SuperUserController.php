@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Mqtt;
+namespace App\Http\Controllers\EMQ;
 
 use Illuminate\Http\Request;
 
@@ -20,9 +20,12 @@ class SuperUserController extends \App\Http\Controllers\ApiController
     {
         $info = $this->reqToObject($request);
 
-        if (true) {
-            return response(rc_error(400, "input client($info->clientid) is not super"), 400);
+        $admin_user_prefix = env('PROTON_MQTT_ADMIN_USERNAME_PREFIX', '');
+
+        if ($admin_user_prefix && str_starts_with($info->username, $admin_user_prefix)) {
+            return $this->success();
         }
-        return $this->success();
+
+        return response(rc_error(400, "input client($info->clientid) is not super"), 400);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Mqtt;
+namespace App\Http\Controllers\EMQ;
 
 use Illuminate\Http\Request;
 

@@ -28,12 +28,14 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define PROTON_NAMESPACE "Proton"
+#define PROTON_NAMESPACE "Proton\\Electron"
 
 #define PHP_PRIVATE_VALUE_RESOURCE_NAME "proton_private_value"
 
 #define PROTON_OBJECT_PRIVATE_VALUE "_proton_private"
 #define PROTON_HTTPSERVER_DEFAULT_ROUTER_VALUE "_default_router"
+
+#define PROTON_LOGGER_DEFAULT_BUFFER_SIZE 8192
 
 extern int pc_private_resource_handle;
 extern proton_uv_scheduler *__uv_scheduler;
@@ -46,6 +48,7 @@ extern proton_coroutine_runtime *proton_get_runtime();
 
 const char **get_input_headers(zval *headers, int *output_headers_count);
 
+extern zend_class_entry *_logger_ce;
 extern zend_class_entry *_channel_ce;
 extern zend_class_entry *_tcpclient_ce;
 extern zend_class_entry *_tcpserver_ce;

@@ -5,26 +5,7 @@
 int pc_private_resource_handle;
 proton_uv_scheduler *__uv_scheduler;
 
-/* {{{ int proton_set_logger_level(int $level)
- */
-PHP_FUNCTION(proton_set_logger_level) {
-  long enable, tmp;
-
-  ZEND_PARSE_PARAMETERS_START(1, 1)
-    Z_PARAM_LONG(enable)
-  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
-
-  tmp = __proton_logger_level;
-  __proton_logger_level = enable;
-  RETURN_LONG(tmp);
-}
-/* }}} */
-
-/* {{{ void proton_printf(...$args)
- */
-PHP_FUNCTION(proton_printf) { RETURN_TRUE; }
-/* }}} */
-
+extern zend_class_entry *regist_logger_class();
 extern zend_class_entry *regist_runtime_class();
 extern zend_class_entry *regist_channel_class();
 extern zend_class_entry *regist_coroutine_class();
@@ -38,20 +19,25 @@ extern zend_class_entry *regist_httpresponse_class();
 extern zend_class_entry *regist_mqttclient_class();
 extern zend_class_entry *regist_fsevent_class();
 extern zend_class_entry *regist_processgroup_class();
-PHP_MINIT_FUNCTION(electron) {
+extern int proton_logger_global_cleanup();
 
+// module init
+PHP_MINIT_FUNCTION(electron) {
   pc_private_resource_handle = zend_register_list_destructors_ex(
       destruct_proton_private_value, NULL, PHP_PRIVATE_VALUE_RESOURCE_NAME,
       module_number);
   if (pc_private_resource_handle == FAILURE) {
-    PLOG_ERROR("regist resource %s failed\n", PHP_PRIVATE_VALUE_RESOURCE_NAME);
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "regist resource %s failed",
+                     PHP_PRIVATE_VALUE_RESOURCE_NAME);
   }
 
   __uv_scheduler = proton_scheduler_create();
   if (__uv_scheduler == NULL) {
-    PLOG_ERROR("create proton uv-scheduler failed");
+    php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                     "create proton uv-scheduler failed");
   }
 
+  regist_logger_class();
   regist_runtime_class();
   regist_channel_class();
   regist_tcpserver_class();
@@ -65,6 +51,19 @@ PHP_MINIT_FUNCTION(electron) {
   regist_mqttclient_class();
   regist_fsevent_class();
   regist_processgroup_class();
+
+  REGISTER_LONG_CONSTANT("PROTON_LOG_DEBUG", PROTON_LOG_DEBUG_LEVEL,
+                         CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("PROTON_LOG_INFO", PROTON_LOG_INFO_LEVEL,
+                         CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("PROTON_LOG_WARN", PROTON_LOG_WARN_LEVEL,
+                         CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("PROTON_LOG_ERROR", PROTON_LOG_ERROR_LEVEL,
+                         CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("PROTON_LOG_NOTICE", PROTON_LOG_NOTICE_LEVEL,
+                         CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("PROTON_LOG_FAULT", PROTON_LOG_FAULT_LEVEL,
+                         CONST_CS | CONST_PERSISTENT);
 }
 
 /* {{{ PHP_MSHUTDOWN
@@ -72,10 +71,13 @@ PHP_MINIT_FUNCTION(electron) {
 PHP_MSHUTDOWN_FUNCTION(electron) {
   if (__uv_scheduler != NULL) {
     if (proton_scheduler_free(__uv_scheduler) != 0) {
-      PLOG_ERROR("uninit proton scheduler failed");
+      php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                       "uninit proton scheduler failed");
     }
     __uv_scheduler = NULL;
   }
+
+  proton_logger_global_cleanup();
 }
 /* }}} */
 
@@ -101,13 +103,6 @@ PHP_MINFO_FUNCTION(electron) {
 
 /* {{{ arginfo
  */
-ZEND_BEGIN_ARG_INFO(arginfo_proton_set_logger_level, 1)
-  ZEND_ARG_INFO(0, enable)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO(arginfo_proton_printf, 1)
-  ZEND_ARG_INFO(0, fmt)
-ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO(arginfo_proton_coroutine_yield, 0)
 ZEND_END_ARG_INFO()
@@ -134,8 +129,6 @@ extern PHP_FUNCTION(proton_runtime_stop);
 /* {{{ electron_functions[]
  */
 static const zend_function_entry electron_functions[] = {
-    PHP_FE(proton_set_logger_level, arginfo_proton_set_logger_level) // logger
-    PHP_FE(proton_printf, arginfo_proton_printf) // proton_printf
 
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, sleep, ZEND_FN(proton_sleep),
                      arginfo_proton_coroutine_sleep) // proton::sleep

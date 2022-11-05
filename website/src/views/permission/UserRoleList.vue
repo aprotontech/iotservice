@@ -11,39 +11,17 @@
         <div class="form-search">
           <Form inline>
             <FormItem>
-              <Button
-                type="info"
-                icon="md-add"
-                :to="{ name: 'adduserrole', params: { id: userid } }"
-                >Add</Button
-              >
+              <Button type="info" icon="md-add" :to="{ name: 'adduserrole', params: { id: userid } }">Add</Button>
             </FormItem>
           </Form>
         </div>
 
         <div>
-          <Table
-            :loading="loading"
-            :data="tableData1"
-            :columns="tableColumns1"
-            stripe
-          >
+          <Table :loading="loading" :data="tableData1" :columns="tableColumns1" stripe>
             <template slot-scope="{ row, index }" slot="action">
-              <Button
-                type="primary"
-                size="small"
-                style="margin-right: 5px"
-                v-if="row.dataRule != '*' && row.dataRule != ''"
-                @click="onEditData(row.id)"
-                >DataRule</Button
-              >
-              <Button
-                type="error"
-                size="small"
-                style="margin-right: 5px"
-                @click="onDel(row.id)"
-                >Delete</Button
-              >
+              <Button type="primary" size="small" style="margin-right: 5px"
+                v-if="row.dataRule != '*' && row.dataRule != ''" @click="onEditData(row.id)">DataRule</Button>
+              <Button type="error" size="small" style="margin-right: 5px" @click="onDel(row.id)">Delete</Button>
             </template>
           </Table>
         </div>
@@ -99,8 +77,7 @@ export default {
       let params = {
         userId: parseInt(this.userid),
       };
-      this.$axios
-        .post(this.$API.PERMISSION_USERROLE_SHOW, params)
+      this.$axios.post(this.$API.PERMISSION_USERROLE_SHOW, params)
         .then((response) => {
           console.log(response);
           if (response.data && response.data.rc == "0") {
@@ -118,8 +95,7 @@ export default {
         let params = {
           id: parseInt(id),
         };
-        this.$axios
-          .post(this.$API.PERMISSION_USERROLE_DEL, params)
+        this.$axios.post(this.$API.PERMISSION_USERROLE_DEL, params)
           .then((response) => {
             console.log(response);
             if (response.data && response.data.rc == "0") {

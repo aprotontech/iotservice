@@ -22,11 +22,6 @@ Route::get('/version', function (Request $request) {
     ]);
 });
 
-/*
-Route::get('/debug/session', [DebugerController::class, 'getSession']);
-Route::get('/debug/device', [DebugerController::class, 'getDevice']);
-*/
-
 Route::post('/device/session', 'IotApi\DeviceSession\NewSessionController@route');
 Route::post('/device/attrs', 'IotApi\Property\DeviceAttributeController@route');
 
@@ -36,7 +31,7 @@ Route::post('/location/report', 'IotApi\Location\ReportController@route');
 
 Route::post('/time', 'IotApi\TimeServer\ServerTimeController@route');
 
-Route::post('/mqtt/auth', 'Mqtt\AuthController@route');
-Route::post('/mqtt/acl', 'Mqtt\AclController@route');
-Route::post('/mqtt/superuser', 'Mqtt\SuperUserController@route');
-Route::post('/mqtt/webhook', 'Mqtt\WebHookController@route');
+Route::post('/mqtt/auth', 'EMQ\AuthController@route');
+Route::post('/mqtt/acl', 'EMQ\AclController@route');
+Route::post('/mqtt/superuser', 'EMQ\SuperUserController@route');
+Route::post('/mqtt/webhook', 'EMQ\WebHookController@route');

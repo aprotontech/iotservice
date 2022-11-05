@@ -8,32 +8,32 @@ class ChannelTest extends ProtonTestCase
     {
         $this->expectException(\PHPUnit\Framework\Error\Warning::class);
 
-        $channel = new \Proton\Channel(0);
-        $this->log()->info("$channel");
+        $channel = new \Proton\Electron\Channel(0);
+        utlog("$channel");
     }
 
     public function testQueueOne()
     {
-        $channel = new \Proton\Channel(1);
+        $channel = new \Proton\Electron\Channel(1);
 
         $values = [];
-        \Proton\go(function ($channel, $test) use (&$values) {
+        \Proton\Electron\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
-                $test->assertEquals(0, $channel->push($i));
+                $this->assertEquals(0, $channel->push($i));
                 array_push($values, "push:$i");
             }
-        }, $channel, $this);
+        }, $channel);
 
 
-        \Proton\go(function ($channel) use (&$values) {
+        \Proton\Electron\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
                 $x = $channel->pop();
                 array_push($values, "pop:$x");
             }
-            \Proton\Runtime::stop();
+            \Proton\Electron\Runtime::stop();
         }, $channel);
 
-        \Proton\Runtime::start();
+        \Proton\Electron\Runtime::start();
         $this->assertEquals(20, count($values));
         for ($i = 0; $i < 10; ++$i) {
             $this->assertEquals("push:$i", $values[2 * $i]);
@@ -43,27 +43,27 @@ class ChannelTest extends ProtonTestCase
 
     public function testQueueFive()
     {
-        $channel = new \Proton\Channel(5);
+        $channel = new \Proton\Electron\Channel(5);
 
         $values = [];
-        \Proton\go(function ($channel, $test) use (&$values) {
+        \Proton\Electron\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
-                $test->assertEquals(0, $channel->push($i));
+                $this->assertEquals(0, $channel->push($i));
                 array_push($values, "push:$i");
             }
-        }, $channel, $this);
+        }, $channel);
 
 
-        \Proton\go(function ($channel, $test) use (&$values) {
+        \Proton\Electron\go(function ($channel) use (&$values) {
             for ($i = 0; $i < 10; ++$i) {
                 $x = $channel->pop();
                 array_push($values, "pop:$x");
-                $test->assertEquals($i, $x);
+                $this->assertEquals($i, $x);
             }
-            \Proton\Runtime::stop();
-        }, $channel, $this);
+            \Proton\Electron\Runtime::stop();
+        }, $channel);
 
-        \Proton\Runtime::start();
+        \Proton\Electron\Runtime::start();
         $this->assertEquals(20, count($values));
     }
 }

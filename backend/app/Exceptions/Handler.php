@@ -52,6 +52,10 @@ class Handler extends ExceptionHandler
             }
         });
 
+        $this->renderable(function (UserNotLoginException $e, $request) {
+            return response($e->getApiError(), 401);
+        });
+
         $this->renderable(function (ApiException $e, $request) {
             return response($e->getApiError(), 500);
         });

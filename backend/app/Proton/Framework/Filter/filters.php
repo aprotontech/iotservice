@@ -27,6 +27,11 @@ function is_map_of($tmpl)
     return new \Proton\Framework\Filter\KeyValueFilter($tmpl);
 }
 
+function is_any_of($tmpl)
+{
+    return new \Proton\Framework\Filter\AnyFilter($tmpl);
+}
+
 function is_equal_anyof(...$values)
 {
     return new \Proton\Framework\Filter\MatchFilter($values);

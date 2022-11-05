@@ -19,7 +19,7 @@ class Logger extends \Illuminate\Log\Logger
         if ($this->useLaravelLogger) {
             $this->logger->{$level}($message, $context);
         } else {
-            \SeasLog::log(constant('SEASLOG_' . strtoupper($level)), $message, $context);
+            \Proton\Logger::getDefaultLogger()->write(constant('PROTON_LOG_' . strtoupper($level)), $message, $context);
         }
     }
 

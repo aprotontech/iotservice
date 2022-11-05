@@ -1,6 +1,6 @@
 <?php
 
-namespace Proton\Media;
+namespace Proton\Framework\Media;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage as LaravelStorage;
