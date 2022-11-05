@@ -3,28 +3,16 @@
     <div class="breadcrumb-bar">
       <el-breadcrumb separator="/">
         <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-        <el-breadcrumb-item :to="{ name: 'sntasklist' }"
-          >任务列表</el-breadcrumb-item
-        >
+        <el-breadcrumb-item :to="{ name: 'sntasklist' }">任务列表</el-breadcrumb-item>
         <el-breadcrumb-item><span>新建任务</span></el-breadcrumb-item>
       </el-breadcrumb>
     </div>
     <div class="main-box">
       <el-form :inline="true" label-width="125px">
         <el-form-item label="应用" label-width="120px">
-          <el-select
-            v-model="task.app_id"
-            placeholder=""
-            style="width: 300px"
-            clearable
-            filterable
-          >
-            <el-option
-              v-for="item in appList"
-              :key="item.appid"
-              :label="item.name + ' (' + item.appid + ')'"
-              :value="item.appid"
-            ></el-option>
+          <el-select v-model="task.app_id" placeholder="" style="width: 300px" clearable filterable>
+            <el-option v-for="item in appList" :key="item.appid" :label="item.name + ' (' + item.appid + ')'"
+              :value="item.appid"></el-option>
           </el-select>
         </el-form-item>
         <br />
@@ -33,64 +21,33 @@
         </el-form-item>
         <br />
         <el-form-item label="SN前缀:" label-width="120px">
-          <el-input
-            v-model="task.prefix"
-            style="width: 300px"
-            placeholder="示例： F1010F1F"
-          ></el-input>
+          <el-input v-model="task.prefix" style="width: 300px" placeholder="示例： F1010F1F"></el-input>
           <label>规则： ^[A-F]\d{4}[A-F]\d[A-F]\d{0,6}$</label>
         </el-form-item>
         <br />
         <el-form-item label="SN开始:" label-width="120px">
-          <el-input
-            v-model="task.start"
-            style="width: 300px"
-            placeholder="示例： F1010F1F000000"
-          ></el-input>
+          <el-input v-model="task.start" style="width: 300px" placeholder="示例： F1010F1F000000"></el-input>
         </el-form-item>
         <br />
 
         <el-form-item label="数量:" label-width="120px">
-          <el-input
-            style="width: 300px"
-            v-model="task.count"
-            type="number"
-          ></el-input>
+          <el-input style="width: 300px" v-model="task.count" type="number"></el-input>
         </el-form-item>
         <br />
         <el-form-item label="方式:" label-width="120px">
-          <el-select
-            style="width: 300px"
-            class="item-choose"
-            v-model="task.type"
-            size="small"
-          >
-            <el-option
-              v-for="(item, index) in modeOptions"
-              :key="index"
-              :label="item.label"
-              :value="item.value"
-            ></el-option>
+          <el-select style="width: 300px" class="item-choose" v-model="task.type" size="small">
+            <el-option v-for="(item, index) in modeOptions" :key="index" :label="item.label" :value="item.value">
+            </el-option>
           </el-select>
         </el-form-item>
         <br />
         <el-form-item label="描述：" label-width="120px">
-          <el-input
-            v-model="task.comment"
-            style="width: 300px"
-            type="textarea"
-          ></el-input>
+          <el-input v-model="task.comment" style="width: 300px" type="textarea"></el-input>
         </el-form-item>
         <br />
 
         <el-form-item label=" " label-width="120px">
-          <el-button
-            type="primary"
-            @click="doInsert"
-            :disabled="disabledBtnQuery"
-            :loading="showLoading"
-            >确定</el-button
-          >
+          <el-button type="primary" @click="doInsert" :disabled="disabledBtnQuery" :loading="showLoading">确定</el-button>
         </el-form-item>
       </el-form>
 
@@ -130,7 +87,7 @@ export default {
     };
   },
   props: {},
-  created() {},
+  created() { },
   computed: {},
   filters: {},
   mounted() {
@@ -138,10 +95,9 @@ export default {
   },
   methods: {
     loadApplist() {
-      this.$http
-        .get(this.$API.APP_LIST, { params: { permission: "sn_task" } })
+      this.$axios.get(this.$API.APP_LIST, { params: { permission: "sn_task" } })
         .then((resp) => {
-          const data = resp.body;
+          const data = resp.data;
           console.log(data);
           this.appList = data.appList;
         })
@@ -152,8 +108,7 @@ export default {
     doInsert() {
       this.task.count = parseInt(this.task.count);
       this.task.type = parseInt(this.task.type);
-      this.$http
-        .post(this.$API.DEVICE_SNTASK_NEW, this.task)
+      this.$axios.post(this.$API.DEVICE_SNTASK_NEW, this.task)
         .then((response) => {
           let m = response.data;
           if (m.rc == 0) {

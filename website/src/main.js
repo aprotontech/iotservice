@@ -2,6 +2,8 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 
+import axios from './axios'
+
 import iView from 'iview'
 
 import ElementUI from 'element-ui'
@@ -23,7 +25,7 @@ import uploader from 'vue-simple-uploader'
 import VDistpicker from 'v-distpicker'
 import Schart from 'vue-schart'
 
-import './axios'
+
 
 Vue.config.productionTip = false
 
@@ -43,6 +45,8 @@ import 'iview/dist/styles/iview.css'
 
 // 属性扩充
 Vue.prototype.$API = API;
+Vue.prototype.$axios = axios;
+
 
 router.beforeEach((to, from, next) => {
     iView.LoadingBar.start();
@@ -60,7 +64,7 @@ router.beforeEach((to, from, next) => {
 
             let url = '/web/passport/session';
             Vue.http.get(url).then(function (response) {
-                let m = response.body;
+                let m = response.data;
                 if (m.error == 'success' || m.rc == '0') {
                     sessionStorage.setItem('userAccount', m.email)
                     next();

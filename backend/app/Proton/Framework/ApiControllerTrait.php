@@ -26,7 +26,11 @@ trait ApiControllerTrait
             rclog_debug('[START] ' . $request->path());
             $r = $this->handleRequest($request);
             rclog_debug('[FINISH]');
+        } catch (ApiException $e) {
+            rclog_exception($e);
+            $r = $e->getApiError();
         } catch (\Exception $e) {
+            rclog_exception($e);
             $rc->start = microtime(true);
             $rc->finish = microtime(true);
             throw $e;
