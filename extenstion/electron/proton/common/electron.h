@@ -26,8 +26,8 @@
 #include "php.h"
 #include "ext/standard/info.h"
 
-#define qmalloc emalloc
-#define qfree efree
+#define qmalloc malloc
+#define qfree free
 
 #ifndef container_of
 #define container_of(ptr, type, member)                                        \

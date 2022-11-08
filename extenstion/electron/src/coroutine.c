@@ -173,6 +173,20 @@ PHP_METHOD(coroutine, resume) {
 
 /** {{{
  */
+PHP_METHOD(coroutine, getReturnValue) {
+  proton_coroutine_runtime *runtime = proton_get_runtime();
+
+  ZEND_PARSE_PARAMETERS_NONE();
+
+  proton_coroutine_task *task =
+      (proton_coroutine_task *)proton_object_get(getThis());
+
+  RETURN_ZVAL(&task->retval, 0, 0);
+}
+/* }}} */
+
+/** {{{
+ */
 PHP_METHOD(coroutine, get) { ZEND_PARSE_PARAMETERS_NONE(); }
 /* }}} */
 
@@ -197,7 +211,9 @@ const zend_function_entry coroutine_functions[] = {
     PHP_ME(coroutine, pause, NULL, ZEND_ACC_PUBLIC)  // coroutine::pause
     PHP_ME(coroutine, resume, NULL, ZEND_ACC_PUBLIC) // coroutine::resume
     PHP_ME(coroutine, status, NULL, ZEND_ACC_PUBLIC) // coroutine::status
-    {NULL, NULL, NULL} /* Must be the last line in coroutine_functions[] */
+    PHP_ME(coroutine, getReturnValue, NULL,
+           ZEND_ACC_PUBLIC) // coroutine::getReturnValue
+    {NULL, NULL, NULL}      /* Must be the last line in coroutine_functions[] */
 };
 /* }}} */
 

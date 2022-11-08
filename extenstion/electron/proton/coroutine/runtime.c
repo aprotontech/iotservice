@@ -13,6 +13,7 @@
 
 #include "runtime.h"
 #include "proton/coroutine/task.h"
+#include "wait_group.h"
 
 extern int proton_coroutine_swap_in(proton_coroutine_task *dest);
 extern int proton_coroutine_swap_out(proton_coroutine_task *current,
@@ -270,6 +271,14 @@ int proton_runtime_cleanup_temp(proton_coroutine_runtime *runtime,
       if (task != NULL) {
         if (task->exception != NULL) { // task exit with exception
           _runtime_throw_exception(task);
+        }
+
+        { // notify task stoped
+          list_link_t *q = task->notify.next;
+          while (q != &task->notify) {
+            proton_wait_group_notify(&task->value, q);
+            q = q->next;
+          }
         }
 
         // PLOG_DEBUG("found task to release(%p)", task);

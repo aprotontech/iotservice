@@ -14,10 +14,10 @@ function utlog($format, ...$args)
 {
     $msg = vsprintf($format, $args);
     $logger = Logger::getDefaultLogger();
-    $logger->write(PROTON_LOG_NOTICE, $msg);
+    $logger->write(Logger::LEVEL_NOTICE, $msg);
 }
 
 if (defined('PROTON_PRINT_CORE_LOGGER') && PROTON_PRINT_CORE_LOGGER) {
-    Logger::getDefaultLogger()->setLevel(0);
+    Logger::getDefaultLogger()->setLevel(Logger::LEVEL_DEBUG);
     Logger::setCoreLogger(Logger::getDefaultLogger());
 }

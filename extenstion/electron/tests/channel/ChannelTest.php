@@ -12,6 +12,30 @@ class ChannelTest extends ProtonTestCase
         utlog("$channel");
     }
 
+    public function testEasy()
+    {
+        $channel = new \Proton\Electron\Channel(1);
+
+        $this->testEasyValue = null;
+
+        \Proton\Electron\go(function ($channel) {
+            $this->testEasyValue = $channel->pop();
+        }, $channel);
+
+        \Proton\Electron\go(function ($channel) {
+            $channel->push("push:10");
+        }, $channel);
+
+        \Proton\Electron\go(function () {
+            Proton\Electron\sleep(100);
+            \Proton\Electron\Runtime::stop();
+        });
+
+        \Proton\Electron\Runtime::start();
+
+        $this->assertEquals("push:10", $this->testEasyValue);
+    }
+
     public function testQueueOne()
     {
         $channel = new \Proton\Electron\Channel(1);

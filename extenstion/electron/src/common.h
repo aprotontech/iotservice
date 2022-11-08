@@ -37,6 +37,8 @@
 
 #define PROTON_LOGGER_DEFAULT_BUFFER_SIZE 8192
 
+#define STRING_PARAM_EXPAND(s) (s), strlen(s)
+
 extern int pc_private_resource_handle;
 extern proton_uv_scheduler *__uv_scheduler;
 
@@ -60,5 +62,6 @@ extern zend_class_entry *_httpclient_ce;
 extern zend_class_entry *_httprequest_ce;
 extern zend_class_entry *_httpresponse_ce;
 extern zend_class_entry *_processgroup_ce;
+extern zend_class_entry *_waitgroup_ce;
 
 #endif
