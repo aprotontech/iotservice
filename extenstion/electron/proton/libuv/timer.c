@@ -48,6 +48,9 @@ int proton_coroutine_sleep(proton_coroutine_runtime *runtime, long time_ms) {
 
   uv_timer_start(&pt->timer, on_coroutine_sleep_done, time_ms, 0);
 
+  PLOG_INFO("coroutinue(%lu) sleep %dms",
+            RUNTIME_CURRENT_COROUTINE(runtime)->cid, time_ms);
+
   proton_coroutine_waitfor(runtime, &pt->wq_tick, NULL);
 
   return 0;

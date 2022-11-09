@@ -116,6 +116,7 @@ extern PHP_FUNCTION(proton_go);
 extern PHP_FUNCTION(proton_context);
 extern PHP_FUNCTION(proton_yield);
 extern PHP_FUNCTION(proton_sleep);
+extern PHP_FUNCTION(proton_after);
 extern PHP_FUNCTION(proton_wait);
 extern PHP_FUNCTION(proton_runtime_start);
 extern PHP_FUNCTION(proton_runtime_stop);
@@ -126,6 +127,8 @@ static const zend_function_entry electron_functions[] = {
 
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, sleep, ZEND_FN(proton_sleep),
                      arginfo_proton_coroutine_sleep) // proton::sleep
+    ZEND_NS_NAMED_FE(PROTON_NAMESPACE, after, ZEND_FN(proton_after),
+                     arginfo_proton_coroutine_sleep) // proton::after
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, pause, ZEND_FN(proton_yield),
                      arginfo_proton_coroutine_yield) // proton::yield
     ZEND_NS_NAMED_FE(PROTON_NAMESPACE, go, ZEND_FN(proton_go),

@@ -204,7 +204,7 @@ const zend_function_entry logger_functions[] = {
     PHP_ME(logger, write, NULL,
            ZEND_ACC_PUBLIC) // logger::write
     PHP_ME(logger, setLevel, NULL,
-           ZEND_ACC_PUBLIC) // logger::set_level
+           ZEND_ACC_PUBLIC) // logger::setLevel
     PHP_ME(logger, close, NULL,
            ZEND_ACC_PUBLIC) // logger::close
     PHP_ME(logger, setCoreLogger, NULL,

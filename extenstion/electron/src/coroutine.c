@@ -229,5 +229,14 @@ zend_class_entry *regist_coroutine_class() {
                              ZEND_STRL(PROTON_OBJECT_PRIVATE_VALUE),
                              ZEND_ACC_PRIVATE TSRMLS_CC);
 
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_RUNABLE"), QC_STATUS_RUNABLE);
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_RUNNING"), QC_STATUS_RUNNING);
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_SUSPEND"), QC_STATUS_SUSPEND);
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_STOPED"), QC_STATUS_STOPED);
+
   return _coroutine_ce;
 }

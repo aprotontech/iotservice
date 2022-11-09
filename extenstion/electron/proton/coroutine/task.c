@@ -210,9 +210,8 @@ zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
   EG(current_execute_data) = call;
 
   for (int i = 0; i < entry->argc; ++i) {
-    zval *param;
     zval *arg = &entry->argv[i];
-    param = ZEND_CALL_ARG(call, i + 1);
+    zval *param = ZEND_CALL_ARG(call, i + 1);
     ZVAL_COPY(param, arg);
   }
   save_vm_stack(task);
@@ -224,8 +223,8 @@ zend_function *init_coroutinue_php_stack(task_context_wrap_t *wrap) {
 }
 
 void print_coroutine_exception_stack();
-void run_proton_coroutine_task(proton_coroutine_task *task,
-                               zend_function *func) {
+void run_proton_coroutine_task(proton_coroutine_task *task, zend_function *func,
+                               proton_coroutine_entry *entry) {
 
   proton_coroutine_runtime *runtime = task->runtime;
 
@@ -234,10 +233,32 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
   zval retval;
   ZVAL_UNDEF(&retval);
 
+  PLOG_INFO("[COROUTINUE] task(%lu) start to run func. type=%d", task->cid,
+            func->type);
   if (func->type == ZEND_USER_FUNCTION) {
     EG(current_execute_data) = NULL;
     zend_init_func_execute_data(call, &func->op_array, &retval);
     zend_execute_ex(EG(current_execute_data));
+  } else if (func->type == ZEND_INTERNAL_FUNCTION) {
+    EG(current_execute_data) = NULL;
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fci_cache = empty_fcall_info_cache;
+    char *is_callable_error = NULL;
+    if (zend_fcall_info_init(&entry->func, 0, &fci, &fci_cache, NULL,
+                             &is_callable_error) == SUCCESS) {
+      zval params;
+      ZVAL_NEW_ARR(&params);
+      zend_hash_init(Z_ARRVAL(params), entry->argc, NULL, ZVAL_PTR_DTOR, 0);
+      for (int i = 0; i < entry->argc; ++i) {
+        zval *arg = ZEND_CALL_ARG(call, i + 1);
+        zend_hash_index_add(Z_ARRVAL(params), i, arg);
+      }
+      zend_fcall_info_call(&fci, &fci_cache, &retval, &params);
+      ZVAL_PTR_DTOR(&params);
+    } else {
+      PLOG_WARN("[COROUTINUE] task(%lu) get func info failed, skip it",
+                task->cid);
+    }
   }
 
   if (EG(exception) != NULL) {                          // exception is error
@@ -282,6 +303,25 @@ void run_proton_coroutine_task(proton_coroutine_task *task,
 
   // save current exception to task
   save_vm_stack(task);
+}
+
+static void _quark_task_runner(task_context_wrap_t *wrap) {
+
+  restore_vm_stack(&wrap->task);
+  run_proton_coroutine_task(&wrap->task, wrap->func, &wrap->entry);
+
+  // restore to main php-stack
+  restore_vm_stack(RUNTIME_MAIN_COROUTINE(wrap->task.runtime));
+
+  proton_coroutine_notify_reschedule(wrap->task.runtime);
+
+  // release call
+  for (int i = 0; i < wrap->entry.argc; ++i) {
+    zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
+    //  ZVAL_PTR_DTOR(param); // release argv, no need now
+  }
+
+  ZVAL_PTR_DTOR(&wrap->entry.func);
 }
 
 void print_stack_frame(zval *exception) {
@@ -359,23 +399,4 @@ void print_coroutine_exception_stack() {
     ZEND_HASH_FOREACH_VAL(ht, val) { print_stack_frame(val); }
     ZEND_HASH_FOREACH_END();
   }
-}
-
-static void _quark_task_runner(task_context_wrap_t *wrap) {
-
-  restore_vm_stack(&wrap->task);
-  run_proton_coroutine_task(&wrap->task, wrap->func);
-
-  // restore to main php-stack
-  restore_vm_stack(RUNTIME_MAIN_COROUTINE(wrap->task.runtime));
-
-  proton_coroutine_notify_reschedule(wrap->task.runtime);
-
-  // release call
-  for (int i = 0; i < wrap->entry.argc; ++i) {
-    zval *param = ZEND_CALL_ARG(wrap->call, i + 1);
-    //  ZVAL_PTR_DTOR(param); // release argv, no need now
-  }
-
-  ZVAL_PTR_DTOR(&wrap->entry.func);
 }
