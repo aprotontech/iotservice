@@ -243,13 +243,67 @@ struct topic_find_ctx_t {
   proton_mqtt_subscribe_topic_t *found;
 };
 
+// p: subscribe topic
+// q: message topic
+// len: length of q
+int _is_topic_match(const char *p, const char *q, int len) {
+  const char *s = p;
+  const char *e = q + len;
+  while (*q != '\0' && q < e) {
+    if (*p == '+') {
+      if (p == s || !(p[1] == '\0' || p[1] == '/')) {
+        // invalidate +
+        return 0;
+      }
+
+      if (*q == '/') {
+        ++p;
+        if (*p == '/') {
+          ++p;
+        }
+        ++q;
+      } else {
+        ++q;
+      }
+    } else if (*p == '#') {
+      if (p[1] != '\0') {
+        return 0;
+      }
+
+      return 1;
+    } else if (*p != *q) {
+      return 0;
+    } else {
+      ++p;
+      ++q;
+    }
+  }
+
+  if ((*p == '+' || *p == '#') && p[1] == '\0') {
+    return 1;
+  } else if (*p == '\0' && q == e) {
+    return 1;
+  } else if (*p == '/' && p[1] == '#' && p[2] == '\0' && *q == '\0') {
+    return 1;
+  }
+
+  return 0;
+}
+
 int _find_matched_topic(any_t ptr, const char *key, any_t data) {
   struct topic_find_ctx_t *ctx = (struct topic_find_ctx_t *)ptr;
-  if (strncasecmp(ctx->topic, key, ctx->topic_length) == 0) {
+
+  if (_is_topic_match(key, ctx->topic, ctx->topic_length) != 0) {
     ctx->found = (proton_mqtt_subscribe_topic_t *)data;
     return 1; // found
   }
   return MAP_OK;
+}
+
+int proton_is_mqtt_topic_match(const char *subscribed_topic,
+                               const char *message_topic, int msgtopiclen) {
+  int ret = _is_topic_match(subscribed_topic, message_topic, msgtopiclen);
+  return ret;
 }
 
 proton_mqtt_subscribe_topic_t *
@@ -261,7 +315,13 @@ mqttclient_get_subscribe_topic(proton_mqtt_client_t *mqtt, zval *message) {
                                  .found = NULL};
   hashmap_iterate(mqtt->subscribe_topics, _find_matched_topic, &ctx);
   if (ctx.found != NULL) {
-    PLOG_INFO("[MQTT] input topic match with topic(%s)", ctx.found->topic);
+    PLOG_INFO("[MQTT] input topic(%s) match with subscribed topic(%s)",
+              Z_STRVAL_P(topic), ctx.found->topic);
+  } else {
+    PLOG_WARN(
+        "[MQTT] input topic match(%s) don't match any subscribe topic, can't "
+        "reach here",
+        Z_STRVAL_P(topic));
   }
 
   return ctx.found;
