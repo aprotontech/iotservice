@@ -33,15 +33,15 @@ jobs:
     runs-on: self-hosted
     steps:  
     - name: Build & push Docker image
-        uses: mr-smithers-excellent/docker-build-push@v5
-        with:
-          image: aproton/iotservice
-          tags: v0.1-$APP_VERSION, latest
-          registry: docker.io
-          directory: build/deploy
-          dockerfile: Dockerfile
-          username: ${{ secrets.DOCKERHUB_DOCKER_USER_NAME }}
-          password: ${{ secrets.DOCKERHUB_DOCKER_PASSWORD }}
+      uses: mr-smithers-excellent/docker-build-push@v5
+      with:
+        image: aproton/iotservice
+        tags: v0.1-$APP_VERSION, latest
+        registry: docker.io
+        directory: build/deploy
+        dockerfile: Dockerfile
+        username: ${{ secrets.DOCKERHUB_DOCKER_USER_NAME }}
+        password: ${{ secrets.DOCKERHUB_DOCKER_PASSWORD }}
 
   test-deploy:
     needs: build-service
