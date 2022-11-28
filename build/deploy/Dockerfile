@@ -10,7 +10,6 @@ RUN cd /root/ && wget http://api.aproton.tech/emqx-4.4.0-otp23.3.4.9-3-ubuntu20.
 COPY php.ini /etc/php/7.4/cli/php.ini
 
 COPY .build-cache/electron.so /usr/lib/php/20190902/electron.so
-COPY .build-cache/libuv.so.1 /usr/local/lib/libuv.so.1
 
 COPY start.sh /root/iotservice/start.sh
 COPY loaded_plugins /root/emqx/data/loaded_plugins

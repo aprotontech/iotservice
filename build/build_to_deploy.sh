@@ -43,7 +43,6 @@ make -j8
 #make install
 
 cp .libs/electron.so $TMP/electron.so
-cp /usr/local/lib/libuv.so.1 $TMP/libuv.so.1
 
 # TODO
 echo "all modules had builded and copyed to $TMP"
