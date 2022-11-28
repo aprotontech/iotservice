@@ -36,9 +36,9 @@ jobs:
       uses: mr-smithers-excellent/docker-build-push@v5
       with:
         image: aproton/iotservice
-        tags: v0.1-$APP_VERSION, latest
+        tags: v0.1-$APP_VERSION
         registry: docker.io
-        directory: build/deploy
+        directory: ./build/deploy
         dockerfile: Dockerfile
         username: ${{ secrets.DOCKERHUB_DOCKER_USER_NAME }}
         password: ${{ secrets.DOCKERHUB_DOCKER_PASSWORD }}
