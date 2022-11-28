@@ -53,7 +53,7 @@ jobs:
 
   build-cleanup:
     if: always()
-    needs: build-service
+    needs: [build-service, docker, test-deploy]
     runs-on: self-hosted
     container:
       image: docker.io/aproton/iotservice-dev:latest
