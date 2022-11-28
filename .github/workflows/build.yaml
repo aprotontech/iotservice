@@ -50,3 +50,13 @@ jobs:
       - name: Deploy Test Env
 #        if: startsWith()
         run: echo "deploy test env"
+
+  build-cleanup:
+    if: always()
+    needs: build-service
+    runs-on: self-hosted
+    container:
+      image: docker.io/aproton/iotservice-dev:latest
+    steps:  
+      - name: Cleanup Content
+        run: bash build/build_cleanup.sh
