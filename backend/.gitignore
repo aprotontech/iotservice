@@ -3,6 +3,7 @@ public/hot
 public/storage
 public/static
 public/index.html
+public/test-esp32.wav
 storage/*.key
 vendor
 .env

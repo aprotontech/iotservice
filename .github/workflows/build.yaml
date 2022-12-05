@@ -39,7 +39,7 @@ jobs:
         tags: v0.1-$APP_VERSION
         registry: docker.io
         directory: ./build/deploy
-        dockerfile: Dockerfile
+        dockerfile: ./build/deploy/Dockerfile
         username: ${{ secrets.DOCKERHUB_DOCKER_USER_NAME }}
         password: ${{ secrets.DOCKERHUB_DOCKER_PASSWORD }}
 
