@@ -5,7 +5,7 @@ on:
 
 jobs:
   init-env:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -21,7 +21,7 @@ jobs:
 
   build-service:
     needs: init-env
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: docker.io/aproton/iotservice-dev:latest
     steps:  
@@ -30,7 +30,7 @@ jobs:
 
   docker:
     needs: build-service
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:  
     - name: Build & push Docker image
       uses: mr-smithers-excellent/docker-build-push@v5
@@ -45,7 +45,7 @@ jobs:
 
   test-deploy:
     needs: build-service
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy Test Env
 #        if: startsWith()
@@ -54,7 +54,7 @@ jobs:
   build-cleanup:
     if: always()
     needs: [build-service, docker, test-deploy]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: docker.io/aproton/iotservice-dev:latest
     steps:  
