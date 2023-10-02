@@ -113,40 +113,6 @@
         </div>
       </div>
 
-      <!--div class="mode-box">
-        <h3 class="mode-title">绑定信息&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<el-button type="primary"
-                                                                                        v-if="cleanBindVisible"
-                                                                                        @click="cleanUpBind()">
-          清除绑定关系
-        </el-button>
-        </h3>
-
-        <div class="mode-content">
-          <el-table ref="table"
-                    :data="groupData"
-                    border
-                    style="width: 100%">
-            <el-table-column
-              prop="phone"
-              label="手机号"
-              align="center">
-            </el-table-column>
-            <el-table-column
-              prop="role"
-              label="身份信息"
-              align="center">
-            </el-table-column>
-
-            <el-table-column prop="bindTime" label="绑定时间" show-overflow-tooltip align="center" min-width="140">
-              <template slot-scope="scope">
-                <span v-if="scope.row.bindTime > 0">{{ scope.row.bindTime | formatDate2 }}</span>
-                <span v-else></span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </div-->
-
       <div class="mode-box">
         <div class="mode-content center"></div>
       </div>
@@ -229,7 +195,7 @@ export default {
                   ? m.basic.active_time
                   : "未激活",
                 disableTime: m.basic.deleted_at ? m.basic.deleted_at : "正常",
-                token: "",
+                token: m.basic.session,
               },
             ];
 

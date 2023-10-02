@@ -4,3 +4,6 @@ docker-compose.override.yml
 /.vscode
 /proxy
 /build/deploy/.build-cache
+/app
+/.build-cache
+/*.env

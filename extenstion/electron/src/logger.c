@@ -204,7 +204,7 @@ const zend_function_entry logger_functions[] = {
     PHP_ME(logger, write, NULL,
            ZEND_ACC_PUBLIC) // logger::write
     PHP_ME(logger, setLevel, NULL,
-           ZEND_ACC_PUBLIC) // logger::set_level
+           ZEND_ACC_PUBLIC) // logger::setLevel
     PHP_ME(logger, close, NULL,
            ZEND_ACC_PUBLIC) // logger::close
     PHP_ME(logger, setCoreLogger, NULL,
@@ -225,6 +225,19 @@ zend_class_entry *regist_logger_class() {
 
   zend_declare_property_null(_logger_ce, ZEND_STRL(PROTON_OBJECT_PRIVATE_VALUE),
                              ZEND_ACC_PRIVATE TSRMLS_CC);
+
+  zend_declare_class_constant_long(
+      _logger_ce, STRING_PARAM_EXPAND("LEVEL_DEBUG"), PROTON_LOG_DEBUG_LEVEL);
+  zend_declare_class_constant_long(
+      _logger_ce, STRING_PARAM_EXPAND("LEVEL_INFO"), PROTON_LOG_INFO_LEVEL);
+  zend_declare_class_constant_long(
+      _logger_ce, STRING_PARAM_EXPAND("LEVEL_WARN"), PROTON_LOG_WARN_LEVEL);
+  zend_declare_class_constant_long(
+      _logger_ce, STRING_PARAM_EXPAND("LEVEL_ERROR"), PROTON_LOG_ERROR_LEVEL);
+  zend_declare_class_constant_long(
+      _logger_ce, STRING_PARAM_EXPAND("LEVEL_NOTICE"), PROTON_LOG_NOTICE_LEVEL);
+  zend_declare_class_constant_long(
+      _logger_ce, STRING_PARAM_EXPAND("LEVEL_FAULT"), PROTON_LOG_FAULT_LEVEL);
 
   return _logger_ce;
 }

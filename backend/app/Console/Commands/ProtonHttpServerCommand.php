@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Log;
-use Proton;
+use Proton\Electron;
 use Proton\Framework\Command\Daemon;
 
 class ProtonHttpServerCommand extends Command
@@ -22,7 +22,7 @@ class ProtonHttpServerCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Start Proton HttpServer';
 
     /**
      * Create a new command instance.
@@ -46,16 +46,17 @@ class ProtonHttpServerCommand extends Command
             $daemon->start();
         }
 
-        proton_set_logger_level(3);
-        \Proton\Eletron\Runtime::setErrorHandler(function ($coroutine, $error) {
+        Electron\Logger::getDefaultLogger()->setLevel(Electron\Logger::LEVEL_DEBUG);
+        Electron\Logger::setCoreLogger(Electron\Logger::getDefaultLogger());
+        Electron\Runtime::setErrorHandler(function ($coroutine, $error) {
             Log::error("coroutinue($coroutine) throw error($error)");
         });
 
-        \Proton\Eletron\go(function ($cmd) {
+        Electron\go(function ($cmd) {
             $address = $cmd->option('host');
             $port = $cmd->option('port');
             Log::notice("Proton Server Listen at $address:$port");
-            $server = new \Proton\Eletron\HttpServer($address, $port, function ($server, $request) {
+            $server = new Electron\HttpServer($address, $port, function ($server, $request) {
                 // TODO: optimize later
                 $kernel = $server->app->make(Kernel::class);
 
@@ -73,7 +74,7 @@ class ProtonHttpServerCommand extends Command
         }, $this);
 
 
-        \Proton\Eletron\Runtime::start();
+        Electron\Runtime::start();
         return 0;
     }
 }

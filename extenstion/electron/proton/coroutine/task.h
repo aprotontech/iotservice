@@ -52,6 +52,9 @@ typedef struct _proton_coroutine_task {
   void *c_stack;
   zend_vm_stack page;
 
+  // return value
+  zval retval;
+
   ////
 
   struct _proton_coroutine_task *parent; // no use now
@@ -77,8 +80,12 @@ typedef struct _proton_coroutine_task {
 
   // if more than one corotinue waiting for a object, this link to other
   // corotinues.
-  // a corotinue only can waiting for one object
+  // a corotinue only can waiting for one object(see: proton_wait_object_t)
   list_link_t waiting;
+
+  // if someone is waiting for the coroutine finished.
+  // link to proton_wait_group_t.link
+  list_link_t notify;
 } proton_coroutine_task;
 
 typedef struct _proton_coroutine_entry {

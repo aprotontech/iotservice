@@ -129,6 +129,9 @@ int proton_mqttclient_loop(proton_private_value_t *mqtt,
 proton_mqtt_client_status
 proton_mqttclient_get_status(proton_private_value_t *client);
 
+int proton_is_mqtt_topic_match(const char *subscribed_topic,
+                               const char *message_topic, int msgtopiclen);
+
 //// internal functions
 int _mqttclient_close_all(proton_mqtt_client_t *mqtt);
 int parse_mqttclient_options(zval *options,

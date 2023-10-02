@@ -19,13 +19,13 @@ class Logger extends \Illuminate\Log\Logger
         if ($this->useLaravelLogger) {
             $this->logger->{$level}($message, $context);
         } else {
-            \Proton\Logger::getDefaultLogger()->write(constant('PROTON_LOG_' . strtoupper($level)), $message, $context);
+            \Proton\Electron\Logger::getDefaultLogger()->write(constant('PROTON_LOG_' . strtoupper($level)), $message, $context);
         }
     }
 
     private function getLoggerContext()
     {
-        if (function_exists('\Proton\context') && ($current = \Proton\context()) != null) { // enabled 
+        if (function_exists('\Proton\Electron\context') && ($current = \Proton\Electron\context()) != null) { // enabled 
             if (!isset($current->_loggerUUID)) {
                 $current->_loggerUUID = $this->newUUID();
             }

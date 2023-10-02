@@ -4,7 +4,7 @@ set -ex
 
 EMQX_ROOT=/root/emqx
 
-PROJECT_ROOT=/root/iotservice
+PROJECT_ROOT=/root/apiservice
 
 cd $EMQX_ROOT
 

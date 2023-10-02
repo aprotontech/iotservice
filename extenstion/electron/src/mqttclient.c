@@ -56,27 +56,6 @@ int on_mqttclient_recv_publish_message(proton_mqtt_client_t *mqtt,
 
     PLOG_INFO("switch to callback done try dtor coroutine(%lu)", task->cid);
     ZVAL_PTR_DTOR(&coroutine); // release it
-
-    /*
-        zval status, code, message;
-        ZVAL_NEW_ARR(&status);
-        zend_hash_init(Z_ARRVAL(status), 2, NULL, ZVAL_PTR_DTOR, 0);
-
-        ZVAL_LONG(&code, 0);
-        zend_hash_add(Z_ARRVAL(status),
-                      zend_string_init("status", sizeof("status") - 1, 0),
-       &code);
-
-        ZVAL_STRINGL(&message, "closed", sizeof("closed") - 1);
-        zend_hash_add(Z_ARRVAL(status),
-                      zend_string_init("message", sizeof("message") - 1, 0),
-                      &message);
-
-        if (proton_channel_try_push(mqtt->status_channel, &status) != 0) {
-          php_error_docref(NULL TSRMLS_CC, E_WARNING,
-                           "push connect status message to channel failed");
-        }
-        Z_TRY_DELREF(status);*/
   }
 
   return 0;
@@ -208,9 +187,66 @@ PHP_METHOD(mqttclient, isConnected) {
 /** {{{
  */
 PHP_METHOD(mqttclient, loop) {
-  ZEND_PARSE_PARAMETERS_NONE();
-  RETURN_LONG(proton_mqttclient_loop(proton_object_get(getThis()),
-                                     on_mqttclient_recv_publish_message));
+  zend_bool new_coroutine = 0;
+
+  ZEND_PARSE_PARAMETERS_START(0, 1)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_BOOL(new_coroutine)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+
+  if (new_coroutine) {
+    proton_mqtt_client_t *mqtt =
+        (proton_mqtt_client_t *)proton_object_get(getThis());
+    zval func, params[1], funcname;
+
+    ZVAL_FALSE(&params[0]);
+    ZVAL_STR(&funcname, zend_string_init("loop", strlen("loop"), 0));
+
+    ZVAL_NEW_ARR(&func);
+    zend_hash_init(Z_ARRVAL(func), 2, NULL, ZVAL_PTR_DTOR, 0);
+    zend_hash_index_update(Z_ARRVAL(func), 0, getThis());
+    zend_hash_index_update(Z_ARRVAL(func), 1, &funcname);
+
+    proton_coroutine_entry entry = {
+        .argc = 1,
+        .argv = params,
+    };
+
+    ZVAL_COPY(&entry.func, &func);
+
+    proton_coroutine_task *task =
+        proton_coroutine_create(mqtt->runtime, &entry, 0, 0);
+
+    if (task == NULL) {
+      RETURN_NULL();
+    }
+
+    zval coroutine;
+    object_init_ex(&coroutine, _coroutine_ce);
+
+    proton_object_construct(&coroutine, &task->value);
+
+    proton_coroutine_resume(mqtt->runtime, task);
+
+    RETURN_ZVAL(&coroutine, 0, 0);
+  } else {
+    RETURN_LONG(proton_mqttclient_loop(proton_object_get(getThis()),
+                                       on_mqttclient_recv_publish_message));
+  }
+}
+/* }}} */
+
+/** {{{
+ */
+PHP_METHOD(mqttclient, isTopicMatch) {
+  char *stopic = NULL, *mtopic = NULL;
+  size_t stopic_len, mtopic_len;
+
+  ZEND_PARSE_PARAMETERS_START(2, 2)
+    Z_PARAM_STRING(stopic, stopic_len)
+    Z_PARAM_STRING(mtopic, mtopic_len)
+  ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+  RETURN_LONG(proton_is_mqtt_topic_match(stopic, mtopic, mtopic_len));
 }
 /* }}} */
 
@@ -233,6 +269,8 @@ const zend_function_entry mqttclient_functions[] = {
     PHP_ME(mqttclient, subscribe, NULL,
            ZEND_ACC_PUBLIC)                          // mqttclient::subscribe
     PHP_ME(mqttclient, close, NULL, ZEND_ACC_PUBLIC) // mqttclient::close
+    PHP_ME(mqttclient, isTopicMatch, NULL,
+           ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // mqttclient::isTopicMatch
     {NULL, NULL, NULL} /* Must be the last line in mqttclient_functions[] */
 };
 /* }}} */

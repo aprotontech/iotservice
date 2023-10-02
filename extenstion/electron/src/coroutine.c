@@ -173,6 +173,20 @@ PHP_METHOD(coroutine, resume) {
 
 /** {{{
  */
+PHP_METHOD(coroutine, getReturnValue) {
+  proton_coroutine_runtime *runtime = proton_get_runtime();
+
+  ZEND_PARSE_PARAMETERS_NONE();
+
+  proton_coroutine_task *task =
+      (proton_coroutine_task *)proton_object_get(getThis());
+
+  RETURN_ZVAL(&task->retval, 0, 0);
+}
+/* }}} */
+
+/** {{{
+ */
 PHP_METHOD(coroutine, get) { ZEND_PARSE_PARAMETERS_NONE(); }
 /* }}} */
 
@@ -197,7 +211,9 @@ const zend_function_entry coroutine_functions[] = {
     PHP_ME(coroutine, pause, NULL, ZEND_ACC_PUBLIC)  // coroutine::pause
     PHP_ME(coroutine, resume, NULL, ZEND_ACC_PUBLIC) // coroutine::resume
     PHP_ME(coroutine, status, NULL, ZEND_ACC_PUBLIC) // coroutine::status
-    {NULL, NULL, NULL} /* Must be the last line in coroutine_functions[] */
+    PHP_ME(coroutine, getReturnValue, NULL,
+           ZEND_ACC_PUBLIC) // coroutine::getReturnValue
+    {NULL, NULL, NULL}      /* Must be the last line in coroutine_functions[] */
 };
 /* }}} */
 
@@ -212,6 +228,15 @@ zend_class_entry *regist_coroutine_class() {
   zend_declare_property_null(_coroutine_ce,
                              ZEND_STRL(PROTON_OBJECT_PRIVATE_VALUE),
                              ZEND_ACC_PRIVATE TSRMLS_CC);
+
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_RUNABLE"), QC_STATUS_RUNABLE);
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_RUNNING"), QC_STATUS_RUNNING);
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_SUSPEND"), QC_STATUS_SUSPEND);
+  zend_declare_class_constant_long(
+      _coroutine_ce, STRING_PARAM_EXPAND("STATUS_STOPED"), QC_STATUS_STOPED);
 
   return _coroutine_ce;
 }
