@@ -13,8 +13,6 @@ jobs:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_DOCKER_USER_NAME }}
           password: ${{ secrets.DOCKERHUB_DOCKER_PASSWORD }}
-      - name: Generate App Version
-        run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV; echo $APP_VERSION
 
   build-service:
     needs: init-env
@@ -22,6 +20,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
+    - name: Generate App Version
+      run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV; echo $APP_VERSION
     - name: Build & push Docker image
       uses: mr-smithers-excellent/docker-build-push@v5
       with:

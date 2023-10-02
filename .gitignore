@@ -6,3 +6,4 @@ docker-compose.override.yml
 /build/deploy/.build-cache
 /app
 /.build-cache
+/*.env
