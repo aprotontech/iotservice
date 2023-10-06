@@ -21,7 +21,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
     - name: Generate App Version
-      run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV; echo $APP_VERSION
+      run: echo APP_VERSION=`git describe --tags --always` >> $GITHUB_ENV; cat $GITHUB_ENV | grep APP_VERSION
     - name: Build & push Docker image
       uses: mr-smithers-excellent/docker-build-push@v5
       with:
